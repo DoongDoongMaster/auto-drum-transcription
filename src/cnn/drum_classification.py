@@ -59,6 +59,8 @@ def get_drum_instrument(audio):
 
     # -- reshape
     predict_data = drum_cnn_model.input_reshape(predict_data)
+    print(predict_data)
+
     # -- predict
     predict_data = predict_model.predict(predict_data)
 
@@ -69,19 +71,24 @@ def get_drum_instrument(audio):
 -- input  : 1 wav
 -- output : {'instrument': [[1, [1, 7]], [2, [1]], ...], 'rhythm': [[0.0158, 0.054, ...], [0.0158, 0.054, ...], []]}
 """
-def get_drum_data(wav_path, bpm):
+def get_drum_data(wav_path, bpm, delay):
     audio, _ = librosa.load(wav_path, sr=constant.SAMPLE_RATE, res_type='kaiser_fast')
-    
+    # -- instrument
     drum_instrument = get_drum_instrument(audio)
-    bar_rhythm = get_bar_rhythm(audio, bpm)
+    # -- rhythm
+    new_audio = onsetDetect.manage_delay_time(audio, delay - constant.DELAY)
+    bar_rhythm = get_bar_rhythm(new_audio, bpm)
     
     return {'instrument':drum_instrument, 'rhythm':bar_rhythm}
 
 def main():
-    wav_path='../../data/test_raw_data/P2_16_0001.m4a'
+    wav_path='../../data/test_raw_data/7854_2023-11-29T192503.092596.m4a'
     bpm = 100
-    result = get_drum_data(wav_path, bpm)
+    delay = 7854
+    result = get_drum_data(wav_path, bpm, delay)
     print(result)
 
 if __name__ == "__main__":
     main()
+
+    

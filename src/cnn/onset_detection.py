@@ -1,6 +1,7 @@
 # -- onset 나누기
 # -- file name : 본래wavfile이름_몇번째onset인지.wav
 import os
+import numpy as np
 from essentia.standard import MonoLoader, OnsetDetection, Windowing, FFT, CartesianToPolar, FrameGenerator, Onsets, AudioOnsetsMarker, StereoMuxer, AudioWriter
 from tempfile import TemporaryDirectory
 import scipy.io.wavfile
@@ -122,3 +123,13 @@ class OnsetDetect:
             audio_wav = audio_wav[(int)(onset_full_audio[0] * self._audio_sample_rate):]
         
         return self.rhythm_detection(audio_wav, bpm)
+    
+    def manage_delay_time(self, audio, delay_micro_sec):
+        start_point = delay_micro_sec * (self._audio_sample_rate / 1000000) 
+        if delay_micro_sec < 0:
+            start_point = start_point * (-1)
+            start_empty_list = np.array([0.0] * (int)(start_point), dtype=np.float32)
+            result = np.concatenate((start_empty_list, audio), axis=0)
+        else:
+            result = audio[(int)(start_point):]
+        return result

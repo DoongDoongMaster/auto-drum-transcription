@@ -13,11 +13,12 @@ import drum_cnn_model
 onsetDetect = OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
 predict_model = tf.keras.models.load_model(constant.checkpoint_path)
 
+
 """
 -- 전체 wav 주어졌을 때, 한 마디에 대한 rhythm 계산
 """
 def get_bar_rhythm(audio_wav, bpm):
-    return onsetDetect.get_rhythm(audio_wav, bpm, is_our_train_data=True)
+    return onsetDetect.get_rhythm(audio_wav, bpm, is_our_train_data=False)
 
 """
 -- input  : onset마다 예측한 악기 확률
@@ -72,7 +73,7 @@ def get_drum_instrument(audio):
 -- output : {'instrument': [[1, [1, 7]], [2, [1]], ...], 'rhythm': [[0.0158, 0.054, ...], [0.0158, 0.054, ...], []]}
 """
 def get_drum_data(wav_path, bpm, delay):
-    audio, _ = librosa.load(wav_path, sr=constant.SAMPLE_RATE, res_type='kaiser_fast')
+    audio, _ = librosa.load(wav_path, sr=constant.SAMPLE_RATE)
     # -- instrument
     drum_instrument = get_drum_instrument(audio)
     # -- rhythm

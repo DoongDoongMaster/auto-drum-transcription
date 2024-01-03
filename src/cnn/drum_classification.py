@@ -6,13 +6,20 @@ import matplotlib.pyplot as plt
 
 import tensorflow as tf
 
-from onset_detection import OnsetDetect
-import constant
-import drum_cnn_model
 
-onsetDetect = OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
+import cnn.onset_detection as onset_detection
+import cnn.constant as constant
+import cnn.drum_cnn_model as drum_cnn_model
+
+# import onset_detection as onset_detection
+# import constant as constant
+# import drum_cnn_model as drum_cnn_model
+
+onsetDetect = onset_detection.OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
 predict_model = tf.keras.models.load_model(constant.checkpoint_path)
 
+# onsetDetect = OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
+# predict_model = tf.keras.models.load_model(constant.checkpoint_path)
 
 """
 -- 전체 wav 주어졌을 때, 한 마디에 대한 rhythm 계산
@@ -60,10 +67,12 @@ def get_drum_instrument(audio):
 
     # -- reshape
     predict_data = drum_cnn_model.input_reshape(predict_data)
-    print(predict_data)
+    # print(predict_data)
 
     # -- predict
     predict_data = predict_model.predict(predict_data)
+    
+    # predict_data = 
 
     return get_predict_result(predict_data)
 
@@ -77,7 +86,7 @@ def get_drum_data(wav_path, bpm, delay):
     # -- instrument
     drum_instrument = get_drum_instrument(audio)
     # -- rhythm
-    new_audio = onsetDetect.manage_delay_time(audio, delay - constant.DELAY)
+    new_audio = onsetDetect.manage_delay_time(audio, delay)
     bar_rhythm = get_bar_rhythm(new_audio, bpm)
     
     return {'instrument':drum_instrument, 'rhythm':bar_rhythm}

@@ -6,42 +6,37 @@ import matplotlib.pyplot as plt
 
 import tensorflow as tf
 
-from onset_detection import OnsetDetect
-import constant
-import drum_cnn_model
+
+import cnn.onset_detection as onset_detection
+import cnn.constant as constant
+import cnn.drum_cnn_model as drum_cnn_model
+
+# import onset_detection as onset_detection
+# import constant as constant
+# import drum_cnn_model as drum_cnn_model
+
+onsetDetect = onset_detection.OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
+predict_model = tf.keras.models.load_model(constant.checkpoint_path)
+
+# onsetDetect = OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
+# predict_model = tf.keras.models.load_model(constant.checkpoint_path)
 
 """
--- 경로 지정
+-- 전체 wav 주어졌을 때, 한 마디에 대한 rhythm 계산
 """
-# -- wav data path
-input_file_path = '../../data'
-# -- raw data path
-root_path = input_file_path + '/test_raw_data'
-# -- 저장될 onset detected drum data folder path -- 예측 후 지워질 거임
-trim_path = input_file_path + '/test_trim_data'
+def get_bar_rhythm(audio_wav, bpm):
+    return onsetDetect.get_rhythm(audio_wav, bpm, is_our_train_data=False)
 
-def main():
-    # drum_cnn_model.create_trim_data(root_path, trim_path)
-
-    model = tf.keras.models.load_model(constant.save_model_path)
-    model.load_weights(constant.predict_checkpoint_path)
-
-    datas = os.listdir(trim_path)
-    feature_list = []
-    for d in datas:
-        if d.endswith('.wav'):
-            path = os.path.join(trim_path, d)
-            # -- feature: mfcc
-            feature = drum_cnn_model.extract_feature(path)
-            feature_list.append(feature)
-
-    feature_list = drum_cnn_model.input_reshape(feature_list)
-    predict = model.predict(feature_list, batch_size=constant.batch_size)
-
+"""
+-- input  : onset마다 예측한 악기 확률
+-- output : 일정 확률 이상으로 예측된 악기 추출
+            [몇 번째 onset, [악기]]
+            ex. [[1, [1, 7]], [2, [1]], [3, [1]], [4, [1]], ...
+"""
+def get_predict_result(predict):
     # 각 행에서 threshold를 넘는 값의 인덱스 찾기
     indices_above_threshold = np.argwhere(predict > constant.predict_standard)
 
-    # 출력
     current_row = indices_above_threshold[0, 0]
     result = []
     cols = []
@@ -50,12 +45,60 @@ def main():
         if row != current_row:
             tmp = [row, cols]
             result.append(tmp)
-            # print(row, ' >> ', *cols)
             current_row = row
             cols = []
         cols.append(col)
+    return result
 
+"""
+-- input  : 1 wav
+-- output : 각 onset에 대한 악기 종류 분류
+"""
+def get_drum_instrument(audio):
+    # -- trimmed audio
+    trimmed_audios = drum_cnn_model.get_trimmed_audios(audio)
+    
+    # -- trimmed feature
+    predict_data = []
+    for _, taudio in enumerate(trimmed_audios):
+        # -- mfcc
+        trimmed_feature = drum_cnn_model.extract_audio_feature(taudio)
+        predict_data.append(trimmed_feature)
+
+    # -- reshape
+    predict_data = drum_cnn_model.input_reshape(predict_data)
+    # print(predict_data)
+
+    # -- predict
+    predict_data = predict_model.predict(predict_data)
+    
+    # predict_data = 
+
+    return get_predict_result(predict_data)
+
+"""
+-- 서버에서 호출할 함수
+-- input  : 1 wav
+-- output : {'instrument': [[1, [1, 7]], [2, [1]], ...], 'rhythm': [[0.0158, 0.054, ...], [0.0158, 0.054, ...], []]}
+"""
+def get_drum_data(wav_path, bpm, delay):
+    audio, _ = librosa.load(wav_path, sr=constant.SAMPLE_RATE)
+    # -- instrument
+    drum_instrument = get_drum_instrument(audio)
+    # -- rhythm
+    new_audio = onsetDetect.manage_delay_time(audio, delay)
+    bar_rhythm = get_bar_rhythm(new_audio, bpm)
+    
+    return {'instrument':drum_instrument, 'rhythm':bar_rhythm}
+
+def main():
+    wav_path='../../data/test_raw_data/7854_2023-11-29T192503.092596.m4a'
+    bpm = 100
+    delay = 7854
+    result = get_drum_data(wav_path, bpm, delay)
     print(result)
 
 if __name__ == "__main__":
     main()
+
+    

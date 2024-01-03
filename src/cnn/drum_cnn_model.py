@@ -11,8 +11,11 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 from sklearn.model_selection import train_test_split
 
-from onset_detection import OnsetDetect
-import constant
+from cnn.onset_detection import OnsetDetect
+import cnn.constant as constant
+
+# from onset_detection import OnsetDetect
+# import constant as constant
 
 """
 -- 파라미터 & 값 지정
@@ -47,56 +50,34 @@ root_path = input_file_path + '/raw_data'
 trim_path = input_file_path + '/trim_data'
 
 
+onsetDetect = OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
+
 """
--- feature 추출
+-- librosa에서 추출한 audio의 feature 추출
 """
-def extract_feature(file_name):
-    try:
-        audio, sample_rate = librosa.load(file_name, sr=constant.SAMPLE_RATE, res_type='kaiser_fast')
-        mfccs = librosa.feature.mfcc(y=audio, sr=sample_rate, n_mfcc=n_mfcc_feature)
-        pad_width = max_pad_len - mfccs.shape[1]
-        mfccs = np.pad(mfccs, pad_width=((0,0), (0, pad_width)), mode='constant')
-        print('file name :', file_name, ', length:', audio.shape[0]/float(sample_rate), 'secs, ', 'mfccs:', mfccs.shape)
-    except Exception as e:
-        print("Error encountered while parsing file: ", file_name)
-        print(e)
-        return None
+def extract_audio_feature(audio):
+    mfccs = librosa.feature.mfcc(y=audio, sr=constant.SAMPLE_RATE, n_mfcc=n_mfcc_feature)
+    pad_width = max_pad_len - mfccs.shape[1]
+    mfccs = np.pad(mfccs, pad_width=((0,0), (0, pad_width)), mode='constant')
+    print('-- length:', audio.shape[0]/float(constant.SAMPLE_RATE), 'secs, ', 'mfccs:', mfccs.shape)
     return mfccs
 
 """
--- onset Data 가져와서 feature 추출
+-- input data reshape
 """
-data_feature_label = []
-def extract_trim_feature(root_path):
-    datas = os.listdir(root_path)
-
-    for d in datas:
-        path = os.path.join(root_path, d)
-        if d.endswith('.wav'):
-            wav = path
-            # -- feature: mfcc
-            feature = extract_feature(wav)
-            # -- class_label: 드럼 종류
-            file_name = d[:-4]
-            if constant.PATTERN in path: # -- pattern
-                pattern_name = file_name[:2] # -- P1
-                drum_name = file_name[-4:] # -- 0001
-                class_label = constant.pattern2code[pattern_name][drum_name]
-            elif constant.PER_DRUM in path: # -- per drum
-                class_label = constant.onehot_drum2code[file_name[:2]] # -- CC
-
-            data_feature_label.append([feature, class_label])
-
-        elif os.path.isdir(path):
-            new_root_path = os.path.join(root_path, d)
-            extract_trim_feature(new_root_path)
-
-    # Convert into a Panda dataframe 
-    featuresdf = pd.DataFrame(data_feature_label, columns=['feature','class_label'])
-    return featuresdf
-
 def input_reshape(data):
     return tf.reshape(data, [-1, n_row, n_columns, n_channels])
+
+"""
+-- print
+"""
+def print_dataset_shape(x_train, y_train, x_val, y_val, x_test, y_test):
+    print("x_train : ", x_train.shape)
+    print("y_train : ", y_train.shape)
+    print("x_val : ", x_val.shape)
+    print("y_val : ", y_val.shape)
+    print("x_test : ", x_test.shape)
+    print("y_test : ", y_test.shape)
 
 """
 -- 훈련(Train), 검증(Test) Dataset 생성
@@ -104,21 +85,13 @@ def input_reshape(data):
 def create_dataset(featuresdf):
     X = np.array(featuresdf.feature.tolist())
     y = np.array(featuresdf.class_label.tolist())
-    yy= y
 
-    # -- train, test 분류
-    x_train, x_test, y_train, y_test = train_test_split(X, yy, test_size=0.2, random_state = 42)
+    # -- split train, val, test
+    x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state = 42)
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state = 42)
 
-    print("one-hot-encoding 전 : ", y[:5])
-    print("one-hot-encoding 후 : ", yy[:5])
-
-    print("x_train : ", x_train.shape)
-    print("y_train : ", y_train.shape)
-    print("x_train : ", x_val.shape)
-    print("y_train : ", y_val.shape)
-    print("x_test : ", x_test.shape)
-    print("y_test : ", y_test.shape)
+    # -- print shape
+    print_dataset_shape(x_train, y_train, x_val, y_val, x_test, y_test)
 
     # input shape 조정
     x_train = input_reshape(x_train)
@@ -127,6 +100,72 @@ def create_dataset(featuresdf):
 
     return x_train, x_val, x_test, y_train, y_val, y_test
 
+"""
+-- trim 된 audio 가져오기
+"""
+def get_trimmed_audios(audio):
+    # detect onsets
+    onsets = onsetDetect.onset_detection(audio)
+    # trimming audio
+    trimmed_audios = onsetDetect.audio_trim_per_onset(audio, onsets)
+    return trimmed_audios
+
+"""
+-- get train audio path
+root_path
+    └── dir/dir/...
+        └── .m4a, .txt
+"""
+tmp_get_audio_path = []
+def get_audio_path(root_path):
+    datas = os.listdir(root_path)
+    for d in datas:
+        if d.endswith('.m4a') or d.endswith('.wav'):
+            wav_path = os.path.join(root_path, d)
+            tmp_get_audio_path.append(wav_path)
+        elif d.endswith('.txt') == False:
+            new_root_path = os.path.join(root_path, d)
+            get_audio_path(new_root_path)
+    result = tmp_get_audio_path
+    return result
+
+"""
+-- class label mapping
+"""
+def get_class_label(idx, path):
+    file_name = os.path.basename(path)
+    if constant.PATTERN in path: # -- pattern
+        pattern_name = file_name[:2] # -- P1
+        class_label = constant.pattern2code[pattern_name][idx]
+    elif constant.PER_DRUM in path: # -- per drum
+        drum_name = file_name[:2] # -- CC
+        class_label = constant.onehot_drum2code[drum_name]
+    return class_label
+
+"""
+-- feature, label 갖고 오기
+"""
+def get_feature_label(audio_path_list):
+    data_feature_label = []
+    for path in audio_path_list:
+        # -- librosa feature load
+        audio, _ = librosa.load(path, sr=constant.SAMPLE_RATE, res_type='kaiser_fast')
+        # -- trimmed audio
+        trimmed_audios = get_trimmed_audios(audio)
+        # -- trimmed feature
+        for idx, taudio in enumerate(trimmed_audios):
+            # -- mfcc
+            trimmed_feature = extract_audio_feature(taudio)
+            # -- class_label: 드럼 종류
+            class_label = get_class_label(idx, path)
+            data_feature_label.append([trimmed_feature, class_label])
+    # Convert into a Panda dataframe 
+    featuresdf = pd.DataFrame(data_feature_label, columns=['feature','class_label'])
+    return featuresdf
+
+"""
+-- create model
+"""
 def create_model():
     model = keras.Sequential()
 
@@ -151,28 +190,9 @@ def create_model():
     model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
     return model
 
-def create_trim_data(root_path, trim_path):
-  onsetDetect = OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
-  datas = os.listdir(root_path)
-
-  for d in datas:
-    if d.endswith('.m4a') or d.endswith('.wav'):
-        wav = os.path.join(root_path, d)
-
-        # detect onsets
-        onsets = onsetDetect.onset_detect(wav)
-        # trimming audio
-        audio, sr = librosa.load(wav, sr=constant.SAMPLE_RATE)
-        trimmed_audios = onsetDetect.audio_trim_per_onset(audio, onsets)
-        # new_file write
-        name = d[:-4]
-        onsetDetect.write_trimmed_audio(trim_path, name, trimmed_audios)
-
-    elif d.endswith('.txt') == False:
-        new_root_path = os.path.join(root_path, d)
-        new_trim_path = os.path.join(trim_path, d)
-        create_trim_data(new_root_path, new_trim_path)
-
+"""
+-- evaluate model
+"""
 def evaluate_model(model, x_test, y_test):
     print('\n# Evaluate on test data')
     results = model.evaluate(x_test, y_test, batch_size=constant.batch_size)
@@ -180,35 +200,30 @@ def evaluate_model(model, x_test, y_test):
     print('test accuracy:', results[1])
 
 def main():
-    # create_trim_data(root_path, trim_path)
+    # -- train audio path 다 가져오기
+    # -- : librosa.load를 위해선 path가 있어야 해서, path로 labeling 해야 해서
+    audio_path_list = get_audio_path(root_path)
+    print("--! get train audio path : ",len(audio_path_list) ,"개 !--")
 
-    featuresdf = extract_trim_feature(trim_path)
+    # -- feature, label
+    featuresdf = get_feature_label(audio_path_list)
+    print("--! get feature, label : ",featuresdf.shape ," !--")
 
+    # -- create dataset
     x_train, x_val, x_test, y_train, y_val, y_test = create_dataset(featuresdf)
-
-    # ModelCheckpoint callback to save weights
-    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=constant.checkpoint_path,
-        save_weights_only=False,
-        save_best_only=True,
-        monitor='val_loss',
-        mode='min',
-        verbose=1
-    )
 
     # Create a new model instance
     model = create_model()
-    # Save the weights using the `checkpoint_path` format
-    model.save_weights(constant.checkpoint_path.format(epoch=0))
 
-    # Train the model with the new callback
     early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True, mode = 'auto')
-    history = model.fit(x_train, y_train, batch_size=constant.batch_size, validation_data = (x_val, y_val), epochs=training_epochs, callbacks=[early_stopping, checkpoint_callback])
+    history = model.fit(x_train, y_train, batch_size=constant.batch_size, validation_data = (x_val, y_val), epochs=training_epochs, callbacks=[early_stopping])
+    
     stopped_epoch = early_stopping.stopped_epoch
-    print("stopped_epoch >> ", stopped_epoch)
-
+    print("--! finish train : stopped_epoch >> ", stopped_epoch ," !--")
     evaluate_model(model, x_test, y_test)
-    model.save(constant.save_model_path)
+
+    model.save(constant.checkpoint_path)
+    print("--! save model !--")
 
 if __name__ == "__main__":
     main()

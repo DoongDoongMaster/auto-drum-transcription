@@ -2,8 +2,7 @@
 # -- file name : 본래wavfile이름_몇번째onset인지.wav
 import os
 import numpy as np
-from essentia.standard import MonoLoader, OnsetDetection, Windowing, FFT, CartesianToPolar, FrameGenerator, Onsets, AudioOnsetsMarker, StereoMuxer, AudioWriter
-from tempfile import TemporaryDirectory
+from essentia.standard import OnsetDetection, Windowing, FFT, CartesianToPolar, FrameGenerator, Onsets
 import scipy.io.wavfile
 from essentia.standard import *
 import scipy.io.wavfile
@@ -43,7 +42,7 @@ class OnsetDetect:
 
         return onsets_hfc
         
-    # trimmed audio
+    # trimmed audio per onset -> list
     def audio_trim_per_onset(self, audio, onsets):
         sr = self._audio_sample_rate
         duration = self._onset_duration
@@ -64,18 +63,28 @@ class OnsetDetect:
             trimmed_audios.append(trimmed)
 
         return trimmed_audios
-
+    
+    # trimmed audio from first onset to last audio (sequece data)
+    def audio_trim_first_onset(self, audio, first_onset):
+        sr = self._audio_sample_rate
+        start = (int)(first_onset * sr)
+        trimmed = audio[start:]
+        return trimmed
+    
     # trimmed audio -> wav file write
+    def write_trimmed_audio_one(self, root_path, name, trimmed_audio):
+        # exist or not
+        if not os.path.exists(root_path):
+            os.makedirs(root_path)
+        scipy.io.wavfile.write(f'{root_path}/{name}.wav', self._audio_sample_rate, trimmed_audio)
+
+    # trimmed audio -> wav file write list
     def write_trimmed_audio(self, root_path, name, trimmed_audios):
         start = 1
         for audio in trimmed_audios:
-            # exist or not
-            if not os.path.exists(root_path):
-                # if the demo_folder directory is not present
-                # then create it.
-                os.makedirs(root_path)
-            scipy.io.wavfile.write(f'{root_path}/{name}_{start:04}.wav', self._audio_sample_rate, audio)
+            self.write_trimmed_audio_one(root_path, f'{name}_{start:04}', audio)
             start += 1
+    
     """
     마디 단위별로 온셋 포인트 구하는 함수
     @param onset_full_audio: 전체 wav에 대한 onset time

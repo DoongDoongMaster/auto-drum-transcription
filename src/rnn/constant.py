@@ -4,9 +4,7 @@ import os
 -- save checkpoint path
 """
 # Include the epoch in the file name (uses `str.format`)
-# checkpoint_path = "drum_cnn_model_ckpt/drum_cnn-{epoch:04d}.ckpt"
-# checkpoint_path = "cnn/my_drum_cnn_model/drum_cnn.h5"
-checkpoint_path = "my_drum_cnn_model/drum_cnn.h5"
+checkpoint_path = "my_drum_rnn_model/drum_rnn.h5"
 
 
 """
@@ -25,8 +23,17 @@ PER_DRUM = 'per_drum'
 # -- delay
 DELAY = 30000
 
-# -- 결과가 0.5 이상이면 1, 아니면 0
-predict_standard = 0.5
+# -- rnn model drum number
+DRUM = 0
+
+# -- rnn labeling version (0: per drum, 1: all drum)
+MODE = 0
+
+# -- stft constant
+TIME_WIDTH = 1024
+N_FFT = 2048
+HOP_LENGTH = 512
+WIN_LENGTH = 2048
 
 # -- batch
 batch_size = 20

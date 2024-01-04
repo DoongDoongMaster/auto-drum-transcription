@@ -11,11 +11,11 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 from sklearn.model_selection import train_test_split
 
-from cnn.onset_detection import OnsetDetect
-import cnn.constant as constant
+# from cnn.onset_detection import OnsetDetect
+# import cnn.constant as constant
 
-# from onset_detection import OnsetDetect
-# import constant as constant
+from onset_detection import OnsetDetect
+import constant as constant
 
 """
 -- 파라미터 & 값 지정

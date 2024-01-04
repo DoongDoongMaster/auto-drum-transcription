@@ -7,13 +7,13 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
-import cnn.onset_detection as onset_detection
-import cnn.constant as constant
-import cnn.drum_cnn_model as drum_cnn_model
+# import cnn.onset_detection as onset_detection
+# import cnn.constant as constant
+# import cnn.drum_cnn_model as drum_cnn_model
 
-# import onset_detection as onset_detection
-# import constant as constant
-# import drum_cnn_model as drum_cnn_model
+import onset_detection as onset_detection
+import constant as constant
+import drum_cnn_model as drum_cnn_model
 
 onsetDetect = onset_detection.OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
 predict_model = tf.keras.models.load_model(constant.checkpoint_path)

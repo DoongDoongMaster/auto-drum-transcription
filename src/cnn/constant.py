@@ -6,7 +6,7 @@ import os
 # Include the epoch in the file name (uses `str.format`)
 # checkpoint_path = "drum_cnn_model_ckpt/drum_cnn-{epoch:04d}.ckpt"
 # checkpoint_path = "cnn/my_drum_cnn_model/drum_cnn.h5"
-checkpoint_path = "my_drum_cnn_model/drum_cnn.h5"
+checkpoint_path = "../../models/drum_cnn.h5"
 
 
 """

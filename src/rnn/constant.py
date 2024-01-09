@@ -4,7 +4,7 @@ import os
 -- save checkpoint path
 """
 # Include the epoch in the file name (uses `str.format`)
-checkpoint_path = "my_drum_rnn_model/drum_rnn.h5"
+checkpoint_path = "../../models/drum_rnn.h5"
 
 
 """

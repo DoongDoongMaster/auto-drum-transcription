@@ -16,6 +16,7 @@ import cnn.onset_detection as onset_detection
 onsetDetect = onset_detection.OnsetDetect(constant.SAMPLE_RATE, constant.ONSET_DURATION)
 predict_model = tf.keras.models.load_model(constant.checkpoint_path)
 
+
 def get_predict_result(audio, bpm):
     # translate STFT
     stft = librosa.stft(y=audio, n_fft=constant.N_FFT, hop_length=constant.HOP_LENGTH, win_length=constant.WIN_LENGTH, window='hann')

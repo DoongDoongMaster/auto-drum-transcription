@@ -1,6 +1,3 @@
-# -- onset 나누기
-# -- file name : 본래wavfile이름_몇번째onset인지.wav
-import os
 import numpy as np
 from essentia import Pool, array
 from essentia.standard import (
@@ -11,8 +8,11 @@ from essentia.standard import (
     FrameGenerator,
     Onsets,
 )
-import scipy.io.wavfile
 import math
+
+"""
+onset & 박자 구하는 클래스
+"""
 
 
 class OnsetDetect:
@@ -20,7 +20,7 @@ class OnsetDetect:
         self._audio_sample_rate = audio_sample_rate
         self._onset_duration = onset_duration
 
-    # onset detection function
+    # onset detection function. hfc method
     def onset_detection(self, audio):
         # 1. Compute the onset detection function (ODF).
 
@@ -50,52 +50,8 @@ class OnsetDetect:
             [1],
         )
 
+        print("-- ! onset ! --", onsets_hfc)
         return onsets_hfc
-
-    # trimmed audio per onset -> list
-    def audio_trim_per_onset(self, audio, onsets):
-        sr = self._audio_sample_rate
-        duration = self._onset_duration
-
-        trimmed_audios = []
-        for i in range(0, len(onsets)):
-            start = (int)((onsets[i]) * sr)
-            if i + 1 < len(onsets):
-                end_by_onset = (int)(onsets[i + 1] * sr)
-            end_by_duration = (int)((onsets[i] + duration) * sr)
-
-            if i + 1 < len(onsets):
-                end = min(end_by_onset, end_by_duration)
-            else:
-                end = end_by_duration
-
-            trimmed = audio[start:end]
-            trimmed_audios.append(trimmed)
-
-        return trimmed_audios
-
-    # trimmed audio from first onset to last audio (sequece data)
-    def audio_trim_first_onset(self, audio, first_onset):
-        sr = self._audio_sample_rate
-        start = (int)(first_onset * sr)
-        trimmed = audio[start:]
-        return trimmed
-
-    # trimmed audio -> wav file write
-    def write_trimmed_audio_one(self, root_path, name, trimmed_audio):
-        # exist or not
-        if not os.path.exists(root_path):
-            os.makedirs(root_path)
-        scipy.io.wavfile.write(
-            f"{root_path}/{name}.wav", self._audio_sample_rate, trimmed_audio
-        )
-
-    # trimmed audio -> wav file write list
-    def write_trimmed_audio(self, root_path, name, trimmed_audios):
-        start = 1
-        for audio in trimmed_audios:
-            self.write_trimmed_audio_one(root_path, f"{name}_{start:04}", audio)
-            start += 1
 
     """
     마디 단위별로 온셋 포인트 구하는 함수
@@ -146,21 +102,17 @@ class OnsetDetect:
 
         return onset_per_bar
 
+    """ 
+    전체 wav와 bpm이 주어졌을 때, 마디 별 음표의 박자를 계산하는 함수 
+    @param audio_wav: wav array
+    @param bpm: 분당 음표 개수 (4/4박자 기준)
+    """
+
     def get_rhythm(self, audio_wav, bpm, is_our_train_data=False):
-        if is_our_train_data:
+        if is_our_train_data:  # 우리가 준비한 데이터셋이라면 앞에 공백 자르고 계산
             onset_full_audio = self.onset_detection(audio_wav)
             audio_wav = audio_wav[
                 (int)(onset_full_audio[0] * self._audio_sample_rate) :
             ]
 
         return self.rhythm_detection(audio_wav, bpm)
-
-    def manage_delay_time(self, audio, delay_micro_sec):
-        start_point = delay_micro_sec * (self._audio_sample_rate / 1000000)
-        if delay_micro_sec < 0:
-            start_point = start_point * (-1)
-            start_empty_list = np.array([0.0] * (int)(start_point), dtype=np.float32)
-            result = np.concatenate((start_empty_list, audio), axis=0)
-        else:
-            result = audio[(int)(start_point) :]
-        return result

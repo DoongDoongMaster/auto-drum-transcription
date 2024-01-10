@@ -1,9 +1,11 @@
 from base_model import BaseModel
 
 
-class DrumTranscriptionModel(BaseModel):
+class SegmentClassifyModel(BaseModel):
     def __init__(self):
-        super().__init__(training_epochs=40, opt_learning_rate=0.001, batch_size=20)
+        super().__init__(
+            data_file="", training_epochs=40, opt_learning_rate=0.001, batch_size=20
+        )
 
     def input_reshape(self, data):
         # Implement input reshaping logic

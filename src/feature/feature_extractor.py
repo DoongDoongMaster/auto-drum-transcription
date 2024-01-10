@@ -18,6 +18,8 @@ from constant import (
     MFCC,
     STFT,
     CODE2DRUM,
+    CLASSIFY,
+    DETECT,
 )
 
 """
@@ -29,7 +31,7 @@ class FeatureExtractor:
     def __init__(
         self,
         data_root_path,
-        middle_path,
+        method_type,
         feature_type,
         n_classes: int = 0,
         n_features: int = 0,
@@ -40,7 +42,7 @@ class FeatureExtractor:
         win_length: int = 0,
     ):
         self.data_root_path = data_root_path
-        self.middle_path = middle_path
+        self.method_type = method_type
         self.feature_type = feature_type
         self.sample_rate = SAMPLE_RATE
         self.n_classes = n_classes
@@ -50,7 +52,7 @@ class FeatureExtractor:
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.win_length = win_length
-        self.save_path = f"{data_root_path}/{middle_path}/{feature_type}.csv"
+        self.save_path = f"{data_root_path}/{method_type}/{feature_type}.csv"
         self.onset_detection = OnsetDetect(SAMPLE_RATE, ONSET_DURATION)
         self.data_processing = DataProcessing(data_root_path="../../data")
 
@@ -79,11 +81,9 @@ class FeatureExtractor:
         # Save csv file
         features.to_csv(self.save_path)
 
-        print(
-            "-- ! 완료 & 새로 저장 ! --",
-            "features shape:",
-            features.shape,
-        )
+        print("-- ! 완료 & 새로 저장 ! --")
+        print("-- ! location: ", self.save_path)
+        print("-- ! features shape:", features.shape)
 
     """
     -- mfcc feature 추출
@@ -148,10 +148,10 @@ class FeatureExtractor:
             return self.audio_to_stft(audio)
 
     """
-    -- 우리 데이터 기준 trimmed data 라벨링
+    -- 우리 데이터 기준 classify type (trimmed data) 라벨링
     """
 
-    def get_label_trimmed_data(self, idx: int, path: str):
+    def get_label_classify_data(self, idx: int, path: str):
         file_name = os.path.basename(path)  # extract file name
         if PATTERN_DIR in path:  # -- pattern
             pattern_name = file_name[:2]  # -- P1
@@ -162,7 +162,7 @@ class FeatureExtractor:
         return label
 
     """
-    -- 우리 데이터 기준 sequence data 라벨링 
+    -- 우리 데이터 기준 detect type (sequence data) 라벨링 
         onset position : 1
         onset position with ONSET_DURATION : 0.5
         extra : 0
@@ -171,7 +171,7 @@ class FeatureExtractor:
     def get_audio_position(self, time):
         return (int)(time * self.sample_rate / self.hop_length)
 
-    def get_label_sequence_data(self, path: str):
+    def get_label_detect_data(self, path: str):
         file_name = os.path.basename(path)
         audio, _ = librosa.load(path, sr=self.sample_rate)
         onsets_arr = self.onset_detection.onset_detection(audio)
@@ -200,12 +200,13 @@ class FeatureExtractor:
         return labels
 
     """
-    -- mfcc feature, label 추출
+    -- classify type feature, label 추출
     """
 
-    def mfcc_feature_extractor(self, audio_paths: List[str]) -> pd.DataFrame:
+    def classify_feature_extractor(self, audio_paths: List[str]) -> pd.DataFrame:
         data_feature_label = []
 
+        print(f"-- ! ADT type : {self.method_type} ! --")
         print(f"-- ! {self.feature_type} feature extracting ! --")
         for path in audio_paths:
             print("-- curret file: ", path)
@@ -215,48 +216,47 @@ class FeatureExtractor:
             trimmed_audios = self.data_processing.trim_audio_per_onset(audio)
             # -- trimmed feature
             for idx, taudio in enumerate(trimmed_audios):
-                # -- mfcc
-                trimmed_feature = self.audio_to_mfcc(taudio)
+                trimmed_feature = self.audio_to_feature(taudio)
                 # -- label: 드럼 종류
-                label = self.get_label_trimmed_data(idx, path)
+                label = self.get_label_classify_data(idx, path)
                 data_feature_label.append([trimmed_feature, label])
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         return feature_df
 
     """
-    -- stft feature, label 추출
+    -- detect type feature, label 추출
     """
 
-    def stft_feature_extractor(self, audio_paths: List[str]) -> pd.DataFrame:
+    def detect_feature_extractor(self, audio_paths: List[str]) -> pd.DataFrame:
         data_feature_label = []
 
+        print(f"-- ! ADT type : {self.method_type} ! --")
         print(f"-- ! {self.feature_type} feature extracting ! --")
         for path in audio_paths:
             print("-- curret file: ", path)
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
-            # -- stft
-            feature = self.audio_to_stft(audio)
+            feature = self.audio_to_feature(audio)
             # -- label: 드럼 종류마다 onset 여부
-            label = self.get_label_sequence_data(path)
+            label = self.get_label_detect_data(path)
             data_feature_label.append([feature, label])
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         return feature_df
 
     """ 
-    -- feature type에 따라 feature, label 추출 후 저장
+    -- method type에 따라 feature, label 추출 후 저장
     """
 
     def feature_extractor(self, audio_paths):
         features_df_origin = self.load_feature_csv()  # load feature csv file
 
         features_df_new = None
-        if self.feature_type == MFCC:
-            features_df_new = self.mfcc_feature_extractor(audio_paths)
-        elif self.feature_type == STFT:
-            features_df_new = self.stft_feature_extractor(audio_paths)
+        if self.method_type == CLASSIFY:
+            features_df_new = self.classify_feature_extractor(audio_paths)
+        elif self.method_type == DETECT:
+            features_df_new = self.detect_feature_extractor(audio_paths)
 
         # Convert into a Panda dataframe & Add dataframe
         features_total_df = features_df_new

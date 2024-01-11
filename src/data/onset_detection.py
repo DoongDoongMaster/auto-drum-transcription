@@ -1,4 +1,5 @@
-import numpy as np
+import math
+
 from essentia import Pool, array
 from essentia.standard import (
     OnsetDetection,
@@ -8,7 +9,6 @@ from essentia.standard import (
     FrameGenerator,
     Onsets,
 )
-import math
 
 """
 onset & 박자 구하는 클래스

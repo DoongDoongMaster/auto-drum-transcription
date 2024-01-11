@@ -3,7 +3,9 @@ import librosa
 import numpy as np
 import pandas as pd
 
+from ast import literal_eval
 from typing import List
+from glob import glob
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
@@ -20,6 +22,7 @@ from constant import (
     CODE2DRUM,
     CLASSIFY,
     DETECT,
+    ROOT_PATH,
 )
 
 """
@@ -33,28 +36,16 @@ class FeatureExtractor:
         data_root_path,
         method_type,
         feature_type,
-        n_classes: int = 0,
-        n_features: int = 0,
-        n_times: int = 0,
-        n_channels: int = 0,
-        n_fft: int = 0,
-        hop_length: int = 0,
-        win_length: int = 0,
+        feature_param: dict,
     ):
         self.data_root_path = data_root_path
         self.method_type = method_type
         self.feature_type = feature_type
         self.sample_rate = SAMPLE_RATE
-        self.n_classes = n_classes
-        self.n_features = n_features
-        self.n_times = n_times
-        self.n_channels = n_channels
-        self.n_fft = n_fft
-        self.hop_length = hop_length
-        self.win_length = win_length
+        self.feature_param = feature_param
         self.save_path = f"{data_root_path}/{method_type}/{feature_type}.csv"
         self.onset_detection = OnsetDetect(SAMPLE_RATE, ONSET_DURATION)
-        self.data_processing = DataProcessing(data_root_path="../../data")
+        self.data_processing = DataProcessing(data_root_path=ROOT_PATH)
 
     """
     -- feature 추출한 파일 불러오기
@@ -64,22 +55,36 @@ class FeatureExtractor:
         data_feature_label = None
         if os.path.exists(self.save_path):  # 추출된 feature 존재 한다면
             print("-- ! 기존 feature loading ! --")
-            data_feature_label = pd.read_csv(self.save_path, index_col=0)
+            data_feature_label = pd.read_csv(
+                self.save_path,
+                index_col=0,
+                converters={"feature": literal_eval, "label": literal_eval},
+            )
             print(
                 "-- ! 로딩 완료 ! --",
                 "data shape:",
                 data_feature_label.shape,
             )
+            print("-- ! features ! -- ")
+            print(data_feature_label)
 
         return data_feature_label
 
     """
-    --- feature 파일 저장하기
+    -- feature csv file 모두 불러오기
+    """
+
+    def load_feature_csv_all(self):
+        feature_csv_list = glob(f"{self.data_root_path}/**/*.csv", recursive=True)
+        return feature_csv_list
+
+    """
+    -- feature 파일 저장하기
     """
 
     def save_feature_csv(self, features: pd.DataFrame):
         # Save csv file
-        features.to_csv(self.save_path)
+        features.to_csv(self.save_path, sep=",")
 
         print("-- ! 완료 & 새로 저장 ! --")
         print("-- ! location: ", self.save_path)
@@ -89,11 +94,11 @@ class FeatureExtractor:
     -- mfcc feature 추출
     """
 
-    def audio_to_mfcc(self, audio: np.ndarray):
+    def audio_to_mfcc(self, audio: np.ndarray) -> np.ndarray:
         mfccs = librosa.feature.mfcc(
-            y=audio, sr=self.sample_rate, n_mfcc=self.n_features
+            y=audio, sr=self.sample_rate, n_mfcc=self.feature_param["n_features"]
         )
-        pad_width = self.n_times - mfccs.shape[1]
+        pad_width = self.feature_param["n_times"] - mfccs.shape[1]
         mfccs = np.pad(mfccs, pad_width=((0, 0), (0, pad_width)), mode="constant")
         print(
             "-- length:",
@@ -108,24 +113,24 @@ class FeatureExtractor:
     -- stft feature 추출
     """
 
-    def audio_to_stft(self, audio: np.ndarray):
+    def audio_to_stft(self, audio: np.ndarray) -> np.ndarray:
         # translate STFT
         stft = librosa.stft(
             y=audio,
-            n_fft=self.n_fft,
-            hop_length=self.hop_length,
-            win_length=self.win_length,
+            n_fft=self.feature_param["n_fft"],
+            hop_length=self.feature_param["hop_length"],
+            win_length=self.feature_param["win_length"],
             window="hann",
         )
         stft = np.abs(stft, dtype=np.float64)
-        if stft.shape[1] < self.n_times:
+        if stft.shape[1] < self.feature_param["n_times"]:
             stft_new = np.pad(
                 stft,
-                pad_width=((0, 0), (0, self.n_times - stft.shape[1])),
+                pad_width=((0, 0), (0, self.feature_param["n_times"] - stft.shape[1])),
                 mode="constant",
             )
         else:
-            stft_new = stft[:, : self.n_times]
+            stft_new = stft[:, : self.feature_param["n_times"]]
         stft_new = np.transpose(stft_new)  # row: time, col: feature
 
         print(
@@ -141,7 +146,7 @@ class FeatureExtractor:
     -- feature type에 따라 feature 추출
     """
 
-    def audio_to_feature(self, audio: np.ndarray):
+    def audio_to_feature(self, audio: np.ndarray) -> np.ndarray:
         if self.feature_type == MFCC:
             return self.audio_to_mfcc(audio)
         elif self.feature_type == STFT:
@@ -151,7 +156,7 @@ class FeatureExtractor:
     -- 우리 데이터 기준 classify type (trimmed data) 라벨링
     """
 
-    def get_label_classify_data(self, idx: int, path: str):
+    def get_label_classify_data(self, idx: int, path: str) -> List[int]:
         file_name = os.path.basename(path)  # extract file name
         if PATTERN_DIR in path:  # -- pattern
             pattern_name = file_name[:2]  # -- P1
@@ -168,15 +173,15 @@ class FeatureExtractor:
         extra : 0
     """
 
-    def get_audio_position(self, time):
-        return (int)(time * self.sample_rate / self.hop_length)
+    def get_audio_position(self, time) -> int:
+        return (int)(time * self.sample_rate / self.feature_param["hop_length"])
 
-    def get_label_detect_data(self, path: str):
+    def get_label_detect_data(self, path: str) -> List[List[int]]:
         file_name = os.path.basename(path)
         audio, _ = librosa.load(path, sr=self.sample_rate)
         onsets_arr = self.onset_detection.onset_detection(audio)
 
-        labels = [[0.0] * len(CODE2DRUM) for _ in range(self.n_times)]
+        labels = [[0.0] * len(CODE2DRUM) for _ in range(self.feature_param["n_times"])]
         pattern_idx = 0
         for onset in onsets_arr:
             soft_start_position = self.get_audio_position(
@@ -219,7 +224,7 @@ class FeatureExtractor:
                 trimmed_feature = self.audio_to_feature(taudio)
                 # -- label: 드럼 종류
                 label = self.get_label_classify_data(idx, path)
-                data_feature_label.append([trimmed_feature, label])
+                data_feature_label.append([trimmed_feature.tolist(), label])
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         return feature_df
@@ -240,7 +245,7 @@ class FeatureExtractor:
             feature = self.audio_to_feature(audio)
             # -- label: 드럼 종류마다 onset 여부
             label = self.get_label_detect_data(path)
-            data_feature_label.append([feature, label])
+            data_feature_label.append([feature.tolist(), label])
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         return feature_df

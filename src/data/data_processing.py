@@ -67,8 +67,11 @@ class DataProcessing:
         new_data_paths = self.get_paths(self.new_data_path)
 
         for p in new_data_paths:
-            file_name = os.path.basename(p)  # 확장자 포함한 파일 이름
-            shutil.move(p, f"{self.raw_data_path}/{file_name}")
+            file_path = p.replace(NEW_PATH, RAW_PATH)
+            file_dir = os.path.dirname(file_path)
+            if os.path.exists(file_dir) == False:
+                os.makedirs(file_dir)
+            shutil.move(p, file_path)
 
         # folder remove & remake
         if not self.is_exist_new_data():

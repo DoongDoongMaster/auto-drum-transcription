@@ -31,6 +31,29 @@ ONSET_DURATION = 0.1
 MFCC = "mfcc"
 STFT = "stft"
 
+"""
+-- feature parameter
+"""
+FEATURE_PARAM = {
+    CLASSIFY: {
+        MFCC: {"n_features": 40, "n_times": 20, "n_channels": 1, "n_classes": 8},
+        STFT: {
+            "n_times": 1024,
+            "n_fft": 2048,
+            "hop_length": 512,
+            "win_length": 2048,
+        },
+    },
+    DETECT: {
+        MFCC: {"n_features": 40, "n_times": 20, "n_channels": 1, "n_classes": 8},
+        STFT: {
+            "n_times": 1024,
+            "n_fft": 2048,
+            "hop_length": 512,
+            "win_length": 2048,
+        },
+    },
+}
 
 """
  -- 우리 데이터랑 연관된 상수
@@ -38,6 +61,7 @@ STFT = "stft"
 # -- dir name
 PATTERN_DIR = "pattern"
 PER_DRUM_DIR = "per_drum"
+MILLISECOND = 1000000
 
 """
 -- drum mapping

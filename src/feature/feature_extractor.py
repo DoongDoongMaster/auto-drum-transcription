@@ -2,6 +2,7 @@ import os
 import librosa
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from ast import literal_eval
 from typing import List
@@ -23,6 +24,8 @@ from constant import (
     CLASSIFY,
     DETECT,
     ROOT_PATH,
+    CSV,
+    PKL,
 )
 
 """
@@ -37,13 +40,17 @@ class FeatureExtractor:
         method_type,
         feature_type,
         feature_param: dict,
+        feature_extension=PKL,
     ):
         self.data_root_path = data_root_path
         self.method_type = method_type
         self.feature_type = feature_type
         self.sample_rate = SAMPLE_RATE
         self.feature_param = feature_param
-        self.save_path = f"{data_root_path}/{method_type}/{feature_type}.csv"
+        self.feature_extension = feature_extension
+        self.save_path = (
+            f"{data_root_path}/{method_type}/{feature_type}.{feature_extension}"
+        )
         self.onset_detection = OnsetDetect(SAMPLE_RATE)
         self.data_processing = DataProcessing(data_root_path=ROOT_PATH)
 
@@ -51,15 +58,20 @@ class FeatureExtractor:
     -- feature 추출한 파일 불러오기
     """
 
-    def load_feature_csv(self):
+    def load_feature_file(self):
         data_feature_label = None
         if os.path.exists(self.save_path):  # 추출된 feature 존재 한다면
-            print("-- ! 기존 feature loading ! --")
-            data_feature_label = pd.read_csv(
-                self.save_path,
-                index_col=0,
-                converters={"feature": literal_eval, "label": literal_eval},
-            )
+            print("-- ! 기존 feature loading : ", self.save_path)
+
+            if self.feature_extension == CSV:
+                data_feature_label = pd.read_csv(
+                    self.save_path,
+                    index_col=0,
+                    converters={"feature": literal_eval, "label": literal_eval},
+                )
+            elif self.feature_extension == PKL:
+                data_feature_label = pd.read_pickle(self.save_path)
+
             print(
                 "-- ! 로딩 완료 ! --",
                 "data shape:",
@@ -71,20 +83,25 @@ class FeatureExtractor:
         return data_feature_label
 
     """
-    -- feature csv file 모두 불러오기
+    -- feature file 모두 불러오기
     """
 
-    def load_feature_csv_all(self):
-        feature_csv_list = glob(f"{self.data_root_path}/**/*.csv", recursive=True)
-        return feature_csv_list
+    def load_feature_file_all(self):
+        feature_file_list = glob(f"{self.data_root_path}/**/*.*", recursive=True)
+        print("-- ! feature file all load: ", feature_file_list)
+        return feature_file_list
 
     """
     -- feature 파일 저장하기
     """
 
-    def save_feature_csv(self, features: pd.DataFrame):
-        # Save csv file
-        features.to_csv(self.save_path, sep=",")
+    def save_feature_file(self, features: pd.DataFrame):
+        if self.feature_extension == CSV:
+            # Save csv file
+            features.to_csv(self.save_path, sep=",")
+        elif self.feature_extension == PKL:
+            # Save pickle file
+            features.to_pickle(self.save_path)
 
         print("-- ! 완료 & 새로 저장 ! --")
         print("-- ! location: ", self.save_path)
@@ -261,12 +278,24 @@ class FeatureExtractor:
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         return feature_df
 
+    """
+    -- detect type label 그래프
+    """
+
+    def show_detect_label_plot(self, label):
+        label = np.array(label)
+        for i in range(len(CODE2DRUM)):
+            plt.subplot(8, 1, i + 1)
+            plt.plot(label[:, i])
+        plt.title("Model label")
+        plt.show()
+
     """ 
     -- method type에 따라 feature, label 추출 후 저장
     """
 
     def feature_extractor(self, audio_paths):
-        features_df_origin = self.load_feature_csv()  # load feature csv file
+        features_df_origin = self.load_feature_file()  # load feature file
 
         features_df_new = None
         if self.method_type == CLASSIFY:
@@ -279,5 +308,5 @@ class FeatureExtractor:
         if features_df_origin is not None:
             features_total_df = pd.concat([features_df_origin, features_df_new])
 
-        # Save csv file
-        self.save_feature_csv(features_total_df)
+        # Save feature file
+        self.save_feature_file(features_total_df)

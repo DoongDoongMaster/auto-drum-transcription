@@ -22,7 +22,6 @@ class BaseModel:
     def __init__(
         self, training_epochs, opt_learning_rate, batch_size, method_type, feature_type
     ):
-        self.data = None
         self.model = None
         self.training_epochs = training_epochs
         self.opt_learning_rate = opt_learning_rate
@@ -72,14 +71,20 @@ class BaseModel:
             self.feature_extractor.feature_extractor(paths)
 
         if self.data_processing.is_exist_new_data():  # 새로운 데이터 있는지 확인
-            feature_csv_list = self.feature_extractor.load_feature_csv_all()
-            for feature_csv in feature_csv_list:
-                feature_type_new = os.path.basename(feature_csv)[:-4]
-                method_type_new = feature_csv.split("/")[-2:][0]
+            print("-- ! 새로운 데이터 존재 ! --")
+            feature_file_list = self.feature_extractor.load_feature_file_all()
+            for feature_file in feature_file_list:
+                feature_extension = os.path.splitext(feature_file)[1]
+                feature_type_new = os.path.basename(feature_file)[:-4]
+                method_type_new = feature_file.split("/")[-2]
+                print(
+                    f"-- ! 기존 feature update: {method_type_new}_{feature_type_new}.{feature_extension}"
+                )
                 feature_extractor_new = FeatureExtractor(
                     data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
                     method_type=method_type_new,
                     feature_type=feature_type_new,
+                    feature_extension=feature_extension,
                     feature_param=FEATURE_PARAM[method_type_new][feature_type_new],
                 )
                 new_data_paths = self.data_processing.get_paths(
@@ -90,7 +95,7 @@ class BaseModel:
             self.data_processing.move_new_to_raw()
 
         # feature 불러오기
-        self.data = self.feature_extractor.load_feature_csv()
+        return self.feature_extractor.load_feature_file()
 
     def input_reshape(self, data) -> np.ndarray:
         # Implement input reshaping logic
@@ -103,27 +108,36 @@ class BaseModel:
 
     def create_dataset(self):
         # Implement dataset split feature & label logic
-        self.load_data()
-        featuresdf = self.data
+        feature_df = self.load_data()
 
-        X = np.array(featuresdf.feature.tolist())
-        y = np.array(featuresdf.label.tolist())
+        X = np.array(feature_df.feature.tolist())
+        y = np.array(feature_df.label.tolist())
 
         # -- split train, val, test
-        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
+        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
         )
-        self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(
-            self.x_train, self.y_train, test_size=0.2, random_state=42
+
+        del X
+        del y
+
+        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
+            x_train_temp, y_train_temp, test_size=0.2, random_state=42
         )
+
+        del x_train_temp
+        del y_train_temp
+
+        # input shape 조정
+        self.x_train = self.input_reshape(x_train_final)
+        self.x_val = self.input_reshape(x_val_final)
+        self.x_test = self.input_reshape(x_test)
+        self.y_train = y_train_final
+        self.y_val = y_val_final
+        self.y_test = y_test
 
         # -- print shape
         self.print_dataset_shape()
-
-        # input shape 조정
-        self.x_train = self.input_reshape(self.x_train)
-        self.x_val = self.input_reshape(self.x_val)
-        self.x_test = self.input_reshape(self.x_test)
 
     def print_dataset_shape(self):
         print("x_train : ", self.x_train.shape)

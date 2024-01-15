@@ -5,10 +5,10 @@ from typing import List
 
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense
-from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
-from constant import DETECT, MFCC, STFT, MILLISECOND
+from constant import DETECT, STFT, MILLISECOND
 
 
 class SeparateDetectModel(BaseModel):
@@ -18,21 +18,19 @@ class SeparateDetectModel(BaseModel):
             opt_learning_rate=opt_learning_rate,
             batch_size=batch_size,
             method_type=DETECT,
-            feature_type=MFCC,
+            feature_type=STFT,
         )
         self.unit_number = unit_number
         self.predict_standard = 0.8
-        self.n_rows = self.feature_extractor.feature_param["n_times"]
-        self.n_columns = self.feature_extractor.feature_param["n_features"]
-        self.n_classes = self.feature_extractor.feature_param["n_classes"]
-        # self.hop_length = self.feature_extractor.feature_param["hop_length"]
-        # self.win_length = self.feature_extractor.feature_param["win_length"]
-        # STFT feature type
         # self.n_rows = self.feature_extractor.feature_param["n_times"]
-        # self.n_columns = self.feature_extractor.feature_param["n_fft"] // 2 + 1
+        # self.n_columns = self.feature_extractor.feature_param["n_features"]
         # self.n_classes = self.feature_extractor.feature_param["n_classes"]
-        # self.hop_length = self.feature_extractor.feature_param["hop_length"]
-        # self.win_length = self.feature_extractor.feature_param["win_length"]
+        # STFT feature type
+        self.n_rows = self.feature_extractor.feature_param["n_times"]
+        self.n_columns = self.feature_extractor.feature_param["n_fft"] // 2 + 1
+        self.n_classes = self.feature_extractor.feature_param["n_classes"]
+        self.hop_length = self.feature_extractor.feature_param["hop_length"]
+        self.win_length = self.feature_extractor.feature_param["win_length"]
         self.load_model()
 
     def input_reshape(self, data):
@@ -46,8 +44,18 @@ class SeparateDetectModel(BaseModel):
             ],
         )
 
+    def input_label_reshape(self, data):
+        return tf.reshape(data, [-1, self.n_rows * self.n_classes])
+
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
+
+    def create_dataset(self):
+        super().create_dataset()
+
+        self.y_train = self.input_label_reshape(self.y_train)
+        self.y_val = self.input_label_reshape(self.y_val)
+        self.y_test = self.input_label_reshape(self.y_test)
 
     def create(self):
         # Implement model creation logic
@@ -59,18 +67,18 @@ class SeparateDetectModel(BaseModel):
                     self.unit_number,
                     return_sequences=True,
                     input_shape=(self.n_rows, self.n_columns),
-                    activation="relu",
+                    activation="tanh",
                 )
             )
         )
         self.model.add(
             Bidirectional(
-                SimpleRNN(self.unit_number, return_sequences=True, activation="relu")
+                SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
             )
         )
         self.model.add(
             Bidirectional(
-                SimpleRNN(self.unit_number, return_sequences=True, activation="relu")
+                SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
             )
         )
 
@@ -78,13 +86,13 @@ class SeparateDetectModel(BaseModel):
         self.model.add(Flatten())
 
         # dense layer
-        self.model.add(Dense(self.n_rows * self.n_classes, activation="sigmoid"))
+        self.model.add(Dense(self.n_rows * self.n_classes, activation="softmax"))
 
         self.model.build((None, self.n_rows, self.n_columns))
         self.model.summary()
 
         # compile the self.model
-        opt = SGD(learning_rate=self.opt_learning_rate, momentum=0.9)
+        opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
             loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
         )
@@ -114,7 +122,7 @@ class SeparateDetectModel(BaseModel):
         for i in range(len(predict_data)):
             is_onset = False  # predict standard 이상 (1) 인 j가 하나라도 있다면 onset으로 판단
             drums = []
-            for j in range(len(self.n_classes)):
+            for j in range(self.n_classes):
                 if predict_data[i][j] > self.predict_standard:
                     is_onset = True
                     drums.append(j)

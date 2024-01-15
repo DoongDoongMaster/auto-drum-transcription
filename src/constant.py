@@ -120,8 +120,16 @@ FEATURE_PARAM = {
     },
 }
 
+
 """
- -- 우리 데이터랑 연관된 상수
+-- feature extension 
+"""
+CSV = "csv"
+PKL = "pkl"
+
+
+"""
+-- 우리 데이터랑 연관된 상수
 """
 # -- dir name
 PATTERN_DIR = "pattern"

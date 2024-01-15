@@ -12,7 +12,7 @@ from constant import DETECT, STFT, MILLISECOND
 
 
 class SeparateDetectModel(BaseModel):
-    def __init__(self, training_epochs, opt_learning_rate, batch_size, unit_number):
+    def __init__(self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16):
         super().__init__(
             training_epochs=training_epochs,
             opt_learning_rate=opt_learning_rate,

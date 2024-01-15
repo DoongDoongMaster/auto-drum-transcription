@@ -26,44 +26,6 @@ ONSET_DURATION = 0.1
 
 
 """
--- feature type
-"""
-MFCC = "mfcc"
-STFT = "stft"
-
-"""
--- feature parameter
-"""
-FEATURE_PARAM = {
-    CLASSIFY: {
-        MFCC: {"n_features": 40, "n_times": 20, "n_channels": 1, "n_classes": 8},
-        STFT: {
-            "n_times": 1024,
-            "n_fft": 2048,
-            "hop_length": 512,
-            "win_length": 2048,
-        },
-    },
-    DETECT: {
-        MFCC: {"n_features": 40, "n_times": 20, "n_channels": 1, "n_classes": 8},
-        STFT: {
-            "n_times": 1024,
-            "n_fft": 2048,
-            "hop_length": 512,
-            "win_length": 2048,
-        },
-    },
-}
-
-"""
- -- 우리 데이터랑 연관된 상수
-"""
-# -- dir name
-PATTERN_DIR = "pattern"
-PER_DRUM_DIR = "per_drum"
-MILLISECOND = 1000000
-
-"""
 -- drum mapping
 
 -- 파일 이름 형식
@@ -112,3 +74,56 @@ P2_2CODE = [
     P_HH,
 ]
 PATTERN2CODE = {"P1": P1_2CODE, "P2": P2_2CODE}
+
+
+"""
+-- feature type
+"""
+MFCC = "mfcc"
+STFT = "stft"
+
+"""
+-- feature parameter
+"""
+FEATURE_PARAM = {
+    CLASSIFY: {
+        MFCC: {
+            "n_features": 40,
+            "n_times": 20,
+            "n_channels": 1,
+            "n_classes": len(CODE2DRUM),
+            "hop_length": 512,
+        },
+        STFT: {
+            "n_times": 1024,
+            "n_fft": 2048,
+            "n_classes": len(CODE2DRUM),
+            "hop_length": 512,
+            "win_length": 2048,
+        },
+    },
+    DETECT: {
+        MFCC: {
+            "n_features": 40,
+            "n_times": 512,
+            "n_channels": 1,
+            "n_classes": len(CODE2DRUM),
+            "hop_length": 512,
+        },
+        STFT: {
+            "n_times": 512,
+            "n_fft": 1024,
+            "n_classes": len(CODE2DRUM),
+            "hop_length": 128,
+            "win_length": 512,
+        },
+    },
+}
+
+"""
+ -- 우리 데이터랑 연관된 상수
+"""
+# -- dir name
+PATTERN_DIR = "pattern"
+PER_DRUM_DIR = "per_drum"
+MILLISECOND = 1000000

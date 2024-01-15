@@ -44,7 +44,7 @@ class FeatureExtractor:
         self.sample_rate = SAMPLE_RATE
         self.feature_param = feature_param
         self.save_path = f"{data_root_path}/{method_type}/{feature_type}.csv"
-        self.onset_detection = OnsetDetect(SAMPLE_RATE, ONSET_DURATION)
+        self.onset_detection = OnsetDetect(SAMPLE_RATE)
         self.data_processing = DataProcessing(data_root_path=ROOT_PATH)
 
     """
@@ -99,14 +99,8 @@ class FeatureExtractor:
             y=audio, sr=self.sample_rate, n_mfcc=self.feature_param["n_features"]
         )
         pad_width = self.feature_param["n_times"] - mfccs.shape[1]
-        mfccs = np.pad(mfccs, pad_width=((0, 0), (0, pad_width)), mode="constant")
-        print(
-            "-- length:",
-            audio.shape[0] / float(self.sample_rate),
-            "secs, ",
-            "mfccs:",
-            mfccs.shape,
-        )
+        if pad_width > 0:
+            mfccs = np.pad(mfccs, pad_width=((0, 0), (0, pad_width)), mode="constant")
         return mfccs
 
     """
@@ -131,15 +125,7 @@ class FeatureExtractor:
             )
         else:
             stft_new = stft[:, : self.feature_param["n_times"]]
-        stft_new = np.transpose(stft_new)  # row: time, col: feature
 
-        print(
-            "-- length:",
-            audio.shape[0] / float(self.sample_rate),
-            "secs, ",
-            "stft:",
-            stft_new.shape,
-        )
         return stft_new
 
     """
@@ -147,10 +133,23 @@ class FeatureExtractor:
     """
 
     def audio_to_feature(self, audio: np.ndarray) -> np.ndarray:
+        result = None
         if self.feature_type == MFCC:
-            return self.audio_to_mfcc(audio)
+            result = self.audio_to_mfcc(audio)
         elif self.feature_type == STFT:
-            return self.audio_to_stft(audio)
+            result = self.audio_to_stft(audio)
+
+        if self.method_type == DETECT:  # separate & detect방식이라면 transpose
+            result = np.transpose(result)  # row: time, col: feature
+
+        print(
+            "-- length:",
+            audio.shape[0] / float(self.sample_rate),
+            "secs, ",
+            f"{self.feature_type}:",
+            result.shape,
+        )
+        return result
 
     """
     -- 우리 데이터 기준 classify type (trimmed data) 라벨링
@@ -176,19 +175,28 @@ class FeatureExtractor:
     def get_audio_position(self, time) -> int:
         return (int)(time * self.sample_rate / self.feature_param["hop_length"])
 
-    def get_label_detect_data(self, path: str) -> List[List[int]]:
+    def get_label_detect_data(self, audio: np.ndarray, path: str) -> List[List[int]]:
         file_name = os.path.basename(path)
-        audio, _ = librosa.load(path, sr=self.sample_rate)
         onsets_arr = self.onset_detection.onset_detection(audio)
+        last_time = (
+            self.feature_param["n_times"]
+            * self.feature_param["hop_length"]
+            / self.sample_rate
+        )
 
         labels = [[0.0] * len(CODE2DRUM) for _ in range(self.feature_param["n_times"])]
         pattern_idx = 0
         for onset in onsets_arr:
+            if onset >= last_time:
+                break
+
             soft_start_position = self.get_audio_position(
                 max((onset - ONSET_DURATION), 0)
             )
             onset_position = self.get_audio_position(onset)
-            soft_end_position = self.get_audio_position(onset + ONSET_DURATION)
+            soft_end_position = self.get_audio_position(
+                min(onset + ONSET_DURATION, last_time)
+            )
 
             if any(drum in file_name for _, drum in CODE2DRUM.items()):  # per drum
                 one_hot_label: List[int] = ONEHOT_DRUM2CODE[file_name[:2]]
@@ -199,7 +207,7 @@ class FeatureExtractor:
             for i in range(soft_start_position, soft_end_position):
                 if (np.array(labels[i]) == np.array(one_hot_label)).all():
                     continue
-                labels[i] = np.array(one_hot_label) / 2
+                labels[i] = (np.array(one_hot_label) / 2).tolist()
             labels[(int)(onset_position)] = one_hot_label
 
         return labels
@@ -242,9 +250,12 @@ class FeatureExtractor:
             print("-- curret file: ", path)
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
+            # -- trim first onset
+            audio = self.data_processing.trim_audio_first_onset(audio)
+            # -- feature extract
             feature = self.audio_to_feature(audio)
             # -- label: 드럼 종류마다 onset 여부
-            label = self.get_label_detect_data(path)
+            label = self.get_label_detect_data(audio, path)
             data_feature_label.append([feature.tolist(), label])
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])

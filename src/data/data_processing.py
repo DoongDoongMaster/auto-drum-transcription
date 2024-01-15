@@ -25,7 +25,7 @@ class DataProcessing:
         self.new_data_path = f"{data_root_path}/{NEW_PATH}"
         self.sample_rate = sample_rate
         self.onset_duration = onset_duration
-        self.onset_detection = OnsetDetect(sample_rate, onset_duration)
+        self.onset_detection = OnsetDetect(sample_rate)
 
     # get data path
     def get_paths(self, root_path: str):
@@ -111,6 +111,8 @@ class DataProcessing:
         sr = self.sample_rate
         start = (int)(first_onset * sr)
         trimmed = audio[start:]
+
+        print(f"-- ! audio trimmed: {first_onset} sec ! --")
         return trimmed
 
     # write wav audio -> wav file

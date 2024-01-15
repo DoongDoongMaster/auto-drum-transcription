@@ -1,5 +1,7 @@
 import math
 
+from typing import List
+
 from essentia import Pool, array
 from essentia.standard import (
     OnsetDetection,
@@ -16,15 +18,12 @@ onset & 박자 구하는 클래스
 
 
 class OnsetDetect:
-    def __init__(self, audio_sample_rate, onset_duration):
-        self._audio_sample_rate = audio_sample_rate
-        self._onset_duration = onset_duration
+    def __init__(self, audio_sample_rate):
+        self.audio_sample_rate = audio_sample_rate
 
     # onset detection function. hfc method
     def onset_detection(self, audio):
         # 1. Compute the onset detection function (ODF).
-
-        # The OnsetDetection algorithm provides various ODFs.
         od_hfc = OnsetDetection(method="hfc")
 
         # We need the auxilary algorithms to compute magnitude and phase.
@@ -42,7 +41,6 @@ class OnsetDetect:
 
         # 2. Detect onset locations.
         onsets = Onsets()
-
         onsets_hfc = onsets(  # This algorithm expects a matrix, not a vector.
             array([pool["odf.hfc"]]),
             # You need to specify weights, but if we use only one ODF
@@ -81,21 +79,20 @@ class OnsetDetect:
     @param bpm: 분당 음표 개수 (4/4박자 기준)
     """
 
-    def rhythm_detection(self, audio_wav, bpm):
+    def rhythm_detection(self, audio_wav, bpm, onset_full_audio):
         rhythm_per_bar = 4.0  # 한 마디에 4분음표가 몇 개 들어가는지
         rhythm_per_sec = bpm / 60.0  # 한 초당 몇 박 나오는지
         sec_of_bar = (1.0 / rhythm_per_sec) * rhythm_per_bar  # 한 마디가 몇 초인지
         bar_num = math.ceil(
-            (len(audio_wav) / self._audio_sample_rate) / sec_of_bar
+            (len(audio_wav) / self.audio_sample_rate) / sec_of_bar
         )  # 총 마디 개수
         print(sec_of_bar, bar_num)
 
         bars = []  # 한 마디당 wav 정보
-        step = (int)(sec_of_bar * self._audio_sample_rate)  # 한 마디에 들어가는 정보량
+        step = (int)(sec_of_bar * self.audio_sample_rate)  # 한 마디에 들어가는 정보량
         for i in range(0, len(audio_wav), step):
             bars.append(audio_wav[i : i + step])
 
-        onset_full_audio = self.onset_detection(audio_wav)  # 전체 wav에 대한 onset time
         onset_per_bar = self.calculate_onset_per_bar(
             onset_full_audio, sec_of_bar, bar_num
         )  # 한 마디당 rhythm 정보
@@ -108,11 +105,19 @@ class OnsetDetect:
     @param bpm: 분당 음표 개수 (4/4박자 기준)
     """
 
-    def get_rhythm(self, audio_wav, bpm, is_our_train_data=False):
+    def get_rhythm(
+        self, audio_wav, bpm, onsets_arr: List[float] = None, is_our_train_data=False
+    ):
         if is_our_train_data:  # 우리가 준비한 데이터셋이라면 앞에 공백 자르고 계산
             onset_full_audio = self.onset_detection(audio_wav)
-            audio_wav = audio_wav[
-                (int)(onset_full_audio[0] * self._audio_sample_rate) :
-            ]
+            audio_wav = audio_wav[(int)(onset_full_audio[0] * self.audio_sample_rate) :]
 
-        return self.rhythm_detection(audio_wav, bpm)
+        onset_full_audio = (
+            onsets_arr if onsets_arr is not None else self.onset_detection(audio_wav)
+        )  # 전체 wav에 대한 onset time
+
+        if onset_full_audio is None:
+            print("-- ! There is not exist onsets ! --")
+            return
+
+        return self.rhythm_detection(audio_wav, bpm, onset_full_audio)

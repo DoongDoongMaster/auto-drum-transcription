@@ -4,12 +4,8 @@ import tensorflow as tf
 
 from tensorflow.keras import layers, Sequential
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping
 
-from sklearn.model_selection import train_test_split
-
-
-from models.base_model import BaseModel
+from model.base_model import BaseModel
 from constant import CLASSIFY, MFCC, MILLISECOND
 
 
@@ -40,34 +36,6 @@ class SegmentClassifyModel(BaseModel):
                 self.n_channels,
             ],
         )
-
-    """
-    -- load data from data file
-    -- Implement dataset split feature & label logic
-    """
-
-    def create_dataset(self):
-        self.load_data()
-        featuresdf = self.data
-
-        X = np.array(featuresdf.feature.tolist())
-        y = np.array(featuresdf.label.tolist())
-
-        # -- split train, val, test
-        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-        self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(
-            self.x_train, self.y_train, test_size=0.2, random_state=42
-        )
-
-        # -- print shape
-        self.print_dataset_shape()
-
-        # input shape 조정
-        self.x_train = self.input_reshape(self.x_train)
-        self.x_val = self.input_reshape(self.x_val)
-        self.x_test = self.input_reshape(self.x_test)
 
     def create(self):
         # Implement model creation logic
@@ -110,36 +78,6 @@ class SegmentClassifyModel(BaseModel):
         self.model.compile(
             loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
         )
-
-    def train(self):
-        # Implement model train logic
-        early_stopping = EarlyStopping(
-            monitor="val_loss", patience=3, restore_best_weights=True, mode="auto"
-        )
-
-        history = self.model.fit(
-            self.x_train,
-            self.y_train,
-            batch_size=self.batch_size,
-            validation_data=(self.x_val, self.y_val),
-            epochs=self.training_epochs,
-            callbacks=[early_stopping],
-        )
-
-        stopped_epoch = early_stopping.stopped_epoch
-        print("--! finish train : stopped_epoch >> ", stopped_epoch, " !--")
-
-        return history
-
-    def evaluate(self):
-        # Implement model evaluation logic
-        print("\n# Evaluate on test data")
-
-        results = self.model.evaluate(
-            self.x_test, self.y_test, batch_size=self.batch_size
-        )
-        print("test loss:", results[0])
-        print("test accuracy:", results[1])
 
     """
     -- 전체 wav 주어졌을 때, 한 마디에 대한 rhythm 계산

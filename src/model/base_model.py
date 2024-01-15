@@ -4,12 +4,13 @@ import tensorflow as tf
 
 from glob import glob
 from datetime import datetime
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.callbacks import EarlyStopping
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
 from feature.feature_extractor import FeatureExtractor
 from constant import (
-    ONSET_DURATION,
     SAMPLE_RATE,
     ROOT_PATH,
     PROCESSED_FEATURE,
@@ -29,14 +30,13 @@ class BaseModel:
         self.method_type = method_type
         self.feature_type = feature_type
         self.sample_rate = SAMPLE_RATE
-        self.onset_duration = ONSET_DURATION
         self.x_train = None
         self.y_train = None
         self.x_val = None
         self.y_val = None
         self.x_test = None
         self.y_test = None
-        self.onset_detection = OnsetDetect(self.sample_rate, self.onset_duration)
+        self.onset_detection = OnsetDetect(self.sample_rate)
         self.data_processing = DataProcessing(ROOT_PATH)
         self.feature_extractor = FeatureExtractor(
             data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
@@ -57,7 +57,7 @@ class BaseModel:
 
     def load_model(self):
         model_files = glob(f"{self.save_path}_*.{self.model_save_type}")
-        if model_files is None:
+        if model_files is None or len(model_files) == 0:
             print("-- ! No pre-trained model ! --")
             return
 
@@ -67,7 +67,7 @@ class BaseModel:
 
     def load_data(self):
         # feature file 존재안한다면 -> raw data feature 생성해서 저장하기
-        if self.feature_extractor.load_feature_csv() is None:
+        if os.path.exists(self.feature_extractor.save_path) is False:
             paths = self.data_processing.get_paths(self.data_processing.raw_data_path)
             self.feature_extractor.feature_extractor(paths)
 
@@ -96,9 +96,34 @@ class BaseModel:
         # Implement input reshaping logic
         pass
 
+    """
+    -- load data from data file
+    -- Implement dataset split feature & label logic
+    """
+
     def create_dataset(self):
         # Implement dataset split feature & label logic
-        pass
+        self.load_data()
+        featuresdf = self.data
+
+        X = np.array(featuresdf.feature.tolist())
+        y = np.array(featuresdf.label.tolist())
+
+        # -- split train, val, test
+        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+        self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(
+            self.x_train, self.y_train, test_size=0.2, random_state=42
+        )
+
+        # -- print shape
+        self.print_dataset_shape()
+
+        # input shape 조정
+        self.x_train = self.input_reshape(self.x_train)
+        self.x_val = self.input_reshape(self.x_val)
+        self.x_test = self.input_reshape(self.x_test)
 
     def print_dataset_shape(self):
         print("x_train : ", self.x_train.shape)
@@ -114,11 +139,33 @@ class BaseModel:
 
     def train(self):
         # Implement model train logic
-        pass
+        early_stopping = EarlyStopping(
+            monitor="val_loss", patience=3, restore_best_weights=True, mode="auto"
+        )
+
+        history = self.model.fit(
+            self.x_train,
+            self.y_train,
+            batch_size=self.batch_size,
+            validation_data=(self.x_val, self.y_val),
+            epochs=self.training_epochs,
+            callbacks=[early_stopping],
+        )
+
+        stopped_epoch = early_stopping.stopped_epoch
+        print("--! finish train : stopped_epoch >> ", stopped_epoch, " !--")
+
+        return history
 
     def evaluate(self):
         # Implement model evaluation logic
-        pass
+        print("\n# Evaluate on test data")
+
+        results = self.model.evaluate(
+            self.x_test, self.y_test, batch_size=self.batch_size
+        )
+        print("test loss:", results[0])
+        print("test accuracy:", results[1])
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic

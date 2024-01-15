@@ -1,10 +1,20 @@
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
+from model.segment_classify import SegmentClassifyModel
+from model.separate_detect import SeparateDetectModel
 
-from constant import ROOT_PATH, PROCESSED_FEATURE, CLASSIFY, DETECT, MFCC, STFT
+from constant import (
+    ROOT_PATH,
+    PROCESSED_FEATURE,
+    CLASSIFY,
+    DETECT,
+    MFCC,
+    STFT,
+    FEATURE_PARAM,
+)
 
 
-data_processing = DataProcessing(ROOT_PATH)
+# data_processing = DataProcessing(ROOT_PATH)
 
 # lists = data_processing.get_paths(data_processing.new_data_path)
 # print(lists)
@@ -29,17 +39,40 @@ data_processing = DataProcessing(ROOT_PATH)
 
 # feature_extractor.feature_extractor(audio_paths)
 
-audio_paths = data_processing.get_paths(data_processing.new_data_path)
+# audio_paths = data_processing.get_paths(data_processing.new_data_path)
+# print(audio_paths)
 
-feature_extractor = FeatureExtractor(
-    data_root_path=ROOT_PATH,
-    middle_path=f"{PROCESSED_FEATURE}/{DETECT}",
-    feature_type=STFT,
-    n_features=40,
-    n_times=1024,
-    n_fft=2048,
-    hop_length=512,
-    win_length=2048,
-)
+# feature_dict = FEATURE_PARAM[CLASSIFY][STFT]
+# print(feature_dict)
 
-feature_extractor.feature_extractor(audio_paths)
+# feature_extractor = FeatureExtractor(
+#     data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
+#     method_type=CLASSIFY,
+#     feature_type=STFT,
+#     n_fft=feature_dict["n_fftt"],
+#     n_times=feature_dict.n_times,
+#     hop_length=feature_dict.hop_length,
+#     win_length=feature_dict.win_length,
+# )
+
+# feature_extractor.feature_extractor(audio_paths)
+
+# segment_classify = SegmentClassifyModel(40, 0.001, 20)
+
+# segment_classify.create_dataset()
+# segment_classify.create()
+# segment_classify.train()
+# segment_classify.evaluate()
+# segment_classify.save()
+
+# print(segment_classify.predict("../data/raw/pattern/P1/08/P1_08_0001.m4a", 100, 0))
+
+separate_detect = SeparateDetectModel(40, 0.001, 20, 16)
+
+separate_detect.create_dataset()
+separate_detect.create()
+separate_detect.train()
+separate_detect.evaluate()
+separate_detect.save()
+
+print(separate_detect.predict("../data/raw/pattern/P1/08/P1_08_0001.m4a", 100, 0))

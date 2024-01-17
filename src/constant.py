@@ -5,8 +5,15 @@ ROOT_PATH = "../data"
 RAW_PATH = "raw"
 NEW_PATH = "new"
 PROCESSED_FEATURE = "processed-feature"
-CLASSIFY = "classify"
-DETECT = "detect"
+METHOD_CLASSIFY = "classify"
+METHOD_DETECT = "detect"
+METHOD_RHYTHM = "rhythm"
+
+"""
+-- data origin
+"""
+DDM_OWN = "ddm-own"
+IDMT = "IDMT-SMT-DRUMS-V2"
 
 
 """
@@ -86,7 +93,7 @@ STFT = "stft"
 -- feature parameter
 """
 FEATURE_PARAM = {
-    CLASSIFY: {
+    METHOD_CLASSIFY: {
         MFCC: {
             "n_features": 40,
             "n_times": 20,
@@ -102,7 +109,7 @@ FEATURE_PARAM = {
             "win_length": 2048,
         },
     },
-    DETECT: {
+    METHOD_DETECT: {
         MFCC: {
             "n_features": 40,
             "n_times": 512,
@@ -116,6 +123,15 @@ FEATURE_PARAM = {
             "n_classes": len(CODE2DRUM),
             "hop_length": 128,
             "win_length": 512,
+        },
+    },
+    METHOD_RHYTHM: {
+        STFT: {
+            "n_times": 1024,
+            "n_fft": 2048,
+            "n_classes": 1,
+            "hop_length": 512,
+            "win_length": 1024,
         },
     },
 }
@@ -133,5 +149,5 @@ PKL = "pkl"
 """
 # -- dir name
 PATTERN_DIR = "pattern"
-PER_DRUM_DIR = "per_drum"
+PER_DRUM_DIR = "per-drum"
 MILLISECOND = 1000000

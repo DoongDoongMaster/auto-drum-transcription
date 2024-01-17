@@ -6,7 +6,7 @@ from tensorflow.keras import layers, Sequential
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
-from constant import CLASSIFY, MFCC, MILLISECOND
+from constant import METHOD_CLASSIFY, MFCC, MILLISECOND
 
 
 class SegmentClassifyModel(BaseModel):
@@ -15,7 +15,7 @@ class SegmentClassifyModel(BaseModel):
             training_epochs=training_epochs,
             opt_learning_rate=opt_learning_rate,
             batch_size=batch_size,
-            method_type=CLASSIFY,
+            method_type=METHOD_CLASSIFY,
             feature_type=MFCC,
         )
         self.predict_standard = 0.5

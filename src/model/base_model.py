@@ -76,7 +76,7 @@ class BaseModel:
             for feature_file in feature_file_list:
                 feature_extension = os.path.splitext(feature_file)[1]
                 feature_type_new = os.path.basename(feature_file)[:-4]
-                method_type_new = feature_file.split("/")[-2]
+                method_type_new = feature_file.split("/")[-2]  # 뒤에서 2번째 인덱스
                 print(
                     f"-- ! 기존 feature update: {method_type_new}_{feature_type_new}.{feature_extension}"
                 )

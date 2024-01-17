@@ -28,13 +28,11 @@ class DataProcessing:
         self.onset_detection = OnsetDetect(sample_rate)
 
     # get data path
-    def get_paths(self, root_path: str):
+    def get_paths(self, root_path: str, extensions=["m4a", "mp3", "wav"]) -> List[str]:
         if os.path.isfile(root_path):  # 파일이라면 불러오기
-            if (
-                root_path.endswith("m4a")
-                or root_path.endswith("mp3")
-                or root_path.endswith("wav")
-            ):
+            if extensions[0] == "*":  # 모든 파일
+                return [root_path]
+            if any(root_path.endswith(ext) for ext in extensions):
                 return [root_path]
             else:
                 return []
@@ -44,7 +42,7 @@ class DataProcessing:
 
         for d in folders:
             new_root_path = os.path.join(root_path, d)
-            audio_paths += self.get_paths(new_root_path)
+            audio_paths += self.get_paths(new_root_path, extensions)
 
         return audio_paths
 
@@ -64,12 +62,12 @@ class DataProcessing:
     # move new data to raw data
     def move_new_to_raw(self):
         print("-- ! moving new data to raw data ! --")
-        new_data_paths = self.get_paths(self.new_data_path)
+        new_data_paths = self.get_paths(self.new_data_path, ["*"])
 
         for p in new_data_paths:
-            file_path = p.replace(NEW_PATH, RAW_PATH)
+            file_path = p.replace(NEW_PATH, RAW_PATH)  # new path의 폴더 경로를 유지하면서 옮기기
             file_dir = os.path.dirname(file_path)
-            if os.path.exists(file_dir) == False:
+            if os.path.exists(file_dir) == False:  # 파일 없다면 새로 생성
                 os.makedirs(file_dir)
             shutil.move(p, file_path)
 

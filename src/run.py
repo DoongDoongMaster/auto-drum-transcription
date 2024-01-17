@@ -2,12 +2,13 @@ from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from model.segment_classify import SegmentClassifyModel
 from model.separate_detect import SeparateDetectModel
+from model.rhythm_detect_model import RhythmDetectModel
 
 from constant import (
     ROOT_PATH,
     PROCESSED_FEATURE,
-    CLASSIFY,
-    DETECT,
+    METHOD_CLASSIFY,
+    METHOD_DETECT,
     MFCC,
     STFT,
     FEATURE_PARAM,
@@ -29,7 +30,7 @@ from constant import (
 
 # feature_extractor = FeatureExtractor(
 #     data_root_path=ROOT_PATH,
-#     middle_path=f"{PROCESSED_FEATURE}/{CLASSIFY}",
+#     middle_path=f"{PROCESSED_FEATURE}/{METHOD_CLASSIFY}",
 #     feature_type=MFCC,
 #     n_classes=8,
 #     n_features=40,
@@ -42,12 +43,12 @@ from constant import (
 # audio_paths = data_processing.get_paths(data_processing.new_data_path)
 # print(audio_paths)
 
-# feature_dict = FEATURE_PARAM[CLASSIFY][STFT]
+# feature_dict = FEATURE_PARAM[METHOD_CLASSIFY][STFT]
 # print(feature_dict)
 
 # feature_extractor = FeatureExtractor(
 #     data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
-#     method_type=CLASSIFY,
+#     method_type=METHOD_CLASSIFY,
 #     feature_type=STFT,
 #     n_fft=feature_dict["n_fftt"],
 #     n_times=feature_dict.n_times,
@@ -67,12 +68,22 @@ from constant import (
 
 # print(segment_classify.predict("../data/raw/pattern/P1/08/P1_08_0001.m4a", 100, 0))
 
-separate_detect = SeparateDetectModel(40, 0.001, 20, 16)
+# separate_detect = SeparateDetectModel(40, 0.001, 20, 16)
 
-separate_detect.create_dataset()
-separate_detect.create()
-separate_detect.train()
-separate_detect.evaluate()
-separate_detect.save()
+# separate_detect.create_dataset()
+# separate_detect.create()
+# separate_detect.train()
+# separate_detect.evaluate()
+# separate_detect.save()
 
-print(separate_detect.predict("../data/raw/pattern/P1/08/P1_08_0001.m4a", 100, 0))
+# print(separate_detect.predict("../data/raw/pattern/P1/08/P1_08_0001.m4a", 100, 0))
+
+rhythm_detect = RhythmDetectModel(40, 0.001, 20, 16)
+
+rhythm_detect.create_dataset()
+rhythm_detect.create()
+rhythm_detect.train()
+rhythm_detect.evaluate()
+rhythm_detect.save()
+
+print(rhythm_detect.predict("../data/raw/ddm-own/pattern/P1/08/P1_08_0001.m4a", 100, 0))

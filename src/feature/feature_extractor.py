@@ -3,6 +3,8 @@ import librosa
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import xml.etree.ElementTree as ET
+
 
 from ast import literal_eval
 from typing import List
@@ -21,11 +23,14 @@ from constant import (
     MFCC,
     STFT,
     CODE2DRUM,
-    CLASSIFY,
-    DETECT,
+    METHOD_CLASSIFY,
+    METHOD_DETECT,
+    METHOD_RHYTHM,
     ROOT_PATH,
     CSV,
     PKL,
+    DDM_OWN,
+    IDMT,
 )
 
 """
@@ -156,7 +161,7 @@ class FeatureExtractor:
         elif self.feature_type == STFT:
             result = self.audio_to_stft(audio)
 
-        if self.method_type == DETECT:  # separate & detect방식이라면 transpose
+        if self.method_type == METHOD_DETECT:  # separate & detect방식이라면 transpose
             result = np.transpose(result)  # row: time, col: feature
 
         print(
@@ -230,6 +235,71 @@ class FeatureExtractor:
         return labels
 
     """
+    -- XML file 읽기
+    """
+
+    def load_xml_file(self, file_path):
+        try:
+            # XML 파일을 파싱합니다.
+            tree = ET.parse(file_path)
+            # 루트 엘리먼트를 얻습니다.
+            root = tree.getroot()
+            return root
+        except ET.ParseError as e:
+            print(f"XML 파일을 파싱하는 동안 오류가 발생했습니다: {e}")
+            return None
+
+    """
+    -- XML file에서 onset 읽어오기
+    """
+
+    def get_onsets_arr_from_xml(self, xml_path: str):
+        print("-- ! xml file location: ", xml_path)
+
+        onset_sec_list = []
+        xml_root = self.load_xml_file(xml_path)
+        # transcription 엘리먼트의 정보 출력
+        transcription_element = xml_root.find(".//transcription")
+        events = transcription_element.findall("event")
+        for event in events:
+            onset_sec = event.find("onsetSec").text
+            onset_sec_list.append(float(onset_sec))
+
+        print("-- ! 파싱한 onsets: ", onset_sec_list)
+        return onset_sec_list
+
+    """
+    -- onset 라벨링 
+    """
+
+    def get_label_rhythm_data(self, last_time, onsets_arr: List[float]) -> List[float]:
+        labels = [0.0] * self.feature_param["n_times"]
+
+        for onset in onsets_arr:
+            if self.get_audio_position(onset) >= self.feature_param["n_times"]:
+                break
+
+            soft_start_position = self.get_audio_position(
+                max((onset - ONSET_DURATION), 0)
+            )
+            onset_position = self.get_audio_position(onset)
+            soft_end_position = self.get_audio_position(
+                min(onset + ONSET_DURATION, last_time)
+            )
+
+            for i in range(soft_start_position, soft_end_position):
+                if i >= self.feature_param["n_times"]:
+                    break
+
+                if labels[i] == 1.0:
+                    continue
+
+                labels[i] = 0.5
+            labels[(int)(onset_position)] = 1.0
+
+        return labels
+
+    """
     -- classify type feature, label 추출
     """
 
@@ -242,14 +312,16 @@ class FeatureExtractor:
             print("-- curret file: ", path)
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
-            # -- trimmed audio
-            trimmed_audios = self.data_processing.trim_audio_per_onset(audio)
-            # -- trimmed feature
-            for idx, taudio in enumerate(trimmed_audios):
-                trimmed_feature = self.audio_to_feature(taudio)
-                # -- label: 드럼 종류
-                label = self.get_label_classify_data(idx, path)
-                data_feature_label.append([trimmed_feature.tolist(), label])
+
+            if DDM_OWN in path:  # 우리 데이터라면
+                # -- trimmed audio
+                trimmed_audios = self.data_processing.trim_audio_per_onset(audio)
+                # -- trimmed feature
+                for idx, taudio in enumerate(trimmed_audios):
+                    trimmed_feature = self.audio_to_feature(taudio)
+                    # -- label: 드럼 종류
+                    label = self.get_label_classify_data(idx, path)
+                    data_feature_label.append([trimmed_feature.tolist(), label])
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         return feature_df
@@ -267,13 +339,15 @@ class FeatureExtractor:
             print("-- curret file: ", path)
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
-            # -- trim first onset
-            audio = self.data_processing.trim_audio_first_onset(audio)
-            # -- feature extract
-            feature = self.audio_to_feature(audio)
-            # -- label: 드럼 종류마다 onset 여부
-            label = self.get_label_detect_data(audio, path)
-            data_feature_label.append([feature.tolist(), label])
+
+            if DDM_OWN in path:  # 우리 데이터라면
+                # -- trim first onset
+                audio = self.data_processing.trim_audio_first_onset(audio)
+                # -- feature extract
+                feature = self.audio_to_feature(audio)
+                # -- label: 드럼 종류마다 onset 여부
+                label = self.get_label_detect_data(audio, path)
+                data_feature_label.append([feature.tolist(), label])
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         return feature_df
@@ -290,18 +364,79 @@ class FeatureExtractor:
         plt.title("Model label")
         plt.show()
 
-    """ 
-    -- method type에 따라 feature, label 추출 후 저장
+    """
+    -- rhythm type feature, label 추출
     """
 
-    def feature_extractor(self, audio_paths):
+    def rhythm_feature_extractor(self, audio_paths: List[str]):
+        data_feature_label = []
+
+        print(f"-- ! ADT type : {self.method_type} ! --")
+        print(f"-- ! {self.feature_type} feature extracting ! --")
+        for path in audio_paths:
+            print("-- curret file: ", path)
+            # -- librosa feature load
+            audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
+
+            # if DDM_OWN in path:  # 우리 데이터라면
+            #     # -- trim first onset
+            #     audio = self.data_processing.trim_audio_first_onset(audio)
+            #     # -- feature extract
+            #     feature = self.audio_to_feature(audio)
+            #     # -- label: onset 여부
+            #     onsets_arr = self.onset_detection.onset_detection(audio)
+            #     label = self.get_label_rhythm_data(
+            #         len(audio) / self.sample_rate, onsets_arr
+            #     )
+            #     data_feature_label.append([feature.tolist(), label])
+
+            if IDMT in path:  # IDMT data
+                if "MIX" not in path:
+                    continue
+
+                # -- feature extract
+                feature = self.audio_to_feature(audio)
+                # -- label: onset 여부
+                file_name = os.path.basename(path)[:-4]  # 파일 이름
+                file_paths = path.split("/")[:-2]  # 뒤에서 2개 제외한 폴더 list
+
+                xml_file = os.path.join(os.path.join(*file_paths), "annotation_xml")
+                xml_file = os.path.join(xml_file, f"{file_name}.xml")
+                onsets_arr = self.get_onsets_arr_from_xml(xml_file)
+                label = self.get_label_rhythm_data(
+                    len(audio) / self.sample_rate, onsets_arr
+                )
+                data_feature_label.append([feature.tolist(), label])
+
+        feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
+        if len(feature_df) > 0:
+            self.show_rhythm_label_plot(feature_df.label[0])
+        return feature_df
+
+    """
+    -- rhythm type label 그래프
+    """
+
+    def show_rhythm_label_plot(self, label):
+        label = np.array(label)
+        plt.plot(label)
+        plt.title("Model label")
+        plt.show()
+
+    """ 
+    -- method type 에 따라 feature, label 추출 후 저장
+    """
+
+    def feature_extractor(self, audio_paths: List[str]):
         features_df_origin = self.load_feature_file()  # load feature file
 
         features_df_new = None
-        if self.method_type == CLASSIFY:
+        if self.method_type == METHOD_CLASSIFY:
             features_df_new = self.classify_feature_extractor(audio_paths)
-        elif self.method_type == DETECT:
+        elif self.method_type == METHOD_DETECT:
             features_df_new = self.detect_feature_extractor(audio_paths)
+        elif self.method_type == METHOD_RHYTHM:
+            features_df_new = self.rhythm_feature_extractor(audio_paths)
 
         # Convert into a Panda dataframe & Add dataframe
         features_total_df = features_df_new

@@ -8,10 +8,10 @@ from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
-from constant import METHOD_DETECT, STFT, MILLISECOND
+from constant import METHOD_RHYTHM, STFT, MILLISECOND
 
 
-class SeparateDetectModel(BaseModel):
+class RhythmDetectModel(BaseModel):
     def __init__(
         self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16
     ):
@@ -19,14 +19,12 @@ class SeparateDetectModel(BaseModel):
             training_epochs=training_epochs,
             opt_learning_rate=opt_learning_rate,
             batch_size=batch_size,
-            method_type=METHOD_DETECT,
+            method_type=METHOD_RHYTHM,
             feature_type=STFT,
         )
         self.unit_number = unit_number
         self.predict_standard = 0.8
-        # self.n_rows = self.feature_extractor.feature_param["n_times"]
-        # self.n_columns = self.feature_extractor.feature_param["n_features"]
-        # self.n_classes = self.feature_extractor.feature_param["n_classes"]
+
         # STFT feature type
         self.n_rows = self.feature_extractor.feature_param["n_times"]
         self.n_columns = self.feature_extractor.feature_param["n_fft"] // 2 + 1
@@ -112,27 +110,16 @@ class SeparateDetectModel(BaseModel):
     -- input  : time stamp마다 onset 확률 (모델 결과)
     -- output : 
         - onsets 배열
-        - 일정 확률 이상으로 예측된 악기 추출
-          [몇 번째 onset, [악기]]
-          ex. [[1, [1, 7]], [2, [1]], [3, [1]], [4, [1]], ...
     """
 
     def get_predict_onsets_instrument(self, predict_data) -> List[float]:
         onsets_arr = []
-        drum_instrument = []
 
         for i in range(len(predict_data)):
-            is_onset = False  # predict standard 이상 (1) 인 j가 하나라도 있다면 onset으로 판단
-            drums = []
-            for j in range(self.n_classes):
-                if predict_data[i][j] > self.predict_standard:
-                    is_onset = True
-                    drums.append(j)
-            if is_onset:
+            if predict_data[i] > self.predict_standard:
                 onsets_arr.append(i / self.sample_rate)
-                drum_instrument.append([len(onsets_arr), drums])
 
-        return onsets_arr, drum_instrument
+        return onsets_arr
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
@@ -152,13 +139,15 @@ class SeparateDetectModel(BaseModel):
         # -- predict
         predict_data = self.model.predict(audio_feature)
 
+        print(predict_data)
+
         # -- output reshape
         predict_data = self.output_reshape(predict_data)[0]
 
         # -- get onsets
-        onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)
+        onsets_arr = self.get_predict_onsets_instrument(predict_data)
 
         # -- rhythm
         bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
 
-        return {"instrument": drum_instrument, "rhythm": bar_rhythm}
+        return {"rhythm": bar_rhythm}

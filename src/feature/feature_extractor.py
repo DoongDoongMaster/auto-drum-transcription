@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 import mido
-
+import pretty_midi
 
 from ast import literal_eval
 from typing import List
@@ -128,6 +128,8 @@ class FeatureExtractor:
         pad_width = self.feature_param["n_times"] - mfccs.shape[1]
         if pad_width > 0:
             mfccs = np.pad(mfccs, pad_width=((0, 0), (0, pad_width)), mode="constant")
+        else:
+            mfccs = mfccs[:, : self.feature_param["n_times"]]
         return mfccs
 
     """
@@ -166,7 +168,9 @@ class FeatureExtractor:
         elif self.feature_type == STFT:
             result = self.audio_to_stft(audio)
 
-        if self.method_type == METHOD_DETECT:  # separate & detect방식이라면 transpose
+        if (
+            self.method_type == METHOD_DETECT or self.method_type == METHOD_RHYTHM
+        ):  # separate & detect방식이라면 transpose
             result = np.transpose(result)  # row: time, col: feature
 
         print(
@@ -295,27 +299,46 @@ class FeatureExtractor:
     -- MID file에서 onset 읽어오기
     """
 
+    # def get_onsets_arr_from_mid(self, midi_path: str):
+    #     print("-- ! midi file location: ", midi_path)
+
+    #     onset_ticks_list = []
+    #     try:
+    #         midi_file = mido.MidiFile(midi_path)
+    #         ticks_per_beat = midi_file.ticks_per_beat
+
+    #         for track in midi_file.tracks:
+    #             for msg in track:
+    #                 if msg.type == "note_on":
+    #                     onset_ticks_list.append(msg.time)
+
+    #         # onset을 틱에서 초로 변환
+    #         onset_sec_list = [tick / ticks_per_beat for tick in onset_ticks_list]
+
+    #         print("-- ! 읽은 onsets: ", onset_sec_list)
+    #         return onset_sec_list
+
+    #     except Exception as e:
+    #         print(f"Error reading MIDI file: {e}")
+    #         return None
+
     def get_onsets_arr_from_mid(self, midi_path: str):
-        print("-- ! mid file location: ", midi_path)
+        # MIDI 파일을 PrettyMIDI 객체로 로드합니다.
+        midi_data = pretty_midi.PrettyMIDI(midi_path)
 
-        onset_ticks_list = []
-        try:
-            midi_file = mido.MidiFile(midi_path)
-            ticks_per_beat = midi_file.ticks_per_beat
+        # onset 정보를 저장할 리스트를 생성합니다.
+        onset_times = []
 
-            for msg in midi_file.play():
-                if msg.type == "note_on":
-                    onset_ticks_list.append(msg.time)
+        # 각 악기(track)에 대해 처리합니다.
+        for instrument in midi_data.instruments:
+            # 악기의 노트를 순회하며 onset을 찾습니다.
+            for note in instrument.notes:
+                onset_times.append(note.start)
 
-            # onset을 틱에서 초로 변환
-            onset_sec_list = [tick / ticks_per_beat for tick in onset_ticks_list]
+        # onset_times를 정렬합니다.
+        onset_times.sort()
 
-            print("-- ! 읽은 onsets: ", onset_sec_list)
-            return onset_sec_list
-
-        except Exception as e:
-            print(f"Error reading MIDI file: {e}")
-            return None
+        return onset_times
 
     """
     -- onset 라벨링 
@@ -501,7 +524,7 @@ class FeatureExtractor:
         plt.plot(label)
         plt.title("Model label")
         plt.show()
-        plt.savefig("test.png")
+        # plt.savefig("test.png")
 
     """ 
     -- method type 에 따라 feature, label 추출 후 저장

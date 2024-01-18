@@ -14,6 +14,7 @@ METHOD_RHYTHM = "rhythm"
 """
 DDM_OWN = "ddm-own"
 IDMT = "IDMT-SMT-DRUMS-V2"
+ENST = "ENST-drums"
 
 
 """
@@ -29,7 +30,7 @@ CHECKPOINT_PATH = "../models"
 SAMPLE_RATE = 44100
 
 # -- onset duration
-ONSET_DURATION = 0.1
+ONSET_DURATION = 0.02
 
 
 """
@@ -126,6 +127,13 @@ FEATURE_PARAM = {
         },
     },
     METHOD_RHYTHM: {
+        MFCC: {
+            "n_features": 40,
+            "n_times": 512,
+            "n_channels": 1,
+            "n_classes": len(CODE2DRUM),
+            "hop_length": 512,
+        },
         STFT: {
             "n_times": 1024,
             "n_fft": 2048,

@@ -31,6 +31,8 @@ from constant import (
     PKL,
     DDM_OWN,
     IDMT,
+    ENST,
+    FEATURE_PARAM,
 )
 
 """
@@ -44,14 +46,14 @@ class FeatureExtractor:
         data_root_path,
         method_type,
         feature_type,
-        feature_param: dict,
-        feature_extension=PKL,
+        # feature_param: dict,
+        feature_extension=CSV,
     ):
         self.data_root_path = data_root_path
         self.method_type = method_type
         self.feature_type = feature_type
         self.sample_rate = SAMPLE_RATE
-        self.feature_param = feature_param
+        self.feature_param = FEATURE_PARAM[method_type][feature_type]
         self.feature_extension = feature_extension
         self.save_path = (
             f"{data_root_path}/{method_type}/{feature_type}.{feature_extension}"
@@ -269,6 +271,24 @@ class FeatureExtractor:
         return onset_sec_list
 
     """
+    -- TXT file에서 onset 읽어오기
+    """
+
+    def get_onsets_arr_from_txt(self, txt_path: str):
+        print("-- ! txt file location: ", txt_path)
+
+        onset_sec_list = []
+        with open(txt_path, "r") as file:
+            lines = file.readlines()
+            for line in lines:
+                # 각 라인에서 onset 정보를 추출하여 리스트에 추가
+                onset_sec = line.split()[0]
+                onset_sec_list.append(float(onset_sec))
+
+        print("-- ! 읽은 onsets: ", onset_sec_list)
+        return onset_sec_list
+
+    """
     -- onset 라벨링 
     """
 
@@ -287,6 +307,7 @@ class FeatureExtractor:
                 min(onset + ONSET_DURATION, last_time)
             )
 
+            # duration -> 양 옆으로 0.5 몇 개 붙일지
             for i in range(soft_start_position, soft_end_position):
                 if i >= self.feature_param["n_times"]:
                     break
@@ -309,7 +330,7 @@ class FeatureExtractor:
         print(f"-- ! ADT type : {self.method_type} ! --")
         print(f"-- ! {self.feature_type} feature extracting ! --")
         for path in audio_paths:
-            print("-- curret file: ", path)
+            print("-- current file: ", path)
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
 
@@ -336,7 +357,7 @@ class FeatureExtractor:
         print(f"-- ! ADT type : {self.method_type} ! --")
         print(f"-- ! {self.feature_type} feature extracting ! --")
         for path in audio_paths:
-            print("-- curret file: ", path)
+            print("-- current file: ", path)
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
 
@@ -356,7 +377,7 @@ class FeatureExtractor:
     -- detect type label 그래프
     """
 
-    def show_detect_label_plot(self, label):
+    def show_detect_label_plot(self, label: List[List[float]]):
         label = np.array(label)
         for i in range(len(CODE2DRUM)):
             plt.subplot(8, 1, i + 1)
@@ -374,7 +395,7 @@ class FeatureExtractor:
         print(f"-- ! ADT type : {self.method_type} ! --")
         print(f"-- ! {self.feature_type} feature extracting ! --")
         for path in audio_paths:
-            print("-- curret file: ", path)
+            print("-- current file: ", path)
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
 
@@ -408,6 +429,21 @@ class FeatureExtractor:
                 )
                 data_feature_label.append([feature.tolist(), label])
 
+            if ENST in path:  # ENST data
+                # -- feature extract
+                feature = self.audio_to_feature(audio)
+                # -- label: onset 여부
+                file_name = os.path.basename(path)[:-4]  # 파일 이름
+                file_paths = path.split("/")[:-3]  # 뒤에서 3개 제외한 폴더 list
+
+                txt_file = os.path.join(os.path.join(*file_paths), "annotation")
+                txt_file = os.path.join(txt_file, f"{file_name}.txt")
+                onsets_arr = self.get_onsets_arr_from_txt(txt_file)
+                label = self.get_label_rhythm_data(
+                    len(audio) / self.sample_rate, onsets_arr
+                )
+                data_feature_label.append([feature.tolist(), label])
+
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         if len(feature_df) > 0:
             self.show_rhythm_label_plot(feature_df.label[0])
@@ -417,11 +453,12 @@ class FeatureExtractor:
     -- rhythm type label 그래프
     """
 
-    def show_rhythm_label_plot(self, label):
+    def show_rhythm_label_plot(self, label: List[float]):
         label = np.array(label)
         plt.plot(label)
         plt.title("Model label")
         plt.show()
+        # plt.savefig("test.png")
 
     """ 
     -- method type 에 따라 feature, label 추출 후 저장

@@ -299,29 +299,6 @@ class FeatureExtractor:
     -- MID file에서 onset 읽어오기
     """
 
-    # def get_onsets_arr_from_mid(self, midi_path: str):
-    #     print("-- ! midi file location: ", midi_path)
-
-    #     onset_ticks_list = []
-    #     try:
-    #         midi_file = mido.MidiFile(midi_path)
-    #         ticks_per_beat = midi_file.ticks_per_beat
-
-    #         for track in midi_file.tracks:
-    #             for msg in track:
-    #                 if msg.type == "note_on":
-    #                     onset_ticks_list.append(msg.time)
-
-    #         # onset을 틱에서 초로 변환
-    #         onset_sec_list = [tick / ticks_per_beat for tick in onset_ticks_list]
-
-    #         print("-- ! 읽은 onsets: ", onset_sec_list)
-    #         return onset_sec_list
-
-    #     except Exception as e:
-    #         print(f"Error reading MIDI file: {e}")
-    #         return None
-
     def get_onsets_arr_from_mid(self, midi_path: str):
         # MIDI 파일을 PrettyMIDI 객체로 로드합니다.
         midi_data = pretty_midi.PrettyMIDI(midi_path)

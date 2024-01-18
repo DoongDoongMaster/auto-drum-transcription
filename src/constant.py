@@ -15,6 +15,7 @@ METHOD_RHYTHM = "rhythm"
 DDM_OWN = "ddm-own"
 IDMT = "IDMT-SMT-DRUMS-V2"
 ENST = "ENST-drums"
+E_GMD = "e-gmd-v1.0.0"
 
 
 """

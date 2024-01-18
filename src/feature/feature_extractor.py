@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
+import mido
 
 
 from ast import literal_eval
@@ -12,6 +13,7 @@ from glob import glob
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
+
 
 from constant import (
     PATTERN_DIR,
@@ -32,6 +34,7 @@ from constant import (
     DDM_OWN,
     IDMT,
     ENST,
+    E_GMD,
     FEATURE_PARAM,
 )
 
@@ -47,7 +50,7 @@ class FeatureExtractor:
         method_type,
         feature_type,
         # feature_param: dict,
-        feature_extension=CSV,
+        feature_extension=PKL,
     ):
         self.data_root_path = data_root_path
         self.method_type = method_type
@@ -289,6 +292,32 @@ class FeatureExtractor:
         return onset_sec_list
 
     """
+    -- MID file에서 onset 읽어오기
+    """
+
+    def get_onsets_arr_from_mid(self, midi_path: str):
+        print("-- ! mid file location: ", midi_path)
+
+        onset_ticks_list = []
+        try:
+            midi_file = mido.MidiFile(midi_path)
+            ticks_per_beat = midi_file.ticks_per_beat
+
+            for msg in midi_file.play():
+                if msg.type == "note_on":
+                    onset_ticks_list.append(msg.time)
+
+            # onset을 틱에서 초로 변환
+            onset_sec_list = [tick / ticks_per_beat for tick in onset_ticks_list]
+
+            print("-- ! 읽은 onsets: ", onset_sec_list)
+            return onset_sec_list
+
+        except Exception as e:
+            print(f"Error reading MIDI file: {e}")
+            return None
+
+    """
     -- onset 라벨링 
     """
 
@@ -444,6 +473,20 @@ class FeatureExtractor:
                 )
                 data_feature_label.append([feature.tolist(), label])
 
+            if E_GMD in path:  # E-GMD data
+                # -- feature extract
+                feature = self.audio_to_feature(audio)
+                # -- label: onset 여부
+                file_name = os.path.basename(path)[:-4]  # 파일 이름
+                file_paths = path.split("/")[:-1]  # 뒤에서 3개 제외한 폴더 list
+
+                mid_file = os.path.join(os.path.join(*file_paths), f"{file_name}.mid")
+                onsets_arr = self.get_onsets_arr_from_mid(mid_file)
+                label = self.get_label_rhythm_data(
+                    len(audio) / self.sample_rate, onsets_arr
+                )
+                data_feature_label.append([feature.tolist(), label])
+
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         if len(feature_df) > 0:
             self.show_rhythm_label_plot(feature_df.label[0])
@@ -458,7 +501,7 @@ class FeatureExtractor:
         plt.plot(label)
         plt.title("Model label")
         plt.show()
-        # plt.savefig("test.png")
+        plt.savefig("test.png")
 
     """ 
     -- method type 에 따라 feature, label 추출 후 저장

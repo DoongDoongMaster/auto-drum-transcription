@@ -12,6 +12,7 @@ from constant import (
     METHOD_RHYTHM,
     MFCC,
     STFT,
+    MEL_SPECTROGRAM,
     FEATURE_PARAM,
 )
 
@@ -32,7 +33,7 @@ data_processing = DataProcessing(ROOT_PATH)
 feature_extractor = FeatureExtractor(
     data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
     method_type=METHOD_RHYTHM,
-    feature_type=MFCC,
+    feature_type=MEL_SPECTROGRAM,
 )
 audio_paths = data_processing.get_paths(data_processing.raw_data_path)
 # feature_extractor.rhythm_feature_extractor(audio_paths)

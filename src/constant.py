@@ -90,6 +90,7 @@ PATTERN2CODE = {"P1": P1_2CODE, "P2": P2_2CODE}
 """
 MFCC = "mfcc"
 STFT = "stft"
+MEL_SPECTROGRAM = "mel-spectrogram"
 
 """
 -- feature parameter
@@ -104,6 +105,13 @@ FEATURE_PARAM = {
             "hop_length": 512,
         },
         STFT: {
+            "n_times": 1024,
+            "n_fft": 2048,
+            "n_classes": len(CODE2DRUM),
+            "hop_length": 512,
+            "win_length": 2048,
+        },
+        MEL_SPECTROGRAM: {
             "n_times": 1024,
             "n_fft": 2048,
             "n_classes": len(CODE2DRUM),
@@ -126,6 +134,13 @@ FEATURE_PARAM = {
             "hop_length": 128,
             "win_length": 512,
         },
+        MEL_SPECTROGRAM: {
+            "n_times": 512,
+            "n_fft": 1024,
+            "n_classes": len(CODE2DRUM),
+            "hop_length": 128,
+            "win_length": 512,
+        },
     },
     METHOD_RHYTHM: {
         MFCC: {
@@ -141,6 +156,17 @@ FEATURE_PARAM = {
             "n_classes": 1,
             "hop_length": 512,
             "win_length": 1024,
+        },
+        # -- adt 논문 참고 파라미터
+        MEL_SPECTROGRAM: {
+            "n_times": 1024,
+            "n_fft": 2048,  # -- FFT window length
+            "n_classes": len(CODE2DRUM),
+            "hop_length": 441,
+            "win_length": 1024,
+            "n_mels": 128,  # -- number of mel bands
+            "fmin": 27.5,
+            "fmax": 16000,
         },
     },
 }

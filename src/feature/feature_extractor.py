@@ -24,6 +24,7 @@ from constant import (
     ONEHOT_DRUM2CODE,
     MFCC,
     STFT,
+    MEL_SPECTROGRAM,
     CODE2DRUM,
     METHOD_CLASSIFY,
     METHOD_DETECT,
@@ -158,6 +159,46 @@ class FeatureExtractor:
         return stft_new
 
     """
+    -- mel-spectrogram feature 추출
+    """
+
+    def audio_to_mel_spectrogram(self, audio: np.ndarray) -> np.ndarray:
+        # translate mel-spectrogram
+        mel_spectrogram = librosa.feature.melspectrogram(
+            y=audio,
+            sr=self.sample_rate,
+            n_fft=self.feature_param["n_fft"],
+            hop_length=self.feature_param["hop_length"],
+            win_length=self.feature_param["win_length"],
+            window="hann",
+            n_mels=self.feature_param["n_mels"],
+            fmin=self.feature_param["fmin"],
+            fmax=self.feature_param["fmax"],
+        )
+
+        # fig, ax = plt.subplots()
+        # S_dB = librosa.power_to_db(mel_spectrogram, ref=np.max)
+        # img = librosa.display.specshow(
+        #     S_dB, x_axis="time", y_axis="mel", sr=self.sample_rate, fmax=8000, ax=ax
+        # )
+        # fig.colorbar(img, ax=ax, format="%+2.0f dB")
+        # ax.set(title="Mel-frequency spectrogram")
+        # plt.savefig("test.png")
+
+        if mel_spectrogram.shape[1] < self.feature_param["n_times"]:
+            mel_spectrogram_new = np.pad(
+                mel_spectrogram,
+                pad_width=(
+                    (0, 0),
+                    (0, self.feature_param["n_times"] - mel_spectrogram.shape[1]),
+                ),
+                mode="constant",
+            )
+        else:
+            mel_spectrogram_new = mel_spectrogram[:, : self.feature_param["n_times"]]
+        return mel_spectrogram_new
+
+    """
     -- feature type에 따라 feature 추출
     """
 
@@ -167,6 +208,8 @@ class FeatureExtractor:
             result = self.audio_to_mfcc(audio)
         elif self.feature_type == STFT:
             result = self.audio_to_stft(audio)
+        elif self.feature_type == MEL_SPECTROGRAM:
+            result = self.audio_to_mel_spectrogram(audio)
 
         if (
             self.method_type == METHOD_DETECT or self.method_type == METHOD_RHYTHM

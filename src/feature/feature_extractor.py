@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
-
+import mido
+import pretty_midi
 
 from ast import literal_eval
 from typing import List
@@ -12,6 +13,7 @@ from glob import glob
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
+
 
 from constant import (
     PATTERN_DIR,
@@ -32,6 +34,7 @@ from constant import (
     DDM_OWN,
     IDMT,
     ENST,
+    E_GMD,
     FEATURE_PARAM,
 )
 
@@ -47,7 +50,7 @@ class FeatureExtractor:
         method_type,
         feature_type,
         # feature_param: dict,
-        feature_extension=CSV,
+        feature_extension=PKL,
     ):
         self.data_root_path = data_root_path
         self.method_type = method_type
@@ -125,6 +128,8 @@ class FeatureExtractor:
         pad_width = self.feature_param["n_times"] - mfccs.shape[1]
         if pad_width > 0:
             mfccs = np.pad(mfccs, pad_width=((0, 0), (0, pad_width)), mode="constant")
+        else:
+            mfccs = mfccs[:, : self.feature_param["n_times"]]
         return mfccs
 
     """
@@ -163,7 +168,9 @@ class FeatureExtractor:
         elif self.feature_type == STFT:
             result = self.audio_to_stft(audio)
 
-        if self.method_type == METHOD_DETECT:  # separate & detect방식이라면 transpose
+        if (
+            self.method_type == METHOD_DETECT or self.method_type == METHOD_RHYTHM
+        ):  # separate & detect방식이라면 transpose
             result = np.transpose(result)  # row: time, col: feature
 
         print(
@@ -287,6 +294,28 @@ class FeatureExtractor:
 
         print("-- ! 읽은 onsets: ", onset_sec_list)
         return onset_sec_list
+
+    """
+    -- MID file에서 onset 읽어오기
+    """
+
+    def get_onsets_arr_from_mid(self, midi_path: str):
+        # MIDI 파일을 PrettyMIDI 객체로 로드합니다.
+        midi_data = pretty_midi.PrettyMIDI(midi_path)
+
+        # onset 정보를 저장할 리스트를 생성합니다.
+        onset_times = []
+
+        # 각 악기(track)에 대해 처리합니다.
+        for instrument in midi_data.instruments:
+            # 악기의 노트를 순회하며 onset을 찾습니다.
+            for note in instrument.notes:
+                onset_times.append(note.start)
+
+        # onset_times를 정렬합니다.
+        onset_times.sort()
+
+        return onset_times
 
     """
     -- onset 라벨링 
@@ -439,6 +468,20 @@ class FeatureExtractor:
                 txt_file = os.path.join(os.path.join(*file_paths), "annotation")
                 txt_file = os.path.join(txt_file, f"{file_name}.txt")
                 onsets_arr = self.get_onsets_arr_from_txt(txt_file)
+                label = self.get_label_rhythm_data(
+                    len(audio) / self.sample_rate, onsets_arr
+                )
+                data_feature_label.append([feature.tolist(), label])
+
+            if E_GMD in path:  # E-GMD data
+                # -- feature extract
+                feature = self.audio_to_feature(audio)
+                # -- label: onset 여부
+                file_name = os.path.basename(path)[:-4]  # 파일 이름
+                file_paths = path.split("/")[:-1]  # 뒤에서 3개 제외한 폴더 list
+
+                mid_file = os.path.join(os.path.join(*file_paths), f"{file_name}.mid")
+                onsets_arr = self.get_onsets_arr_from_mid(mid_file)
                 label = self.get_label_rhythm_data(
                     len(audio) / self.sample_rate, onsets_arr
                 )

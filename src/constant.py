@@ -30,9 +30,13 @@ CHECKPOINT_PATH = "../models"
 # -- 일정한 시간 간격으로 음압을 측정하는 주파수, 44100Hz
 SAMPLE_RATE = 44100
 
-# -- onset duration
-ONSET_DURATION = 0.02
+ONSET_DURATION = 0.1
 
+# -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
+ONSET_OFFSET = 5
+
+# -- chuck_time
+CHUCK_TIME = 12
 
 """
 -- drum mapping
@@ -159,6 +163,7 @@ FEATURE_PARAM = {
         },
         # -- adt 논문 참고 파라미터
         MEL_SPECTROGRAM: {
+            # (cut_time*SAMPLE_RATE)/hop_length, # -- frame 개수
             "n_times": 1024,
             "n_fft": 2048,  # -- FFT window length
             "n_classes": len(CODE2DRUM),
@@ -170,7 +175,6 @@ FEATURE_PARAM = {
         },
     },
 }
-
 
 """
 -- feature extension 

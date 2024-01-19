@@ -19,7 +19,7 @@ from constant import (
     PATTERN_DIR,
     PER_DRUM_DIR,
     SAMPLE_RATE,
-    ONSET_DURATION,
+    ONSET_OFFSET,
     PATTERN2CODE,
     ONEHOT_DRUM2CODE,
     MFCC,
@@ -37,6 +37,7 @@ from constant import (
     ENST,
     E_GMD,
     FEATURE_PARAM,
+    CHUCK_TIME,
 )
 
 """
@@ -58,6 +59,9 @@ class FeatureExtractor:
         self.feature_type = feature_type
         self.sample_rate = SAMPLE_RATE
         self.feature_param = FEATURE_PARAM[method_type][feature_type]
+        self.frame_length = (CHUCK_TIME * SAMPLE_RATE) / self.feature_param[
+            "hop_length"
+        ]
         self.feature_extension = feature_extension
         self.save_path = (
             f"{data_root_path}/{method_type}/{feature_type}.{feature_extension}"
@@ -176,7 +180,7 @@ class FeatureExtractor:
             fmax=self.feature_param["fmax"],
         )
         # show graph
-        self.show_mel_spectrogram_plot(mel_spectrogram)
+        # self.show_mel_spectrogram_plot(mel_spectrogram)
 
         if mel_spectrogram.shape[1] < self.feature_param["n_times"]:
             mel_spectrogram_new = np.pad(
@@ -189,6 +193,7 @@ class FeatureExtractor:
             )
         else:
             mel_spectrogram_new = mel_spectrogram[:, : self.feature_param["n_times"]]
+
         return mel_spectrogram_new
 
     """
@@ -235,7 +240,7 @@ class FeatureExtractor:
     """
     -- 우리 데이터 기준 detect type (sequence data) 라벨링 
         onset position : 1
-        onset position with ONSET_DURATION : 0.5
+        onset position with ONSET_OFFSET : 0.5 (ONSET_OFFSET: onset position 양 옆으로 몇 개씩 붙일지)
         extra : 0
     """
 
@@ -257,12 +262,12 @@ class FeatureExtractor:
             if onset >= last_time:
                 break
 
-            soft_start_position = self.get_audio_position(
-                max((onset - ONSET_DURATION), 0)
-            )
             onset_position = self.get_audio_position(onset)
-            soft_end_position = self.get_audio_position(
-                min(onset + ONSET_DURATION, last_time)
+            soft_start_position = max(  # -- onset - offset
+                (onset_position - ONSET_OFFSET), 0
+            )
+            soft_end_position = min(  # -- onset + offset
+                onset_position + ONSET_OFFSET, self.get_audio_position(last_time)
             )
 
             if any(drum in file_name for _, drum in CODE2DRUM.items()):  # per drum
@@ -354,25 +359,26 @@ class FeatureExtractor:
         return onset_times
 
     """
-    -- onset 라벨링 
+    -- onset 라벨링 (ONSET_OFFSET: onset position 양 옆으로 몇 개씩 붙일지)
     """
 
     def get_label_rhythm_data(self, last_time, onsets_arr: List[float]) -> List[float]:
         labels = [0.0] * self.feature_param["n_times"]
 
         for onset in onsets_arr:
-            if self.get_audio_position(onset) >= self.feature_param["n_times"]:
+            onset_position = self.get_audio_position(onset)  # -- 1
+
+            if onset_position >= self.feature_param["n_times"]:
                 break
 
-            soft_start_position = self.get_audio_position(
-                max((onset - ONSET_DURATION), 0)
+            soft_start_position = max(  # -- onset - offset
+                (onset_position - ONSET_OFFSET), 0
             )
-            onset_position = self.get_audio_position(onset)
-            soft_end_position = self.get_audio_position(
-                min(onset + ONSET_DURATION, last_time)
+            soft_end_position = min(  # -- onset + offset
+                onset_position + ONSET_OFFSET, self.get_audio_position(last_time)
             )
 
-            # duration -> 양 옆으로 0.5 몇 개 붙일지
+            # offset -> 양 옆으로 0.5 몇 개 붙일지
             for i in range(soft_start_position, soft_end_position):
                 if i >= self.feature_param["n_times"]:
                     break

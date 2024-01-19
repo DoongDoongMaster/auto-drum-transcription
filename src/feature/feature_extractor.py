@@ -175,15 +175,8 @@ class FeatureExtractor:
             fmin=self.feature_param["fmin"],
             fmax=self.feature_param["fmax"],
         )
-
-        # fig, ax = plt.subplots()
-        # S_dB = librosa.power_to_db(mel_spectrogram, ref=np.max)
-        # img = librosa.display.specshow(
-        #     S_dB, x_axis="time", y_axis="mel", sr=self.sample_rate, fmax=8000, ax=ax
-        # )
-        # fig.colorbar(img, ax=ax, format="%+2.0f dB")
-        # ax.set(title="Mel-frequency spectrogram")
-        # plt.savefig("test.png")
+        # show graph
+        self.show_mel_spectrogram_plot(mel_spectrogram)
 
         if mel_spectrogram.shape[1] < self.feature_param["n_times"]:
             mel_spectrogram_new = np.pad(
@@ -544,7 +537,26 @@ class FeatureExtractor:
         plt.plot(label)
         plt.title("Model label")
         plt.show()
-        # plt.savefig("test.png")
+        # plt.savefig("rhythm-label-test.png")
+
+    """
+    -- mel-spectrogram 그래프
+    """
+
+    def show_mel_spectrogram_plot(self, mel_spectrogram: np.ndarray):
+        fig, ax = plt.subplots()
+        S_dB = librosa.power_to_db(mel_spectrogram, ref=np.max)
+        img = librosa.display.specshow(
+            S_dB,
+            x_axis="time",
+            y_axis="mel",
+            sr=self.sample_rate,
+            ax=ax,
+            fmax=self.feature_param["fmax"],
+        )
+        fig.colorbar(img, ax=ax, format="%+2.0f dB")
+        ax.set(title="Mel-frequency spectrogram")
+        # plt.savefig("mel-spectrogram-test.png")
 
     """ 
     -- method type 에 따라 feature, label 추출 후 저장

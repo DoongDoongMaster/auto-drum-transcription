@@ -37,7 +37,7 @@ from constant import (
     ENST,
     E_GMD,
     FEATURE_PARAM,
-    CHUCK_TIME,
+    CHUNK_LENGTH,
 )
 
 """
@@ -53,13 +53,14 @@ class FeatureExtractor:
         feature_type,
         # feature_param: dict,
         feature_extension=PKL,
+        chunk_length=CHUNK_LENGTH,
     ):
         self.data_root_path = data_root_path
         self.method_type = method_type
         self.feature_type = feature_type
         self.sample_rate = SAMPLE_RATE
         self.feature_param = FEATURE_PARAM[method_type][feature_type]
-        self.frame_length = (CHUCK_TIME * SAMPLE_RATE) / self.feature_param[
+        self.frame_length = (CHUNK_LENGTH * SAMPLE_RATE) / self.feature_param[
             "hop_length"
         ]
         self.feature_extension = feature_extension
@@ -68,6 +69,7 @@ class FeatureExtractor:
         )
         self.onset_detection = OnsetDetect(SAMPLE_RATE)
         self.data_processing = DataProcessing(data_root_path=ROOT_PATH)
+        self.chunk_length = chunk_length
 
     """
     -- feature 추출한 파일 불러오기
@@ -245,7 +247,7 @@ class FeatureExtractor:
     """
 
     def get_audio_position(self, time) -> int:
-        return (int)(time * self.sample_rate / self.feature_param["hop_length"])
+        return int(time * self.sample_rate / self.feature_param["hop_length"])
 
     def get_label_detect_data(self, audio: np.ndarray, path: str) -> List[List[int]]:
         file_name = os.path.basename(path)
@@ -375,9 +377,8 @@ class FeatureExtractor:
                 (onset_position - ONSET_OFFSET), 0
             )
             soft_end_position = min(  # -- onset + offset
-                onset_position + ONSET_OFFSET, self.get_audio_position(last_time)
+                onset_position + ONSET_OFFSET + 1, self.get_audio_position(last_time)
             )
-
             # offset -> 양 옆으로 0.5 몇 개 붙일지
             for i in range(soft_start_position, soft_end_position):
                 if i >= self.feature_param["n_times"]:
@@ -385,11 +386,42 @@ class FeatureExtractor:
 
                 if labels[i] == 1.0:
                     continue
-
                 labels[i] = 0.5
-            labels[(int)(onset_position)] = 1.0
+
+            labels[onset_position] = 1.0
 
         return labels
+
+    """
+    -- onset을 chunk에 맞게 split
+    ex. {0: [0~11], 1: [12, 23], 2: [], 3: [38], ... onset 을 12배수에 따라 split
+    -> 0~11
+    """
+
+    def split_onset_match_chunk(self, onsets_arr: List[float]):
+        print("onsets_arr>>", onsets_arr)
+        chunk_onsets_arr = {}
+        tmp = []
+        current_chunk_idx = 0
+        for onset_time in onsets_arr:
+            if (
+                current_chunk_idx * self.chunk_length <= onset_time
+                and onset_time < (current_chunk_idx + 1) * self.chunk_length
+            ):
+                tmp.append(
+                    onset_time - (current_chunk_idx * self.chunk_length)
+                    if onset_time >= self.chunk_length
+                    else onset_time
+                )
+
+            else:
+                chunk_onsets_arr[current_chunk_idx] = tmp
+                current_chunk_idx += 1
+                tmp = []
+
+        if len(chunk_onsets_arr) <= 0:
+            chunk_onsets_arr[current_chunk_idx] = tmp
+        return chunk_onsets_arr
 
     """
     -- classify type feature, label 추출
@@ -516,22 +548,29 @@ class FeatureExtractor:
                 data_feature_label.append([feature.tolist(), label])
 
             if E_GMD in path:  # E-GMD data
-                # -- feature extract
-                feature = self.audio_to_feature(audio)
+                chunk_list = self.data_processing.cut_chunk_audio(audio)
+
                 # -- label: onset 여부
                 file_name = os.path.basename(path)[:-4]  # 파일 이름
                 file_paths = path.split("/")[:-1]  # 뒤에서 3개 제외한 폴더 list
-
                 mid_file = os.path.join(os.path.join(*file_paths), f"{file_name}.mid")
                 onsets_arr = self.get_onsets_arr_from_mid(mid_file)
-                label = self.get_label_rhythm_data(
-                    len(audio) / self.sample_rate, onsets_arr
-                )
-                data_feature_label.append([feature.tolist(), label])
+                chunk_onsets_arr = self.split_onset_match_chunk(onsets_arr)
+
+                print("chunk_list>>", len(chunk_list))
+                print("chunk_onsets_arr>>", len(chunk_onsets_arr))
+
+                for idx, chunk in enumerate(chunk_list):
+                    # -- feature extract
+                    feature = self.audio_to_feature(chunk)
+                    label = self.get_label_rhythm_data(
+                        len(chunk) / self.sample_rate, chunk_onsets_arr[idx]
+                    )
+                    data_feature_label.append([feature.tolist(), label])
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         if len(feature_df) > 0:
-            self.show_rhythm_label_plot(feature_df.label[0])
+            self.show_rhythm_label_plot(feature_df.label[23])
         return feature_df
 
     """
@@ -543,7 +582,7 @@ class FeatureExtractor:
         plt.plot(label)
         plt.title("Model label")
         plt.show()
-        # plt.savefig("rhythm-label-test.png")
+        plt.savefig("rhythm-label-test.png")
 
     """
     -- mel-spectrogram 그래프

@@ -6,7 +6,7 @@ import librosa
 import numpy as np
 from typing import List
 
-from constant import SAMPLE_RATE, RAW_PATH, NEW_PATH, ONSET_DURATION
+from constant import SAMPLE_RATE, RAW_PATH, NEW_PATH, ONSET_DURATION, CHUNK_LENGTH
 from data.onset_detection import OnsetDetect
 
 """
@@ -20,12 +20,14 @@ class DataProcessing:
         data_root_path: str,
         sample_rate=SAMPLE_RATE,
         onset_duration=ONSET_DURATION,
+        chunk_length=CHUNK_LENGTH,
     ):
         self.raw_data_path = f"{data_root_path}/{RAW_PATH}"
         self.new_data_path = f"{data_root_path}/{NEW_PATH}"
         self.sample_rate = sample_rate
         self.onset_duration = onset_duration
         self.onset_detection = OnsetDetect(sample_rate)
+        self.chunk_length = chunk_length
 
     # get data path
     def get_paths(self, root_path: str, extensions=["m4a", "mp3", "wav"]) -> List[str]:
@@ -112,6 +114,27 @@ class DataProcessing:
 
         print(f"-- ! audio trimmed: {first_onset} sec ! --")
         return trimmed
+
+    def cut_chunk_audio(self, audio: np.ndarray):
+        """
+        chunk time씩 잘라 list로 리턴
+        """
+        # Calculate the number of samples in each chunk
+        chunk_samples = int(self.chunk_length * self.sample_rate)
+
+        # -- Calculate the number of chunks
+        # 1s를 12s로 나누면 0인데, 0개로 나눌 수 없으니까
+        num_chunks = max(len(audio) // (chunk_samples), 1)
+
+        # -- Cut audio into chunks
+        # array_split([0,..., 7], 3) => [[0., 1., 2.], [3., 4., 5.], [6., 7.]]
+        audio_chunks = np.array_split(audio[: num_chunks * chunk_samples], num_chunks)
+
+        # Check if the last chunk is less than 1 second, discard if true
+        if len(audio_chunks[-1]) < self.sample_rate:
+            audio_chunks = audio_chunks[:-1]
+
+        return audio_chunks
 
     # write wav audio -> wav file
     def write_wav_audio_one(self, root_path, name, audio):

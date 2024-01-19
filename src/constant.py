@@ -35,8 +35,9 @@ ONSET_DURATION = 0.1
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
 ONSET_OFFSET = 5
 
-# -- chuck_time
-CHUCK_TIME = 12
+# -- chunk time
+CHUNK_LENGTH = 12
+
 
 """
 -- drum mapping
@@ -164,7 +165,7 @@ FEATURE_PARAM = {
         # -- adt 논문 참고 파라미터
         MEL_SPECTROGRAM: {
             # (cut_time*SAMPLE_RATE)/hop_length, # -- frame 개수
-            "n_times": 1024,
+            "n_times": 1200,
             "n_fft": 2048,  # -- FFT window length
             "n_classes": len(CODE2DRUM),
             "hop_length": 441,

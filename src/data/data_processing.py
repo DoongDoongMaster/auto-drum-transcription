@@ -122,13 +122,10 @@ class DataProcessing:
         # Calculate the number of samples in each chunk
         chunk_samples = int(self.chunk_length * self.sample_rate)
 
-        # -- Calculate the number of chunks
-        # 1s를 12s로 나누면 0인데, 0개로 나눌 수 없으니까
-        num_chunks = max(len(audio) // (chunk_samples), 1)
-
         # -- Cut audio into chunks
-        # array_split([0,..., 7], 3) => [[0., 1., 2.], [3., 4., 5.], [6., 7.]]
-        audio_chunks = np.array_split(audio[: num_chunks * chunk_samples], num_chunks)
+        audio_chunks = [
+            audio[i : i + chunk_samples] for i in range(0, len(audio), chunk_samples)
+        ]
 
         # Check if the last chunk is less than 1 second, discard if true
         if len(audio_chunks[-1]) < self.sample_rate:

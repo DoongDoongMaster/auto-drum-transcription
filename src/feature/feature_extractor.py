@@ -130,7 +130,7 @@ class FeatureExtractor:
 
     def audio_to_mfcc(self, audio: np.ndarray) -> np.ndarray:
         mfccs = librosa.feature.mfcc(
-            y=audio, sr=self.sample_rate, n_mfcc=self.feature_param["n_features"]
+            y=audio, sr=self.sample_rate, n_mfcc=self.feature_param["n_mfcc"]
         )
         pad_width = self.frame_length - mfccs.shape[1]
         if pad_width > 0:

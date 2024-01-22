@@ -25,7 +25,7 @@ class SeparateDetectModel(BaseModel):
         self.unit_number = unit_number
         self.predict_standard = 0.8
         # self.n_rows = self.feature_extractor.feature_param["n_times"]
-        # self.n_columns = self.feature_extractor.feature_param["n_features"]
+        # self.n_columns = self.feature_extractor.feature_param["n_mfcc"]
         # self.n_classes = self.feature_extractor.feature_param["n_classes"]
         # STFT feature type
         self.n_rows = (

@@ -19,7 +19,7 @@ class SegmentClassifyModel(BaseModel):
             feature_type=MFCC,
         )
         self.predict_standard = 0.5
-        self.n_row = self.feature_extractor.feature_param["n_features"]
+        self.n_row = self.feature_extractor.feature_param["n_mfcc"]
         self.n_columns = (
             CHUNK_LENGTH * SAMPLE_RATE
         ) // self.feature_extractor.feature_param["hop_length"]

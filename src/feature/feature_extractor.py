@@ -501,17 +501,18 @@ class FeatureExtractor:
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
 
-            # if DDM_OWN in path:  # 우리 데이터라면
-            #     # -- trim first onset
-            #     audio = self.data_processing.trim_audio_first_onset(audio)
-            #     # -- feature extract
-            #     feature = self.audio_to_feature(audio)
-            #     # -- label: onset 여부
-            #     onsets_arr = self.onset_detection.onset_detection(audio)
-            #     label = self.get_label_rhythm_data(
-            #         len(audio) / self.sample_rate, onsets_arr
-            #     )
-            #     data_feature_label.append([feature.tolist(), label])
+            if DDM_OWN in path:  # 우리 데이터라면
+                # -- trim first onset
+                audio = self.data_processing.trim_audio_first_onset(audio)
+                # -- feature extract
+                feature = self.audio_to_feature(audio)
+                # -- label: onset 여부
+                onsets_arr = self.onset_detection.onset_detection(audio)
+                label = self.get_label_rhythm_data(
+                    len(audio) / self.sample_rate, onsets_arr
+                )
+                data_feature_label.append([feature.tolist(), label])
+                continue
 
             # -- chunk
             chunk_list = self.data_processing.cut_chunk_audio(audio)
@@ -540,12 +541,19 @@ class FeatureExtractor:
             # -- labeling: onset 여부
             chunk_onsets_arr = self.split_onset_match_chunk(onsets_arr)
             for idx, chunk in enumerate(chunk_list):
+                if not idx in chunk_onsets_arr:
+                    continue
+
                 # -- feature extract
                 feature = self.audio_to_feature(chunk)
                 label = self.get_label_rhythm_data(
                     len(chunk) / self.sample_rate, chunk_onsets_arr[idx]
                 )
                 data_feature_label.append([feature.tolist(), label])
+
+            del chunk_list
+            del onsets_arr
+            del chunk_onsets_arr
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         if len(feature_df) > 0:
@@ -600,7 +608,9 @@ class FeatureExtractor:
         # Convert into a Panda dataframe & Add dataframe
         features_total_df = features_df_new
         if features_df_origin is not None:
-            features_total_df = pd.concat([features_df_origin, features_df_new])
+            features_total_df = pd.concat(
+                [features_df_origin, features_df_new], ignore_index=True
+            )
 
         # Save feature file
         self.save_feature_file(features_total_df)

@@ -41,7 +41,6 @@ class BaseModel:
             data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
             method_type=method_type,
             feature_type=feature_type,
-            feature_param=FEATURE_PARAM[method_type][feature_type],
         )
         self.save_path = f"../models/{method_type}_{feature_type}"
         self.model_save_type = "h5"
@@ -67,6 +66,7 @@ class BaseModel:
     def load_data(self):
         # feature file 존재안한다면 -> raw data feature 생성해서 저장하기
         if os.path.exists(self.feature_extractor.save_path) is False:
+            print("-- ! 기존 raw data에서 feature file 새로 생성 ! --")
             paths = self.data_processing.get_paths(self.data_processing.raw_data_path)
             self.feature_extractor.feature_extractor(paths)
 
@@ -74,18 +74,17 @@ class BaseModel:
             print("-- ! 새로운 데이터 존재 ! --")
             feature_file_list = self.feature_extractor.load_feature_file_all()
             for feature_file in feature_file_list:
-                feature_extension = os.path.splitext(feature_file)[1]
+                feature_extension = os.path.splitext(feature_file)[1][1:]  # 파일 확장자
                 feature_type_new = os.path.basename(feature_file)[:-4]
                 method_type_new = feature_file.split("/")[-2]  # 뒤에서 2번째 인덱스
                 print(
-                    f"-- ! 기존 feature update: {method_type_new}_{feature_type_new}.{feature_extension}"
+                    f"-- ! 기존 feature update: {method_type_new}/{feature_type_new}.{feature_extension}"
                 )
                 feature_extractor_new = FeatureExtractor(
                     data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
                     method_type=method_type_new,
                     feature_type=feature_type_new,
                     feature_extension=feature_extension,
-                    feature_param=FEATURE_PARAM[method_type_new][feature_type_new],
                 )
                 new_data_paths = self.data_processing.get_paths(
                     self.data_processing.new_data_path

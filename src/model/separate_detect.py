@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
-from constant import METHOD_DETECT, STFT, MILLISECOND
+from constant import METHOD_DETECT, STFT, MILLISECOND, CHUNK_LENGTH, SAMPLE_RATE
 
 
 class SeparateDetectModel(BaseModel):
@@ -28,7 +28,9 @@ class SeparateDetectModel(BaseModel):
         # self.n_columns = self.feature_extractor.feature_param["n_features"]
         # self.n_classes = self.feature_extractor.feature_param["n_classes"]
         # STFT feature type
-        self.n_rows = self.feature_extractor.feature_param["n_times"]
+        self.n_rows = (
+            CHUNK_LENGTH * SAMPLE_RATE
+        ) // self.feature_extractor.feature_param["hop_length"]
         self.n_columns = self.feature_extractor.feature_param["n_fft"] // 2 + 1
         self.n_classes = self.feature_extractor.feature_param["n_classes"]
         self.hop_length = self.feature_extractor.feature_param["hop_length"]

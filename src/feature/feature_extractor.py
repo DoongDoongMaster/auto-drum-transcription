@@ -10,6 +10,7 @@ import pretty_midi
 from ast import literal_eval
 from typing import List
 from glob import glob
+from datetime import datetime
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
@@ -38,6 +39,7 @@ from constant import (
     E_GMD,
     FEATURE_PARAM,
     CHUNK_LENGTH,
+    IMAGE_PATH,
 )
 
 """
@@ -569,7 +571,14 @@ class FeatureExtractor:
         plt.plot(label)
         plt.title("Model label")
         plt.show()
-        plt.savefig("rhythm-label-test.png")
+
+        # 이미지 폴더 존재 확인
+        if not os.path.exists(IMAGE_PATH):
+            os.mkdir(IMAGE_PATH)  # 없으면 새로 생성
+
+        # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        plt.savefig(f"{IMAGE_PATH}/{self.method_type}-label-test-{date_time}.png")
 
     """
     -- mel-spectrogram 그래프

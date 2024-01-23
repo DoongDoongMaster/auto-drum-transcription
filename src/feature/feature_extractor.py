@@ -15,7 +15,6 @@ from datetime import datetime
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
 
-
 from constant import (
     PATTERN_DIR,
     PER_DRUM_DIR,
@@ -503,18 +502,18 @@ class FeatureExtractor:
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
 
-            if DDM_OWN in path:  # 우리 데이터라면
-                # -- trim first onset
-                audio = self.data_processing.trim_audio_first_onset(audio)
-                # -- feature extract
-                feature = self.audio_to_feature(audio)
-                # -- label: onset 여부
-                onsets_arr = self.onset_detection.onset_detection(audio)
-                label = self.get_label_rhythm_data(
-                    len(audio) / self.sample_rate, onsets_arr
-                )
-                data_feature_label.append([feature.tolist(), label])
-                continue
+            # if DDM_OWN in path:  # 우리 데이터라면
+            #     # -- trim first onset
+            #     audio = self.data_processing.trim_audio_first_onset(audio)
+            #     # -- feature extract
+            #     feature = self.audio_to_feature(audio)
+            #     # -- label: onset 여부
+            #     onsets_arr = self.onset_detection.onset_detection(audio)
+            #     label = self.get_label_rhythm_data(
+            #         len(audio) / self.sample_rate, onsets_arr
+            #     )
+            #     data_feature_label.append([feature.tolist(), label])
+            #     continue
 
             # -- chunk
             chunk_list = self.data_processing.cut_chunk_audio(audio)
@@ -553,14 +552,8 @@ class FeatureExtractor:
                 )
                 data_feature_label.append([feature.tolist(), label])
 
-                del feature
-                del label
-
-            del chunk_list
-            del onsets_arr
-            del chunk_onsets_arr
-
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
+
         if len(feature_df) > 0:
             self.show_rhythm_label_plot(feature_df.label[0])
         return feature_df
@@ -609,20 +602,26 @@ class FeatureExtractor:
     def feature_extractor(self, audio_paths: List[str]):
         features_df_origin = self.load_feature_file()  # load feature file
 
+        print("-- 총 audio_paths 몇 개??? >> ", len(audio_paths))
         features_df_new = None
-        if self.method_type == METHOD_CLASSIFY:
-            features_df_new = self.classify_feature_extractor(audio_paths)
-        elif self.method_type == METHOD_DETECT:
-            features_df_new = self.detect_feature_extractor(audio_paths)
-        elif self.method_type == METHOD_RHYTHM:
-            features_df_new = self.rhythm_feature_extractor(audio_paths)
 
-        # Convert into a Panda dataframe & Add dataframe
-        features_total_df = features_df_new
-        if features_df_origin is not None:
-            features_total_df = pd.concat(
-                [features_df_origin, features_df_new], ignore_index=True
-            )
+        batch_size = 20
+        for i in range(0, len(audio_paths), batch_size):
+            batch_audio_paths = audio_paths[i : i + batch_size]
 
-        # Save feature file
-        self.save_feature_file(features_total_df)
+            if self.method_type == METHOD_CLASSIFY:
+                features_df_new = self.classify_feature_extractor(batch_audio_paths)
+            elif self.method_type == METHOD_DETECT:
+                features_df_new = self.detect_feature_extractor(batch_audio_paths)
+            elif self.method_type == METHOD_RHYTHM:
+                features_df_new = self.rhythm_feature_extractor(batch_audio_paths)
+
+            # Convert into a Panda dataframe & Add dataframe
+            features_total_df = features_df_new
+            if features_df_origin is not None:
+                features_total_df = pd.concat(
+                    [features_df_origin, features_df_new], ignore_index=True
+                )
+
+            # Save feature file
+            self.save_feature_file(features_total_df)

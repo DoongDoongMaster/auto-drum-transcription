@@ -17,7 +17,7 @@ from constant import (
 )
 
 
-data_processing = DataProcessing(ROOT_PATH)
+# data_processing = DataProcessing(ROOT_PATH)
 
 # lists = data_processing.get_paths(data_processing.new_data_path)
 # print(lists)
@@ -30,15 +30,15 @@ data_processing = DataProcessing(ROOT_PATH)
 # # train data
 # audio_paths = data_processing.get_paths(data_processing.new_data_path)
 
-feature_extractor = FeatureExtractor(
-    data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
-    method_type=METHOD_RHYTHM,
-    feature_type=MEL_SPECTROGRAM,
-)
-audio_paths = data_processing.get_paths(data_processing.raw_data_path)
+# feature_extractor = FeatureExtractor(
+#     data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
+#     method_type=METHOD_RHYTHM,
+#     feature_type=MEL_SPECTROGRAM,
+# )
+# audio_paths = data_processing.get_paths(data_processing.raw_data_path)
 # feature_extractor.rhythm_feature_extractor(audio_paths)
 
-feature_extractor.feature_extractor(audio_paths)
+# feature_extractor.feature_extractor(audio_paths)
 # features = feature_extractor.load_feature_file()
 # # print("feature><<", feature["label"])
 # feature_extractor.show_rhythm_label_plot(features.label[0])
@@ -81,7 +81,7 @@ feature_extractor.feature_extractor(audio_paths)
 
 # print(separate_detect.predict("../data/raw/pattern/P1/08/P1_08_0001.m4a", 100, 0))
 
-# rhythm_detect = RhythmDetectModel(40, 0.001, 20, 16)
+rhythm_detect = RhythmDetectModel(40, 0.001, 20, 16)
 
 # rhythm_detect.create_dataset()
 # rhythm_detect.create()
@@ -89,4 +89,4 @@ feature_extractor.feature_extractor(audio_paths)
 # rhythm_detect.evaluate()
 # rhythm_detect.save()
 
-# print(rhythm_detect.predict("../data/raw/ddm-own/pattern/P1/08/P1_08_0001.m4a", 100, 0))
+print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))

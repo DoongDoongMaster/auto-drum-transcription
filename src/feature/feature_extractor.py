@@ -10,6 +10,7 @@ import pretty_midi
 from ast import literal_eval
 from typing import List
 from glob import glob
+from datetime import datetime
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
@@ -38,6 +39,7 @@ from constant import (
     E_GMD,
     FEATURE_PARAM,
     CHUNK_LENGTH,
+    IMAGE_PATH,
 )
 
 """
@@ -130,7 +132,7 @@ class FeatureExtractor:
 
     def audio_to_mfcc(self, audio: np.ndarray) -> np.ndarray:
         mfccs = librosa.feature.mfcc(
-            y=audio, sr=self.sample_rate, n_mfcc=self.feature_param["n_features"]
+            y=audio, sr=self.sample_rate, n_mfcc=self.feature_param["n_mfcc"]
         )
         pad_width = self.frame_length - mfccs.shape[1]
         if pad_width > 0:
@@ -501,17 +503,18 @@ class FeatureExtractor:
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
 
-            # if DDM_OWN in path:  # 우리 데이터라면
-            #     # -- trim first onset
-            #     audio = self.data_processing.trim_audio_first_onset(audio)
-            #     # -- feature extract
-            #     feature = self.audio_to_feature(audio)
-            #     # -- label: onset 여부
-            #     onsets_arr = self.onset_detection.onset_detection(audio)
-            #     label = self.get_label_rhythm_data(
-            #         len(audio) / self.sample_rate, onsets_arr
-            #     )
-            #     data_feature_label.append([feature.tolist(), label])
+            if DDM_OWN in path:  # 우리 데이터라면
+                # -- trim first onset
+                audio = self.data_processing.trim_audio_first_onset(audio)
+                # -- feature extract
+                feature = self.audio_to_feature(audio)
+                # -- label: onset 여부
+                onsets_arr = self.onset_detection.onset_detection(audio)
+                label = self.get_label_rhythm_data(
+                    len(audio) / self.sample_rate, onsets_arr
+                )
+                data_feature_label.append([feature.tolist(), label])
+                continue
 
             # -- chunk
             chunk_list = self.data_processing.cut_chunk_audio(audio)
@@ -540,12 +543,22 @@ class FeatureExtractor:
             # -- labeling: onset 여부
             chunk_onsets_arr = self.split_onset_match_chunk(onsets_arr)
             for idx, chunk in enumerate(chunk_list):
+                if not idx in chunk_onsets_arr:
+                    continue
+
                 # -- feature extract
                 feature = self.audio_to_feature(chunk)
                 label = self.get_label_rhythm_data(
                     len(chunk) / self.sample_rate, chunk_onsets_arr[idx]
                 )
                 data_feature_label.append([feature.tolist(), label])
+
+                del feature
+                del label
+
+            del chunk_list
+            del onsets_arr
+            del chunk_onsets_arr
 
         feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
         if len(feature_df) > 0:
@@ -561,7 +574,14 @@ class FeatureExtractor:
         plt.plot(label)
         plt.title("Model label")
         plt.show()
-        plt.savefig("rhythm-label-test.png")
+
+        # 이미지 폴더 존재 확인
+        if not os.path.exists(IMAGE_PATH):
+            os.mkdir(IMAGE_PATH)  # 없으면 새로 생성
+
+        # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        plt.savefig(f"{IMAGE_PATH}/{self.method_type}-label-test-{date_time}.png")
 
     """
     -- mel-spectrogram 그래프
@@ -600,7 +620,9 @@ class FeatureExtractor:
         # Convert into a Panda dataframe & Add dataframe
         features_total_df = features_df_new
         if features_df_origin is not None:
-            features_total_df = pd.concat([features_df_origin, features_df_new])
+            features_total_df = pd.concat(
+                [features_df_origin, features_df_new], ignore_index=True
+            )
 
         # Save feature file
         self.save_feature_file(features_total_df)

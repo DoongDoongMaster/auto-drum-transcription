@@ -6,7 +6,7 @@ from tensorflow.keras import layers, Sequential
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
-from constant import METHOD_CLASSIFY, MFCC, MILLISECOND
+from constant import METHOD_CLASSIFY, MFCC, MILLISECOND, CHUNK_LENGTH, SAMPLE_RATE
 
 
 class SegmentClassifyModel(BaseModel):
@@ -19,8 +19,10 @@ class SegmentClassifyModel(BaseModel):
             feature_type=MFCC,
         )
         self.predict_standard = 0.5
-        self.n_row = self.feature_extractor.feature_param["n_features"]
-        self.n_columns = self.feature_extractor.feature_param["n_times"]
+        self.n_row = self.feature_extractor.feature_param["n_mfcc"]
+        self.n_columns = (
+            CHUNK_LENGTH * SAMPLE_RATE
+        ) // self.feature_extractor.feature_param["hop_length"]
         self.n_channels = self.feature_extractor.feature_param["n_channels"]
         self.n_classes = self.feature_extractor.feature_param["n_classes"]
         self.load_model()

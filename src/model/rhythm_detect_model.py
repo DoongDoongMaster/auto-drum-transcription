@@ -8,7 +8,7 @@ from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
-from constant import METHOD_RHYTHM, STFT, MILLISECOND
+from constant import METHOD_RHYTHM, STFT, MILLISECOND, CHUNK_LENGTH, SAMPLE_RATE
 
 
 class RhythmDetectModel(BaseModel):
@@ -26,7 +26,9 @@ class RhythmDetectModel(BaseModel):
         self.predict_standard = 0.8
 
         # STFT feature type
-        self.n_rows = self.feature_extractor.feature_param["n_times"]
+        self.n_rows = (
+            CHUNK_LENGTH * SAMPLE_RATE
+        ) // self.feature_extractor.feature_param["hop_length"]
         self.n_columns = self.feature_extractor.feature_param["n_fft"] // 2 + 1
         self.n_classes = self.feature_extractor.feature_param["n_classes"]
         self.hop_length = self.feature_extractor.feature_param["hop_length"]
@@ -143,6 +145,8 @@ class RhythmDetectModel(BaseModel):
 
         # -- output reshape
         predict_data = self.output_reshape(predict_data)[0]
+
+        self.feature_extractor.show_rhythm_label_plot(predict_data)
 
         # -- get onsets
         onsets_arr = self.get_predict_onsets_instrument(predict_data)

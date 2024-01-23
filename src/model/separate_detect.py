@@ -8,6 +8,7 @@ from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
+from data.rhythm_detection import RhythmDetection
 from constant import METHOD_DETECT, STFT, MILLISECOND, CHUNK_LENGTH, SAMPLE_RATE
 
 
@@ -106,7 +107,7 @@ class SeparateDetectModel(BaseModel):
     """
 
     def get_bar_rhythm(self, audio_wav, bpm, onsets_arr):
-        return self.onset_detection.get_rhythm(
+        return RhythmDetection.get_rhythm(
             audio_wav, bpm, onsets_arr, is_our_train_data=True
         )
 

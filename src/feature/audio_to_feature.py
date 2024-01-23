@@ -22,7 +22,7 @@ class AudioToFeature:
 
     @staticmethod
     def extract_feature(
-        audio: np.ndarray, feature_type: str, method_type: str
+        audio: np.ndarray, method_type: str, feature_type: str
     ) -> np.ndarray:
         """
         -- feature type에 따라 feature 추출

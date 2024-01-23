@@ -7,33 +7,29 @@ import numpy as np
 from typing import List
 
 from constant import SAMPLE_RATE, RAW_PATH, NEW_PATH, ONSET_DURATION, CHUNK_LENGTH
-from onset_detection import OnsetDetect
-
-"""
-data를 불러오고 처리하고 저장하는 클래스
-"""
+from data.onset_detection import OnsetDetect
 
 
 class DataProcessing:
-    def __init__(
-        self,
-        data_root_path: str,
-    ):
-        self.raw_data_path = f"{data_root_path}/{RAW_PATH}"
-        self.new_data_path = f"{data_root_path}/{NEW_PATH}"
+    """
+    data를 불러오고 처리하고 저장하는 클래스
+    """
 
-    # get data path
+    @staticmethod
     def get_paths(root_path: str, extensions=["m4a", "mp3", "wav"]) -> List[str]:
+        """
+        get data path
+        """
         if os.path.isfile(root_path):  # 파일이라면 불러오기
-            if extensions[0] == "*":  # 모든 파일
-                return [root_path]
-            if any(root_path.endswith(ext) for ext in extensions):
+            if extensions[0] == "*" or any(
+                root_path.endswith(ext) for ext in extensions
+            ):  # 모든 파일 or 특정 확장자
                 return [root_path]
             else:
                 return []
 
-        folders = os.listdir(root_path)
         audio_paths = []
+        folders = os.listdir(root_path)
 
         for d in folders:
             new_root_path = os.path.join(root_path, d)
@@ -41,51 +37,57 @@ class DataProcessing:
 
         return audio_paths
 
-    # load audio data : 오디오 형태로 불러오기
+    @staticmethod
     def load_audio_data(root_path: str):
+        """
+        load audio data : 오디오 형태로 불러오기
+        """
         print("-- ! audio data loading ... ! --")
         audio_paths = DataProcessing.get_paths(root_path)
         audios = [librosa.load(p, sr=SAMPLE_RATE)[0] for p in audio_paths]
         print("-- ! audio data loading done ! --")
         return audios
 
-    # check new data exist -> return boolean
-    def is_exist_new_data(self):
-        new_data_paths = DataProcessing.get_paths(self.new_data_path)
-        return len(new_data_paths) > 0
+    @staticmethod
+    def is_exist_data_in_folder(folder_path) -> bool:
+        """
+        check data exist
+        """
+        data_paths = DataProcessing.get_paths(folder_path)
+        return len(data_paths) > 0
 
-    # move new data to raw data
-    def move_new_to_raw(self):
-        print("-- ! moving new data to raw data ! --")
-        new_data_paths = DataProcessing.get_paths(self.new_data_path, ["*"])
+    @staticmethod
+    def move_new_to_raw(new_path, raw_path):
+        """
+        move new data to raw data
+        """
+        print(f"-- ! moving {new_path} data to {raw_path} ! --")
+        new_data_paths = DataProcessing.get_paths(new_path, ["*"])
 
         for p in new_data_paths:
             file_path = p.replace(NEW_PATH, RAW_PATH)  # new path의 폴더 경로를 유지하면서 옮기기
             file_dir = os.path.dirname(file_path)
-            if os.path.exists(file_dir) == False:  # 파일 없다면 새로 생성
-                os.makedirs(file_dir)
+            os.makedirs(file_dir, exist_ok=True)  # 파일 없다면 새로 생성
             shutil.move(p, file_path)
-
-        # folder remove & remake
-        if not self.is_exist_new_data():
-            shutil.rmtree(self.new_data_path)
-            os.mkdir(self.new_data_path)
 
         print("-- ! move done ! --")
 
-    # trim audio per onset -> list
-    def trim_audio_per_onset(audio: np.ndarray, onsets: List[float] = None):
-        onsets = OnsetDetect.onset_detection(audio) if onsets == None else onsets
-        sr = SAMPLE_RATE
-        duration = ONSET_DURATION
+    @staticmethod
+    def trim_audio_per_onset(
+        audio: np.ndarray, onsets: List[float] = None
+    ) -> List[np.ndarray]:
+        """
+        trim audio per onset
+        """
+        onsets = OnsetDetect.onset_detection(audio) if onsets is None else onsets
 
         trimmed_audios = []
         for i in range(0, len(onsets)):
-            start = (int)((onsets[i]) * sr)
-            end = (int)((onsets[i] + duration) * sr)
+            start = int(onsets[i] * SAMPLE_RATE)
+            end = int((onsets[i] + ONSET_DURATION) * SAMPLE_RATE)
 
             if i + 1 < len(onsets):
-                end_by_onset = (int)(onsets[i + 1] * sr)
+                end_by_onset = int(onsets[i + 1] * SAMPLE_RATE)
                 end = min(end, end_by_onset)
 
             trimmed = audio[start:end]
@@ -93,18 +95,22 @@ class DataProcessing:
 
         return trimmed_audios
 
-    # trim audio from first onset to last audio
+    @staticmethod
     def trim_audio_first_onset(audio: np.ndarray, first_onset: float = None):
+        """
+        trim audio from first onset to last audio
+        """
         if first_onset == None:
             onsets = OnsetDetect.onset_detection(audio)
-            first_onset = onsets[0] if len(onsets) != 0 else 0
+            first_onset = onsets[0] if onsets else 0
 
-        start = (int)(first_onset * SAMPLE_RATE)
+        start = int(first_onset * SAMPLE_RATE)
         trimmed = audio[start:]
 
         print(f"-- ! audio trimmed: {first_onset} sec ! --")
         return trimmed
 
+    @staticmethod
     def cut_chunk_audio(audio: np.ndarray):
         """
         chunk time씩 잘라 list로 리턴
@@ -123,17 +129,19 @@ class DataProcessing:
 
         return audio_chunks
 
-    # write wav audio -> wav file
+    @staticmethod
     def write_wav_audio_one(root_path, name, audio):
-        # exist or not
-        if not os.path.exists(root_path):
-            os.makedirs(root_path)
+        """
+        write wav audio -> wav file
+        """
+        os.makedirs(root_path, exist_ok=True)
         scipy.io.wavfile.write(f"{root_path}/{name}.wav", SAMPLE_RATE, audio)
 
-    # trimmed audio -> wav file write list
-    # -- file name : 본래wavfile이름_몇번째onset인지.wav
+    @staticmethod
     def write_trimmed_audio(root_path, name, trimmed_audios: List[np.ndarray]):
-        start = 1
-        for audio in trimmed_audios:
-            DataProcessing.write_wav_audio_one(root_path, f"{name}_{start:04}", audio)
-            start += 1
+        """
+        trimmed audio -> wav file write list
+        -- file name : 본래wavfile이름_몇번째onset인지.wav
+        """
+        for i, audio in enumerate(trimmed_audios, start=1):
+            DataProcessing.write_wav_audio_one(root_path, f"{name}_{i:04}", audio)

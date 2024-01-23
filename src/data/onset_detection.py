@@ -1,4 +1,6 @@
-import math
+import numpy as np
+import pretty_midi
+import xml.etree.ElementTree as ET
 
 from typing import List
 from essentia import Pool, array
@@ -11,16 +13,17 @@ from essentia.standard import (
     Onsets,
 )
 
-from constant import SAMPLE_RATE
-
-"""
-onset & 박자 구하는 클래스
-"""
-
 
 class OnsetDetect:
-    # onset detection function. hfc method
-    def onset_detection(audio):
+    """
+    onset 구하는 클래스
+    """
+
+    @staticmethod
+    def onset_detection(audio: np.ndarray) -> List[float]:
+        """
+        -- onset detection function. hfc method
+        """
         # 1. Compute the onset detection function (ODF).
         od_hfc = OnsetDetection(method="hfc")
 
@@ -49,73 +52,74 @@ class OnsetDetect:
         print("-- ! onset ! --", onsets_hfc)
         return onsets_hfc
 
-    """
-    마디 단위별로 온셋 포인트 구하는 함수
-    @param onset_full_audio: 전체 wav에 대한 onset time
-    @param sec_of_bar: 한 마디가 몇 초인지
-    @param bar_num: 마디 총 개수
+    @staticmethod
+    def load_xml_data(file_path: str):
+        """
+        xml data 불러오기
+        """
+        try:
+            tree = ET.parse(file_path)  # XML 파일을 파싱
+            root = tree.getroot()
+            return root
+        except ET.ParseError as e:
+            print(f"XML 파일을 파싱하는 동안 오류가 발생했습니다: {e}")
+            return None
 
-    return 마디 단위별로의 온셋 time (마디의 처음 시작을 0, 끝을 1로 했을 때 기준으로)
-    """
+    @staticmethod
+    def get_onsets_from_xml(xml_path: str) -> List[float]:
+        """
+        -- XML file에서 onset 읽어오기
+        """
+        print("-- ! xml file location: ", xml_path)
 
-    def calculate_onset_per_bar(onset_full_audio, sec_of_bar, bar_num):
-        onset_per_bar = [[] for i in range(bar_num)]  # 마디 개수만큼 row 초기화
+        onset_sec_list = []
+        xml_root = OnsetDetect.load_xml_data(xml_path)
+        # transcription 엘리먼트의 정보 출력
+        transcription_element = xml_root.find(".//transcription")
+        events = transcription_element.findall("event")
+        for event in events:
+            onset_sec = event.find("onsetSec").text
+            onset_sec_list.append(float(onset_sec))
 
-        # 전체 wav에 대한 onset
-        for onset in onset_full_audio:
-            idx = math.floor(onset / sec_of_bar)  # 몇 번째 마디인지
-            onset_point_in_bar = (
-                onset - sec_of_bar * idx
-            ) / sec_of_bar  # idx 마디에서 몇 박자 뒤에 등장하는지 (0 ~ 1)
-            onset_per_bar[idx].append(onset_point_in_bar)
+        print("-- ! 파싱한 onsets: ", onset_sec_list)
+        return onset_sec_list
 
-        return onset_per_bar
+    @staticmethod
+    def get_onsets_from_txt(txt_path: str) -> List[float]:
+        """
+        -- TXT file에서 onset 읽어오기
+        """
+        print("-- ! txt file location: ", txt_path)
 
-    """ 
-    전체 wav와 bpm이 주어졌을 때, rhythm을 계산하는 함수
-    @param audio_wav: wav array
-    @param bpm: 분당 음표 개수 (4/4박자 기준)
-    """
+        onset_sec_list = []
+        with open(txt_path, "r") as file:
+            lines = file.readlines()
+            for line in lines:
+                # 각 라인에서 onset 정보를 추출하여 리스트에 추가
+                onset_sec = line.split()[0]
+                onset_sec_list.append(float(onset_sec))
 
-    def rhythm_detection(audio_wav, bpm, onset_full_audio):
-        rhythm_per_bar = 4.0  # 한 마디에 4분음표가 몇 개 들어가는지
-        rhythm_per_sec = bpm / 60.0  # 한 초당 몇 박 나오는지
-        sec_of_bar = (1.0 / rhythm_per_sec) * rhythm_per_bar  # 한 마디가 몇 초인지
-        bar_num = math.ceil((len(audio_wav) / SAMPLE_RATE) / sec_of_bar)  # 총 마디 개수
-        print(sec_of_bar, bar_num)
+        print("-- ! 읽은 onsets: ", onset_sec_list)
+        return onset_sec_list
 
-        bars = []  # 한 마디당 wav 정보
-        step = (int)(sec_of_bar * SAMPLE_RATE)  # 한 마디에 들어가는 정보량
-        for i in range(0, len(audio_wav), step):
-            bars.append(audio_wav[i : i + step])
+    @staticmethod
+    def get_onsets_from_mid(midi_path: str) -> List[float]:
+        """
+        -- MID file에서 onset 읽어오기
+        """
+        # MIDI 파일을 PrettyMIDI 객체로 로드합니다.
+        midi_data = pretty_midi.PrettyMIDI(midi_path)
 
-        onset_per_bar = OnsetDetect.calculate_onset_per_bar(
-            onset_full_audio, sec_of_bar, bar_num
-        )  # 한 마디당 rhythm 정보
+        # onset 정보를 저장할 리스트를 생성합니다.
+        onset_times = []
 
-        return onset_per_bar
+        # 각 악기(track)에 대해 처리합니다.
+        for instrument in midi_data.instruments:
+            # 악기의 노트를 순회하며 onset을 찾습니다.
+            for note in instrument.notes:
+                onset_times.append(note.start)
 
-    """ 
-    전체 wav와 bpm이 주어졌을 때, 마디 별 음표의 박자를 계산하는 함수 
-    @param audio_wav: wav array
-    @param bpm: 분당 음표 개수 (4/4박자 기준)
-    """
+        # onset_times를 정렬합니다.
+        onset_times.sort()
 
-    def get_rhythm(
-        audio_wav, bpm, onsets_arr: List[float] = None, is_our_train_data=False
-    ):
-        if is_our_train_data:  # 우리가 준비한 데이터셋이라면 앞에 공백 자르고 계산
-            onset_full_audio = OnsetDetect.onset_detection(audio_wav)
-            audio_wav = audio_wav[(int)(onset_full_audio[0] * SAMPLE_RATE) :]
-
-        onset_full_audio = (
-            onsets_arr
-            if onsets_arr is not None
-            else OnsetDetect.onset_detection(audio_wav)
-        )  # 전체 wav에 대한 onset time
-
-        if onset_full_audio is None:
-            print("-- ! There is not exist onsets ! --")
-            return
-
-        return OnsetDetect.rhythm_detection(audio_wav, bpm, onset_full_audio)
+        return onset_times

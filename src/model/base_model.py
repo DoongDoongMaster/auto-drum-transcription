@@ -13,8 +13,9 @@ from feature.feature_extractor import FeatureExtractor
 from constant import (
     SAMPLE_RATE,
     ROOT_PATH,
+    NEW_PATH,
+    RAW_PATH,
     PROCESSED_FEATURE,
-    FEATURE_PARAM,
 )
 
 
@@ -70,7 +71,9 @@ class BaseModel:
             paths = self.data_processing.get_paths(self.data_processing.raw_data_path)
             self.feature_extractor.feature_extractor(paths)
 
-        if self.data_processing.is_exist_new_data():  # 새로운 데이터 있는지 확인
+        if DataProcessing.is_exist_data_in_folder(
+            f"{ROOT_PATH}/{NEW_PATH}"
+        ):  # 새로운 데이터 있는지 확인
             print("-- ! 새로운 데이터 존재 ! --")
             feature_file_list = self.feature_extractor.load_feature_file_all()
             for feature_file in feature_file_list:
@@ -91,7 +94,9 @@ class BaseModel:
                 )
                 feature_extractor_new.feature_extractor(new_data_paths)
 
-            self.data_processing.move_new_to_raw()
+            self.data_processing.move_new_to_raw(
+                f"{ROOT_PATH}/{NEW_PATH}", f"{ROOT_PATH}/{RAW_PATH}"
+            )
 
         # feature 불러오기
         return self.feature_extractor.load_feature_file()

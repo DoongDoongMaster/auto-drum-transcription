@@ -13,7 +13,7 @@ from datetime import datetime
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
-from audio_to_feature import AudioToFeature
+from feature.audio_to_feature import AudioToFeature
 
 
 from constant import (
@@ -66,7 +66,7 @@ class FeatureExtractor:
         self.save_path = (
             f"{data_root_path}/{method_type}/{feature_type}.{feature_extension}"
         )
-        DataProcessing = DataProcessing(data_root_path=ROOT_PATH)
+        self.data_processing = DataProcessing()
 
     """
     -- feature 추출한 파일 불러오기
@@ -120,169 +120,6 @@ class FeatureExtractor:
         print("-- ! 완료 & 새로 저장 ! --")
         print("-- ! location: ", self.save_path)
         print("-- ! features shape:", features.shape)
-
-    """
-    -- 우리 데이터 기준 classify type (trimmed data) 라벨링
-    """
-
-    def get_label_classify_data(self, idx: int, path: str) -> List[int]:
-        file_name = os.path.basename(path)  # extract file name
-        if PATTERN_DIR in path:  # -- pattern
-            pattern_name = file_name[:2]  # -- P1
-            label = PATTERN2CODE[pattern_name][idx]
-        elif PER_DRUM_DIR in path:  # -- per drum
-            drum_name = file_name[:2]  # -- CC
-            label = ONEHOT_DRUM2CODE[drum_name]
-        return label
-
-    """
-    -- 우리 데이터 기준 detect type (sequence data) 라벨링 
-        onset position : 1
-        onset position with ONSET_OFFSET : 0.5 (ONSET_OFFSET: onset position 양 옆으로 몇 개씩 붙일지)
-        extra : 0
-    """
-
-    def get_audio_position(self, time) -> int:
-        return int(time * SAMPLE_RATE / self.feature_param["hop_length"])
-
-    def get_label_detect_data(self, audio: np.ndarray, path: str) -> List[List[int]]:
-        file_name = os.path.basename(path)
-        onsets_arr = self.onset_detection.onset_detection(audio)
-        last_time = self.frame_length * self.feature_param["hop_length"] / SAMPLE_RATE
-
-        labels = [[0.0] * len(CODE2DRUM) for _ in range(self.frame_length)]
-        pattern_idx = 0
-        for onset in onsets_arr:
-            if onset >= last_time:
-                break
-
-            onset_position = self.get_audio_position(onset)
-            soft_start_position = max(  # -- onset - offset
-                (onset_position - ONSET_OFFSET), 0
-            )
-            soft_end_position = min(  # -- onset + offset
-                onset_position + ONSET_OFFSET, self.get_audio_position(last_time)
-            )
-
-            if any(drum in file_name for _, drum in CODE2DRUM.items()):  # per drum
-                one_hot_label: List[int] = ONEHOT_DRUM2CODE[file_name[:2]]
-            else:  # pattern
-                pattern_name = file_name[:2]  # -- P1
-                one_hot_label: List[int] = PATTERN2CODE[pattern_name][pattern_idx]
-                pattern_idx += 1
-            for i in range(soft_start_position, soft_end_position):
-                if (np.array(labels[i]) == np.array(one_hot_label)).all():
-                    continue
-                labels[i] = (np.array(one_hot_label) / 2).tolist()
-            labels[(int)(onset_position)] = one_hot_label
-
-        return labels
-
-    """
-    -- XML file 읽기
-    """
-
-    def load_xml_file(self, file_path):
-        try:
-            # XML 파일을 파싱합니다.
-            tree = ET.parse(file_path)
-            # 루트 엘리먼트를 얻습니다.
-            root = tree.getroot()
-            return root
-        except ET.ParseError as e:
-            print(f"XML 파일을 파싱하는 동안 오류가 발생했습니다: {e}")
-            return None
-
-    """
-    -- XML file에서 onset 읽어오기
-    """
-
-    def get_onsets_arr_from_xml(self, xml_path: str):
-        print("-- ! xml file location: ", xml_path)
-
-        onset_sec_list = []
-        xml_root = self.load_xml_file(xml_path)
-        # transcription 엘리먼트의 정보 출력
-        transcription_element = xml_root.find(".//transcription")
-        events = transcription_element.findall("event")
-        for event in events:
-            onset_sec = event.find("onsetSec").text
-            onset_sec_list.append(float(onset_sec))
-
-        print("-- ! 파싱한 onsets: ", onset_sec_list)
-        return onset_sec_list
-
-    """
-    -- TXT file에서 onset 읽어오기
-    """
-
-    def get_onsets_arr_from_txt(self, txt_path: str):
-        print("-- ! txt file location: ", txt_path)
-
-        onset_sec_list = []
-        with open(txt_path, "r") as file:
-            lines = file.readlines()
-            for line in lines:
-                # 각 라인에서 onset 정보를 추출하여 리스트에 추가
-                onset_sec = line.split()[0]
-                onset_sec_list.append(float(onset_sec))
-
-        print("-- ! 읽은 onsets: ", onset_sec_list)
-        return onset_sec_list
-
-    """
-    -- MID file에서 onset 읽어오기
-    """
-
-    def get_onsets_arr_from_mid(self, midi_path: str):
-        # MIDI 파일을 PrettyMIDI 객체로 로드합니다.
-        midi_data = pretty_midi.PrettyMIDI(midi_path)
-
-        # onset 정보를 저장할 리스트를 생성합니다.
-        onset_times = []
-
-        # 각 악기(track)에 대해 처리합니다.
-        for instrument in midi_data.instruments:
-            # 악기의 노트를 순회하며 onset을 찾습니다.
-            for note in instrument.notes:
-                onset_times.append(note.start)
-
-        # onset_times를 정렬합니다.
-        onset_times.sort()
-
-        return onset_times
-
-    """
-    -- onset 라벨링 (ONSET_OFFSET: onset position 양 옆으로 몇 개씩 붙일지)
-    """
-
-    def get_label_rhythm_data(self, last_time, onsets_arr: List[float]) -> List[float]:
-        labels = [0.0] * self.frame_length
-
-        for onset in onsets_arr:
-            onset_position = self.get_audio_position(onset)  # -- 1
-
-            if onset_position >= self.frame_length:
-                break
-
-            soft_start_position = max(  # -- onset - offset
-                (onset_position - ONSET_OFFSET), 0
-            )
-            soft_end_position = min(  # -- onset + offset
-                onset_position + ONSET_OFFSET + 1, self.get_audio_position(last_time)
-            )
-            # offset -> 양 옆으로 0.5 몇 개 붙일지
-            for i in range(soft_start_position, soft_end_position):
-                if i >= self.frame_length:
-                    break
-
-                if labels[i] == 1.0:
-                    continue
-                labels[i] = 0.5
-
-            labels[onset_position] = 1.0
-
-        return labels
 
     """
     -- onset을 chunk에 맞게 split

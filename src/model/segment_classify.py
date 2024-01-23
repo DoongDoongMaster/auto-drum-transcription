@@ -6,6 +6,7 @@ from tensorflow.keras import layers, Sequential
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
+from data.rhythm_detection import RhythmDetection
 from constant import METHOD_CLASSIFY, MFCC, MILLISECOND, CHUNK_LENGTH, SAMPLE_RATE
 
 
@@ -86,7 +87,7 @@ class SegmentClassifyModel(BaseModel):
     """
 
     def get_bar_rhythm(self, audio_wav, bpm):
-        return self.onset_detection.get_rhythm(audio_wav, bpm, is_our_train_data=True)
+        return RhythmDetection.get_rhythm(audio_wav, bpm, is_our_train_data=True)
 
     """
     -- input  : onset마다 예측한 악기 확률

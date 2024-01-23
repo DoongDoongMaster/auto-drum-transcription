@@ -553,6 +553,9 @@ class FeatureExtractor:
                 )
                 data_feature_label.append([feature.tolist(), label])
 
+                del feature
+                del label
+
             del chunk_list
             del onsets_arr
             del chunk_onsets_arr

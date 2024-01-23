@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
-import mido
 import pretty_midi
 
 from ast import literal_eval
@@ -14,6 +13,7 @@ from datetime import datetime
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
+from audio_to_feature import AudioToFeature
 
 
 from constant import (
@@ -53,14 +53,11 @@ class FeatureExtractor:
         data_root_path,
         method_type,
         feature_type,
-        # feature_param: dict,
         feature_extension=PKL,
-        chunk_length=CHUNK_LENGTH,
     ):
         self.data_root_path = data_root_path
         self.method_type = method_type
         self.feature_type = feature_type
-        self.sample_rate = SAMPLE_RATE
         self.feature_param = FEATURE_PARAM[method_type][feature_type]
         self.frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // self.feature_param[
             "hop_length"
@@ -69,9 +66,7 @@ class FeatureExtractor:
         self.save_path = (
             f"{data_root_path}/{method_type}/{feature_type}.{feature_extension}"
         )
-        self.onset_detection = OnsetDetect(SAMPLE_RATE)
-        self.data_processing = DataProcessing(data_root_path=ROOT_PATH)
-        self.chunk_length = chunk_length
+        DataProcessing = DataProcessing(data_root_path=ROOT_PATH)
 
     """
     -- feature 추출한 파일 불러오기
@@ -127,107 +122,6 @@ class FeatureExtractor:
         print("-- ! features shape:", features.shape)
 
     """
-    -- mfcc feature 추출
-    """
-
-    def audio_to_mfcc(self, audio: np.ndarray) -> np.ndarray:
-        mfccs = librosa.feature.mfcc(
-            y=audio, sr=self.sample_rate, n_mfcc=self.feature_param["n_mfcc"]
-        )
-        pad_width = self.frame_length - mfccs.shape[1]
-        if pad_width > 0:
-            mfccs = np.pad(mfccs, pad_width=((0, 0), (0, pad_width)), mode="constant")
-        else:
-            mfccs = mfccs[:, : self.frame_length]
-        return mfccs
-
-    """
-    -- stft feature 추출
-    """
-
-    def audio_to_stft(self, audio: np.ndarray) -> np.ndarray:
-        # translate STFT
-        stft = librosa.stft(
-            y=audio,
-            n_fft=self.feature_param["n_fft"],
-            hop_length=self.feature_param["hop_length"],
-            win_length=self.feature_param["win_length"],
-            window="hann",
-        )
-        stft = np.abs(stft, dtype=np.float64)
-        if stft.shape[1] < self.frame_length:
-            stft_new = np.pad(
-                stft,
-                pad_width=((0, 0), (0, self.frame_length - stft.shape[1])),
-                mode="constant",
-            )
-        else:
-            stft_new = stft[:, : self.frame_length]
-
-        return stft_new
-
-    """
-    -- mel-spectrogram feature 추출
-    """
-
-    def audio_to_mel_spectrogram(self, audio: np.ndarray) -> np.ndarray:
-        # translate mel-spectrogram
-        mel_spectrogram = librosa.feature.melspectrogram(
-            y=audio,
-            sr=self.sample_rate,
-            n_fft=self.feature_param["n_fft"],
-            hop_length=self.feature_param["hop_length"],
-            win_length=self.feature_param["win_length"],
-            window="hann",
-            n_mels=self.feature_param["n_mels"],
-            fmin=self.feature_param["fmin"],
-            fmax=self.feature_param["fmax"],
-        )
-        # show graph
-        # self.show_mel_spectrogram_plot(mel_spectrogram)
-
-        if mel_spectrogram.shape[1] < self.frame_length:
-            mel_spectrogram_new = np.pad(
-                mel_spectrogram,
-                pad_width=(
-                    (0, 0),
-                    (0, self.frame_length - mel_spectrogram.shape[1]),
-                ),
-                mode="constant",
-            )
-        else:
-            mel_spectrogram_new = mel_spectrogram[:, : self.frame_length]
-
-        return mel_spectrogram_new
-
-    """
-    -- feature type에 따라 feature 추출
-    """
-
-    def audio_to_feature(self, audio: np.ndarray) -> np.ndarray:
-        result = None
-        if self.feature_type == MFCC:
-            result = self.audio_to_mfcc(audio)
-        elif self.feature_type == STFT:
-            result = self.audio_to_stft(audio)
-        elif self.feature_type == MEL_SPECTROGRAM:
-            result = self.audio_to_mel_spectrogram(audio)
-
-        if (
-            self.method_type == METHOD_DETECT or self.method_type == METHOD_RHYTHM
-        ):  # separate & detect방식이라면 transpose
-            result = np.transpose(result)  # row: time, col: feature
-
-        print(
-            "-- length:",
-            audio.shape[0] / float(self.sample_rate),
-            "secs, ",
-            f"{self.feature_type}:",
-            result.shape,
-        )
-        return result
-
-    """
     -- 우리 데이터 기준 classify type (trimmed data) 라벨링
     """
 
@@ -249,14 +143,12 @@ class FeatureExtractor:
     """
 
     def get_audio_position(self, time) -> int:
-        return int(time * self.sample_rate / self.feature_param["hop_length"])
+        return int(time * SAMPLE_RATE / self.feature_param["hop_length"])
 
     def get_label_detect_data(self, audio: np.ndarray, path: str) -> List[List[int]]:
         file_name = os.path.basename(path)
         onsets_arr = self.onset_detection.onset_detection(audio)
-        last_time = (
-            self.frame_length * self.feature_param["hop_length"] / self.sample_rate
-        )
+        last_time = self.frame_length * self.feature_param["hop_length"] / SAMPLE_RATE
 
         labels = [[0.0] * len(CODE2DRUM) for _ in range(self.frame_length)]
         pattern_idx = 0
@@ -404,12 +296,12 @@ class FeatureExtractor:
         current_chunk_idx = 0
         for onset_time in onsets_arr:
             if (
-                current_chunk_idx * self.chunk_length <= onset_time
-                and onset_time < (current_chunk_idx + 1) * self.chunk_length
+                current_chunk_idx * CHUNK_LENGTH <= onset_time
+                and onset_time < (current_chunk_idx + 1) * CHUNK_LENGTH
             ):
                 tmp.append(
-                    onset_time - (current_chunk_idx * self.chunk_length)
-                    if onset_time >= self.chunk_length
+                    onset_time - (current_chunk_idx * CHUNK_LENGTH)
+                    if onset_time >= CHUNK_LENGTH
                     else onset_time
                 )
                 continue
@@ -432,11 +324,11 @@ class FeatureExtractor:
         for path in audio_paths:
             print("-- current file: ", path)
             # -- librosa feature load
-            audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
+            audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
 
             if DDM_OWN in path:  # 우리 데이터라면
                 # -- trimmed audio
-                trimmed_audios = self.data_processing.trim_audio_per_onset(audio)
+                trimmed_audios = DataProcessing.trim_audio_per_onset(audio)
                 # -- trimmed feature
                 for idx, taudio in enumerate(trimmed_audios):
                     trimmed_feature = self.audio_to_feature(taudio)
@@ -459,11 +351,11 @@ class FeatureExtractor:
         for path in audio_paths:
             print("-- current file: ", path)
             # -- librosa feature load
-            audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
+            audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
 
             if DDM_OWN in path:  # 우리 데이터라면
                 # -- trim first onset
-                audio = self.data_processing.trim_audio_first_onset(audio)
+                audio = DataProcessing.trim_audio_first_onset(audio)
                 # -- feature extract
                 feature = self.audio_to_feature(audio)
                 # -- label: 드럼 종류마다 onset 여부
@@ -501,23 +393,21 @@ class FeatureExtractor:
 
             print("-- current file: ", path)
             # -- librosa feature load
-            audio, _ = librosa.load(path, sr=self.sample_rate, res_type="kaiser_fast")
+            audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
 
             if DDM_OWN in path:  # 우리 데이터라면
                 # -- trim first onset
-                audio = self.data_processing.trim_audio_first_onset(audio)
+                audio = DataProcessing.trim_audio_first_onset(audio)
                 # -- feature extract
                 feature = self.audio_to_feature(audio)
                 # -- label: onset 여부
                 onsets_arr = self.onset_detection.onset_detection(audio)
-                label = self.get_label_rhythm_data(
-                    len(audio) / self.sample_rate, onsets_arr
-                )
+                label = self.get_label_rhythm_data(len(audio) / SAMPLE_RATE, onsets_arr)
                 data_feature_label.append([feature.tolist(), label])
                 continue
 
             # -- chunk
-            chunk_list = self.data_processing.cut_chunk_audio(audio)
+            chunk_list = DataProcessing.cut_chunk_audio(audio)
             onsets_arr = []
 
             if IDMT in path:  # IDMT data
@@ -549,7 +439,7 @@ class FeatureExtractor:
                 # -- feature extract
                 feature = self.audio_to_feature(chunk)
                 label = self.get_label_rhythm_data(
-                    len(chunk) / self.sample_rate, chunk_onsets_arr[idx]
+                    len(chunk) / SAMPLE_RATE, chunk_onsets_arr[idx]
                 )
                 data_feature_label.append([feature.tolist(), label])
 
@@ -594,7 +484,7 @@ class FeatureExtractor:
             S_dB,
             x_axis="time",
             y_axis="mel",
-            sr=self.sample_rate,
+            sr=SAMPLE_RATE,
             ax=ax,
             fmax=self.feature_param["fmax"],
         )

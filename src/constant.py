@@ -116,6 +116,7 @@ MEL_SPECTROGRAM = "mel-spectrogram"
 """
 -- feature parameter
 """
+FEATURE_DTYPE = "float16"
 FEATURE_PARAM_BASIC = {
     "n_fft": 2048,
     "win_length": 1024,

@@ -20,13 +20,15 @@ from constant import (
 audio_path = "../data/raw/ddm-own/pattern/P1/08/P1_08_0001.m4a"
 audio, _ = librosa.load(audio_path, sr=SAMPLE_RATE)
 
-# AudioToFeature.extract_feature(audio, MFCC, METHOD_RHYTHM)
-param = FEATURE_PARAM[METHOD_DETECT][MFCC]
-frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // param["hop_length"]
+feature = AudioToFeature.extract_feature(audio, METHOD_CLASSIFY, MEL_SPECTROGRAM)
+AudioToFeature.show_feature_plot(feature, METHOD_CLASSIFY, MEL_SPECTROGRAM)
 
-label = DataLabeling.get_label_ddm_detect(
-    audio, audio_path, frame_length, param["hop_length"]
-)
+# param = FEATURE_PARAM[METHOD_DETECT][MFCC]
+# frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // param["hop_length"]
 
-feature_ext = FeatureExtractor(ROOT_PATH, METHOD_DETECT, MFCC, PKL)
-feature_ext.show_detect_label_plot(label)
+# label = DataLabeling.get_label_ddm_detect(
+#     audio, audio_path, frame_length, param["hop_length"]
+# )
+
+# feature_ext = FeatureExtractor(ROOT_PATH, METHOD_DETECT, MFCC, PKL)
+# feature_ext.show_detect_label_plot(label)

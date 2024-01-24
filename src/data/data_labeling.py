@@ -36,8 +36,9 @@ class DataLabeling:
         frame_length: int,
         hop_length: int,
     ):
-        if DDM_OWN in path:
-            pass
+        if method_type == METHOD_CLASSIFY:  # 우선 classify 방식에는 ddm own data만 가능
+            if DDM_OWN in path:
+                return DataLabeling.get_label_ddm_classify()
 
         elif IDMT in path:
             pass

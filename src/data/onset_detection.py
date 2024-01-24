@@ -22,7 +22,7 @@ class OnsetDetect:
     @staticmethod
     def onset_detection(audio: np.ndarray) -> List[float]:
         """
-        -- onset detection function. hfc method
+        -- onset detection function. hfc method (using essentia library)
         """
         # 1. Compute the onset detection function (ODF).
         od_hfc = OnsetDetection(method="hfc")
@@ -53,7 +53,7 @@ class OnsetDetect:
         return onsets_hfc
 
     @staticmethod
-    def load_xml_data(file_path: str):
+    def _load_xml_data(file_path: str):
         """
         xml data 불러오기
         """
@@ -73,7 +73,7 @@ class OnsetDetect:
         print("-- ! xml file location: ", xml_path)
 
         onset_sec_list = []
-        xml_root = OnsetDetect.load_xml_data(xml_path)
+        xml_root = OnsetDetect._load_xml_data(xml_path)
         # transcription 엘리먼트의 정보 출력
         transcription_element = xml_root.find(".//transcription")
         events = transcription_element.findall("event")

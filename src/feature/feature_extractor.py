@@ -310,25 +310,6 @@ class FeatureExtractor:
         date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         plt.savefig(f"{IMAGE_PATH}/{self.method_type}-label-test-{date_time}.png")
 
-    """
-    -- mel-spectrogram 그래프
-    """
-
-    def show_mel_spectrogram_plot(self, mel_spectrogram: np.ndarray):
-        fig, ax = plt.subplots()
-        S_dB = librosa.power_to_db(mel_spectrogram, ref=np.max)
-        img = librosa.display.specshow(
-            S_dB,
-            x_axis="time",
-            y_axis="mel",
-            sr=SAMPLE_RATE,
-            ax=ax,
-            fmax=self.feature_param["fmax"],
-        )
-        fig.colorbar(img, ax=ax, format="%+2.0f dB")
-        ax.set(title="Mel-frequency spectrogram")
-        # plt.savefig("mel-spectrogram-test.png")
-
     """ 
     -- method type 에 따라 feature, label 추출 후 저장
     """

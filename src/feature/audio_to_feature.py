@@ -1,5 +1,9 @@
+import os
 import librosa
 import numpy as np
+import matplotlib.pyplot as plt
+
+from datetime import datetime
 
 from constant import (
     SAMPLE_RATE,
@@ -10,6 +14,7 @@ from constant import (
     METHOD_RHYTHM,
     CHUNK_LENGTH,
     FEATURE_PARAM,
+    IMAGE_PATH,
 )
 
 
@@ -28,12 +33,6 @@ class AudioToFeature:
         -- feature type에 따라 feature 추출
         """
         feature_param = FEATURE_PARAM[method_type][feature_type]
-
-        method_requires_transpose = method_type in [
-            METHOD_DETECT,
-            METHOD_RHYTHM,
-        ]  # separate & detect방식 확인
-
         frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // feature_param["hop_length"]
 
         feature_extraction_functions = {
@@ -49,11 +48,44 @@ class AudioToFeature:
             audio, feature_param, frame_length
         )
 
-        if method_requires_transpose:
+        if method_type in [METHOD_DETECT, METHOD_RHYTHM]:  # separate & detect방식 확인
             result = np.transpose(result)  # row: time, col: feature
 
         AudioToFeature._print_feature_info(audio, feature_type, result)
         return result
+
+    @staticmethod
+    def show_feature_plot(feature: np.ndarray, method_type: str, feature_type: str):
+        """
+        -- feature 그래프
+        """
+        # graph로 나타내기 위해 다시 transpose, row: feature, col: time
+        if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
+            feature = np.transpose(feature)
+
+        fig, ax = plt.subplots()
+        db = (
+            librosa.amplitude_to_db(feature, ref=np.max)
+            if feature_type == STFT
+            else librosa.power_to_db(feature, ref=np.max)
+        )
+        y_axis_info = "log" if feature_type == STFT else "mel"
+        img = librosa.display.specshow(
+            db,
+            x_axis="time",
+            y_axis=y_axis_info,
+            sr=SAMPLE_RATE,
+            ax=ax,
+            fmax=FEATURE_PARAM[method_type][feature_type].get("fmax"),
+            hop_length=FEATURE_PARAM[method_type][feature_type].get("hop_length"),
+        )
+        fig.colorbar(img, ax=ax, format="%+2.0f dB")
+        ax.set(title="feature spectrogram")
+
+        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        plt.savefig(f"{IMAGE_PATH}/feature-{date_time}.png")
+        plt.show()
 
     @staticmethod
     def _pad_feature(feature: np.ndarray, frame_length: int) -> np.ndarray:
@@ -96,7 +128,7 @@ class AudioToFeature:
             win_length=feature_param["win_length"],
             window="hann",
         )
-        stft = np.abs(stft, dtype=np.float16)
+        stft = np.abs(stft)
         stft = AudioToFeature._pad_feature(stft, frame_length)
         return stft
 

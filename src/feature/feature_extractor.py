@@ -428,6 +428,7 @@ class FeatureExtractor:
         chunk_onsets_arr = {}
         tmp = []
         current_chunk_idx = 0
+
         for onset_time in onsets_arr:
             if (
                 current_chunk_idx * self.chunk_length <= onset_time
@@ -441,7 +442,7 @@ class FeatureExtractor:
                 continue
             chunk_onsets_arr[current_chunk_idx] = tmp
             current_chunk_idx += 1
-            tmp = []
+            tmp = [onset_time - (current_chunk_idx * self.chunk_length)]
 
         chunk_onsets_arr[current_chunk_idx] = tmp
         return chunk_onsets_arr

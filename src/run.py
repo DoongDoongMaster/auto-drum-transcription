@@ -60,8 +60,9 @@ from constant import (
 # print(onset2)
 
 audio_path = "../data/raw/ddm-own/pattern/P1/08/P1_08_0001.m4a"
+# audio_path = "../data/test/IDMT-SMT-DRUMS-V2/audio/RealDrum01_00#MIX.wav"
 audio, _ = librosa.load(audio_path, sr=SAMPLE_RATE)
-label = DataLabeling.data_labeling(audio, audio_path, METHOD_CLASSIFY, 7, 1200, 441)
+label = DataLabeling.data_labeling(audio, audio_path, METHOD_DETECT, 1, 1200, 441)
 DataLabeling.show_label_plot(label)
 
 # segment_classify = SegmentClassifyModel(40, 0.001, 20)
@@ -84,12 +85,12 @@ DataLabeling.show_label_plot(label)
 
 # print(separate_detect.predict("../data/raw/pattern/P1/08/P1_08_0001.m4a", 100, 0))
 
-rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
+# rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
 
-rhythm_detect.create_dataset()
-rhythm_detect.create()
-rhythm_detect.train()
-rhythm_detect.evaluate()
+# rhythm_detect.create_dataset()
+# rhythm_detect.create()
+# rhythm_detect.train()
+# rhythm_detect.evaluate()
 # rhythm_detect.save()
 
 # print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))

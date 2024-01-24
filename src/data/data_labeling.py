@@ -21,6 +21,7 @@ from constant import (
     E_GMD,
     METHOD_CLASSIFY,
     METHOD_DETECT,
+    METHOD_RHYTHM,
     CHUNK_LENGTH,
     IMAGE_PATH,
 )
@@ -43,39 +44,52 @@ class DataLabeling:
         """
         -- method type과 data origin에 따른 data labeling 메소드
         """
-        if method_type == METHOD_CLASSIFY:  # 우선 classify 방식에는 ddm own data만 가능
-            if DDM_OWN in path:
-                return DataLabeling._get_label_ddm_classify(idx, path)
+
+        # 우선 classify, detect 방식에는 ddm own data만 가능
+        if method_type in [METHOD_CLASSIFY, METHOD_DETECT]:
+            DataLabeling._validate_supported_data(path, method_type)
+
+        onsets_arr = DataLabeling._get_onsets_arr(audio, path, idx)
+
+        if method_type == METHOD_CLASSIFY:
+            return DataLabeling._get_label_ddm_classify(idx, path)
+
+        if method_type == METHOD_DETECT:
+            return DataLabeling._get_label_ddm_detect(
+                onsets_arr, path, frame_length, hop_length
+            )
+
+        if method_type == METHOD_RHYTHM:
+            return DataLabeling._get_label_rhythm_data(
+                onsets_arr, frame_length, hop_length
+            )
+
+        raise Exception("지원하지 않는 모델 방식")
+
+    @staticmethod
+    def _validate_supported_data(path: str, method_type: str):
+        if DDM_OWN not in path:
             raise Exception(f"{method_type}에서 지원하지 않는 데이터 !!!")
 
-        if method_type == METHOD_DETECT:  # 우선 detect 방식에는 ddm own data만 가능
-            if DDM_OWN in path:
-                onsets_arr = OnsetDetect.onset_detection(audio)
-                return DataLabeling._get_label_ddm_detect(
-                    onsets_arr, path, frame_length, hop_length
-                )
-            raise Exception(f"{method_type}에서 지원하지 않는 데이터 !!!")
-
-        # rhythm 방식
-        onsets_arr = []
+    @staticmethod
+    def _get_onsets_arr(audio: np.ndarray, path: str, idx: int) -> List[float]:
         start = idx * CHUNK_LENGTH  # onset 자르는 시작 초
         end = (idx + 1) * CHUNK_LENGTH  # onset 자르는 끝 초
+
         if DDM_OWN in path:
-            onsets_arr = OnsetDetect.onset_detection(audio)
+            return OnsetDetect.onset_detection(audio)
 
-        elif IDMT in path:
+        if IDMT in path:
             label_path = DataLabeling._get_label_path(path, 2, "xml", "annotation_xml")
-            onsets_arr = OnsetDetect.get_onsets_from_xml(label_path, start, end)
+            return OnsetDetect.get_onsets_from_xml(label_path, start, end)
 
-        elif ENST in path:
+        if ENST in path:
             label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
-            onsets_arr = OnsetDetect.get_onsets_from_xml(label_path, start, end)
+            return OnsetDetect.get_onsets_from_txt(label_path, start, end)
 
-        elif E_GMD in path:
+        if E_GMD in path:
             label_path = DataLabeling._get_label_path(path, 1, "mid")
-            onsets_arr = OnsetDetect.get_onsets_from_xml(label_path, start, end)
-
-        return DataLabeling._get_label_rhythm_data(onsets_arr, frame_length, hop_length)
+            return OnsetDetect.get_onsets_from_mid(label_path, start, end)
 
     @staticmethod
     def show_label_plot(label):

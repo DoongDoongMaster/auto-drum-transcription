@@ -11,8 +11,9 @@ from typing import List
 from glob import glob
 from datetime import datetime
 
-from data.data_processing import DataProcessing
+from data.data_labeling import DataLabeling
 from data.onset_detection import OnsetDetect
+from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 
 from constant import (
@@ -42,47 +43,30 @@ from constant import (
     IMAGE_PATH,
 )
 
-"""
-데이터에서 feature를 추출하고, 라벨링하고, 저장하는 클래스
-"""
-
 
 class FeatureExtractor:
-    def __init__(
-        self,
-        data_root_path,
-        method_type,
-        feature_type,
-        feature_extension=PKL,
-    ):
-        self.data_root_path = data_root_path
-        self.method_type = method_type
-        self.feature_type = feature_type
-        self.feature_param = FEATURE_PARAM[method_type][feature_type]
-        self.frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // self.feature_param[
-            "hop_length"
-        ]
-        self.feature_extension = feature_extension
-        self.save_path = (
-            f"{data_root_path}/{method_type}/{feature_type}.{feature_extension}"
+    """
+    데이터에서 feature를 추출하고, 라벨링하고, 저장하고, 불러오는 클래스
+    """
+
+    @staticmethod
+    def load_feature_file(method_type: str, feature_type: str):
+        """
+        -- feature 추출한 파일 불러오기
+        """
+        save_folder_path = (
+            f"{ROOT_PATH}/{PROCESSED_FEATURE}/{method_type}/{feature_type}/"
         )
-        self.data_processing = DataProcessing()
 
-    """
-    -- feature 추출한 파일 불러오기
-    """
+        if not os.path.exists(save_folder_path):
+            raise Exception(f"모델: {method_type}, 피쳐: {feature_type} 에 해당하는 피쳐가 없습니다!!!")
 
-    def load_feature_file(self):
-        # data_feature_label = None
+        feature_param = FEATURE_PARAM[method_type][feature_type]
 
-        # combined_df = pd.DataFrame(columns=["feature", "label"])
         combined_df = pd.DataFrame(
             columns=["label"] + ["mel-spec" + str(i + 1) for i in range(128)]
         )
 
-        save_folder_path = (
-            f"{ROOT_PATH}/{PROCESSED_FEATURE}/{METHOD_RHYTHM}/{MEL_SPECTROGRAM}/"
-        )
         if os.path.exists(save_folder_path):
             pkl_files = glob(f"{save_folder_path}/*.pkl")
             for pkl_file in pkl_files:
@@ -146,35 +130,6 @@ class FeatureExtractor:
         print("-- ! 완료 & 새로 저장 ! --")
         print("-- ! location: ", self.save_path)
         print("-- ! features shape:", features.shape)
-
-    """
-    -- onset을 chunk에 맞게 split
-    ex. {0: [0~11], 1: [12, 23], 2: [], 3: [38], ... onset 을 12배수에 따라 split
-    -> 0~11
-    """
-
-    def split_onset_match_chunk(self, onsets_arr: List[float]):
-        chunk_onsets_arr = {}
-        tmp = []
-        current_chunk_idx = 0
-
-        for onset_time in onsets_arr:
-            if (
-                current_chunk_idx * CHUNK_LENGTH <= onset_time
-                and onset_time < (current_chunk_idx + 1) * CHUNK_LENGTH
-            ):
-                tmp.append(
-                    onset_time - (current_chunk_idx * CHUNK_LENGTH)
-                    if onset_time >= CHUNK_LENGTH
-                    else onset_time
-                )
-                continue
-            chunk_onsets_arr[current_chunk_idx] = tmp
-            current_chunk_idx += 1
-            tmp = [onset_time - (current_chunk_idx * self.chunk_length)]
-
-        chunk_onsets_arr[current_chunk_idx] = tmp
-        return chunk_onsets_arr
 
     """
     -- classify type feature, label 추출

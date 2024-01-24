@@ -4,11 +4,23 @@ import tensorflow as tf
 from typing import List
 
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense
+from tensorflow.keras.layers import (
+    Bidirectional,
+    SimpleRNN,
+    Flatten,
+    Dense,
+    Conv2D,
+    BatchNormalization,
+    MaxPooling2D,
+    GRU,
+    Reshape,
+)
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
 from constant import METHOD_RHYTHM, STFT, MILLISECOND, CHUNK_LENGTH, SAMPLE_RATE
+
+from keras.utils import to_categorical
 
 
 class RhythmDetectModel(BaseModel):
@@ -39,15 +51,11 @@ class RhythmDetectModel(BaseModel):
         # Implement input reshaping logic
         return tf.reshape(
             data,
-            [
-                -1,
-                self.n_rows,
-                self.n_columns,
-            ],
+            (data.shape[0], data.shape[1], 1),
         )
 
     def input_label_reshape(self, data):
-        return tf.reshape(data, [-1, self.n_rows * self.n_classes])
+        return tf.reshape(data, [-1, self.n_classes])
 
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
@@ -55,42 +63,82 @@ class RhythmDetectModel(BaseModel):
     def create_dataset(self):
         super().create_dataset()
 
-        self.y_train = self.input_label_reshape(self.y_train)
-        self.y_val = self.input_label_reshape(self.y_val)
-        self.y_test = self.input_label_reshape(self.y_test)
+        # self.x_train = self.input_reshape(self.x_train)
+        # self.x_val = self.input_reshape(self.x_val)
+        # self.x_test = self.input_reshape(self.x_test)
+
+        print(">>>>>>>>>>>>>>>.self.x_train.shape", self.x_train.shape)
+        # self.y_train = self.input_label_reshape(self.y_train)
+        # self.y_val = self.input_label_reshape(self.y_val)
+        # self.y_test = self.input_label_reshape(self.y_test)
+
+        # self.y_train = to_categorical(self.y_train, num_classes=self.n_classes * 1200)
+        # self.y_val = to_categorical(self.y_val, num_classes=self.n_classes * 1200)
+        # self.y_test = to_categorical(self.y_test, num_classes=self.n_classes * 1200)
 
     def create(self):
         # Implement model creation logic
         self.model = Sequential()
 
+        # Convolutional layers
         self.model.add(
-            Bidirectional(
-                SimpleRNN(
-                    self.unit_number,
-                    return_sequences=True,
-                    input_shape=(self.n_rows, self.n_columns),
-                    activation="tanh",
-                )
+            Conv2D(
+                32,
+                (3, 3),
+                padding="same",
+                activation="relu",
+                input_shape=(128, 1, 1),
             )
         )
-        self.model.add(
-            Bidirectional(
-                SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
-            )
-        )
-        self.model.add(
-            Bidirectional(
-                SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
-            )
-        )
+        self.model.add(BatchNormalization())
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+        self.model.add(BatchNormalization())
+        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
 
-        # Flatten layer
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+        self.model.add(BatchNormalization())
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+        self.model.add(BatchNormalization())
+        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
+
+        # Recurrent layers (BiGRU)
+        self.model.add(Reshape((-1, 32)))
+        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+
+        # Fully connected layer
         self.model.add(Flatten())
+        self.model.add(Dense(1, activation="sigmoid"))
 
-        # dense layer
-        self.model.add(Dense(self.n_rows * self.n_classes, activation="softmax"))
+        # self.model.add(
+        #     Bidirectional(
+        #         SimpleRNN(
+        #             self.unit_number,
+        #             return_sequences=True,
+        #             input_shape=(self.n_rows, self.n_columns),
+        #             activation="tanh",
+        #         )
+        #     )
+        # )
+        # self.model.add(
+        #     Bidirectional(
+        #         SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
+        #     )
+        # )
+        # self.model.add(
+        #     Bidirectional(
+        #         SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
+        #     )
+        # )
 
-        self.model.build((None, self.n_rows, self.n_columns))
+        # # Flatten layer
+        # self.model.add(Flatten())
+
+        # # dense layer
+        # self.model.add(Dense(self.n_rows * self.n_classes, activation="softmax"))
+
+        # self.model.build((None, self.n_rows, self.n_columns))
         self.model.summary()
 
         # compile the self.model

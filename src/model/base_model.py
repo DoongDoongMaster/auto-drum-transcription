@@ -5,7 +5,9 @@ import tensorflow as tf
 from glob import glob
 from datetime import datetime
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.callbacks import EarlyStopping
+
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
@@ -64,34 +66,34 @@ class BaseModel:
         self.model = tf.keras.models.load_model(model_files[0])
 
     def load_data(self):
-        # feature file 존재안한다면 -> raw data feature 생성해서 저장하기
-        if os.path.exists(self.feature_extractor.save_path) is False:
-            print("-- ! 기존 raw data에서 feature file 새로 생성 ! --")
-            paths = self.data_processing.get_paths(self.data_processing.raw_data_path)
-            self.feature_extractor.feature_extractor(paths)
+        # # feature file 존재안한다면 -> raw data feature 생성해서 저장하기
+        # if os.path.exists(self.feature_extractor.save_path) is False:
+        #     print("-- ! 기존 raw data에서 feature file 새로 생성 ! --")
+        #     paths = self.data_processing.get_paths(self.data_processing.raw_data_path)
+        #     self.feature_extractor.feature_extractor(paths)
 
-        if self.data_processing.is_exist_new_data():  # 새로운 데이터 있는지 확인
-            print("-- ! 새로운 데이터 존재 ! --")
-            feature_file_list = self.feature_extractor.load_feature_file_all()
-            for feature_file in feature_file_list:
-                feature_extension = os.path.splitext(feature_file)[1][1:]  # 파일 확장자
-                feature_type_new = os.path.basename(feature_file)[:-4]
-                method_type_new = feature_file.split("/")[-2]  # 뒤에서 2번째 인덱스
-                print(
-                    f"-- ! 기존 feature update: {method_type_new}/{feature_type_new}.{feature_extension}"
-                )
-                feature_extractor_new = FeatureExtractor(
-                    data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
-                    method_type=method_type_new,
-                    feature_type=feature_type_new,
-                    feature_extension=feature_extension,
-                )
-                new_data_paths = self.data_processing.get_paths(
-                    self.data_processing.new_data_path
-                )
-                feature_extractor_new.feature_extractor(new_data_paths)
+        # if self.data_processing.is_exist_new_data():  # 새로운 데이터 있는지 확인
+        #     print("-- ! 새로운 데이터 존재 ! --")
+        #     feature_file_list = self.feature_extractor.load_feature_file_all()
+        #     for feature_file in feature_file_list:
+        #         feature_extension = os.path.splitext(feature_file)[1][1:]  # 파일 확장자
+        #         feature_type_new = os.path.basename(feature_file)[:-4]
+        #         method_type_new = feature_file.split("/")[-2]  # 뒤에서 2번째 인덱스
+        #         print(
+        #             f"-- ! 기존 feature update: {method_type_new}/{feature_type_new}.{feature_extension}"
+        #         )
+        #         feature_extractor_new = FeatureExtractor(
+        #             data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
+        #             method_type=method_type_new,
+        #             feature_type=feature_type_new,
+        #             feature_extension=feature_extension,
+        #         )
+        #         new_data_paths = self.data_processing.get_paths(
+        #             self.data_processing.new_data_path
+        #         )
+        #         feature_extractor_new.feature_extractor(new_data_paths)
 
-            self.data_processing.move_new_to_raw()
+        #     self.data_processing.move_new_to_raw()
 
         # feature 불러오기
         return self.feature_extractor.load_feature_file()
@@ -109,8 +111,12 @@ class BaseModel:
         # Implement dataset split feature & label logic
         feature_df = self.load_data()
 
-        X = np.array(feature_df.feature.tolist())
-        y = np.array(feature_df.label.tolist())
+        # X = np.array(feature_df.feature.tolist())
+
+        # mel-spec 1~128
+        X = feature_df.drop(["label"], axis=1).to_numpy()
+        y = feature_df["label"].to_numpy()
+        # y = np.array(feature_df.label.tolist())
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
@@ -128,9 +134,23 @@ class BaseModel:
         del y_train_temp
 
         # input shape 조정
-        self.x_train = self.input_reshape(x_train_final)
-        self.x_val = self.input_reshape(x_val_final)
-        self.x_test = self.input_reshape(x_test)
+        # self.x_train = self.input_reshape(x_train_final)
+        # self.x_val = self.input_reshape(x_val_final)
+        # self.x_test = self.input_reshape(x_test)
+
+        scaler = StandardScaler()
+        x_train_final = scaler.fit_transform(x_train_final)
+        x_val_final = scaler.transform(x_val_final)
+        x_test = scaler.transform(x_test)
+
+        # Reshape for model input
+        x_train_final = np.expand_dims(x_train_final, axis=-1)
+        x_val_final = np.expand_dims(x_val_final, axis=-1)
+        x_test = np.expand_dims(x_test, axis=-1)
+
+        self.x_train = x_train_final
+        self.x_val = x_val_final
+        self.x_test = x_test
         self.y_train = y_train_final
         self.y_val = y_val_final
         self.y_test = y_test

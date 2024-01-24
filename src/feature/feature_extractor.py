@@ -203,18 +203,6 @@ class FeatureExtractor:
         return feature_df
 
     """
-    -- detect type label 그래프
-    """
-
-    def show_detect_label_plot(self, label: List[List[float]]):
-        label = np.array(label)
-        for i in range(len(CODE2DRUM)):
-            plt.subplot(8, 1, i + 1)
-            plt.plot(label[:, i])
-        plt.title("Model label")
-        plt.show()
-
-    """
     -- rhythm type feature, label 추출
     """
 
@@ -291,24 +279,6 @@ class FeatureExtractor:
         if len(feature_df) > 0:
             self.show_rhythm_label_plot(feature_df.label[0])
         return feature_df
-
-    """
-    -- rhythm type label 그래프
-    """
-
-    def show_rhythm_label_plot(self, label: List[float]):
-        label = np.array(label)
-        plt.plot(label)
-        plt.title("Model label")
-        plt.show()
-
-        # 이미지 폴더 존재 확인
-        if not os.path.exists(IMAGE_PATH):
-            os.mkdir(IMAGE_PATH)  # 없으면 새로 생성
-
-        # 현재 날짜와 시간 가져오기
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        plt.savefig(f"{IMAGE_PATH}/{self.method_type}-label-test-{date_time}.png")
 
     """ 
     -- method type 에 따라 feature, label 추출 후 저장

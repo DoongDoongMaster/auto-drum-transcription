@@ -1,7 +1,9 @@
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 from typing import List
+from datetime import datetime
 
 from data.onset_detection import OnsetDetect
 
@@ -19,7 +21,8 @@ from constant import (
     E_GMD,
     METHOD_CLASSIFY,
     METHOD_DETECT,
-    METHOD_RHYTHM,
+    CHUNK_LENGTH,
+    IMAGE_PATH,
 )
 
 
@@ -33,24 +36,82 @@ class DataLabeling:
         audio: np.ndarray,
         path: str,
         method_type: str,
-        frame_length: int,
-        hop_length: int,
+        idx: int = 0,
+        frame_length: int = 0,
+        hop_length: int = 0,
     ):
+        """
+        -- method type과 data origin에 따른 data labeling 메소드
+        """
         if method_type == METHOD_CLASSIFY:  # 우선 classify 방식에는 ddm own data만 가능
             if DDM_OWN in path:
-                return DataLabeling.get_label_ddm_classify()
+                return DataLabeling._get_label_ddm_classify(idx, path)
+            raise Exception(f"{method_type}에서 지원하지 않는 데이터 !!!")
+
+        if method_type == METHOD_DETECT:  # 우선 detect 방식에는 ddm own data만 가능
+            if DDM_OWN in path:
+                onsets_arr = OnsetDetect.onset_detection(audio)
+                return DataLabeling._get_label_ddm_detect(
+                    onsets_arr, path, frame_length, hop_length
+                )
+            raise Exception(f"{method_type}에서 지원하지 않는 데이터 !!!")
+
+        # rhythm 방식
+        onsets_arr = []
+        start = idx * CHUNK_LENGTH  # onset 자르는 시작 초
+        end = (idx + 1) * CHUNK_LENGTH  # onset 자르는 끝 초
+        if DDM_OWN in path:
+            onsets_arr = OnsetDetect.onset_detection(audio)
 
         elif IDMT in path:
-            pass
+            label_path = DataLabeling._get_label_path(path, 2, "xml", "annotation_xml")
+            onsets_arr = OnsetDetect.get_onsets_from_xml(label_path, start, end)
 
         elif ENST in path:
-            pass
+            label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
+            onsets_arr = OnsetDetect.get_onsets_from_xml(label_path, start, end)
 
         elif E_GMD in path:
-            pass
+            label_path = DataLabeling._get_label_path(path, 1, "mid")
+            onsets_arr = OnsetDetect.get_onsets_from_xml(label_path, start, end)
+
+        return DataLabeling._get_label_rhythm_data(onsets_arr, frame_length, hop_length)
 
     @staticmethod
-    def get_label_ddm_classify(idx: int, path: str) -> List[int]:
+    def show_label_plot(label):
+        """
+        -- label 그래프
+        """
+        data = np.array(label)
+        data = data.reshape(data.shape[0], -1)
+
+        for i in range(data.shape[1]):
+            plt.subplot(data.shape[1], 1, i + 1)
+            plt.plot(data[:, i])
+
+        plt.title("Model Label")
+        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
+        plt.show()
+
+    @staticmethod
+    def _get_label_path(
+        audio_path: str, back_move_num: int, extension: str, folder_name: str = ""
+    ) -> str:
+        """
+        -- label file의 path를 audio path로부터 구하는 함수
+        """
+        file_name = os.path.basename(audio_path)[:-4]  # 파일 이름
+        file_paths = audio_path.split("/")[
+            :-back_move_num
+        ]  # 뒤에서 back_move_num 개 제외한 폴더 list
+        label_file = os.path.join(os.path.join(*file_paths), folder_name)
+        label_file = os.path.join(label_file, f"{file_name}.{extension}")
+        return label_file
+
+    @staticmethod
+    def _get_label_ddm_classify(idx: int, path: str) -> List[int]:
         """
         -- ddm own data classify type (trimmed data) 라벨링
         """
@@ -71,8 +132,8 @@ class DataLabeling:
         return int(time * SAMPLE_RATE / float(hop_length))
 
     @staticmethod
-    def get_label_ddm_detect(
-        audio: np.ndarray, path: str, frame_length: int, hop_length: int
+    def _get_label_ddm_detect(
+        onsets_arr: List[float], path: str, frame_length: int, hop_length: int
     ) -> List[List[int]]:
         """
         -- ddm own data detect type (sequence data) 라벨링
@@ -80,7 +141,6 @@ class DataLabeling:
             onset position with ONSET_OFFSET : 0.5 (ONSET_OFFSET: onset position 양 옆으로 몇 개씩 붙일지)
             extra : 0
         """
-        onsets_arr = OnsetDetect.onset_detection(audio)
         labels = [[0] * len(CODE2DRUM) for _ in range(frame_length)]
 
         for pattern_idx, onset in enumerate(onsets_arr):
@@ -95,7 +155,7 @@ class DataLabeling:
                 onset_position + ONSET_OFFSET + 1, frame_length
             )
 
-            one_hot_label = DataLabeling.get_label_ddm_classify(pattern_idx, path)
+            one_hot_label = DataLabeling._get_label_ddm_classify(pattern_idx, path)
             for i in range(soft_start_position, soft_end_position):
                 if (np.array(labels[i]) == np.array(one_hot_label)).all():
                     continue
@@ -105,7 +165,7 @@ class DataLabeling:
         return labels
 
     @staticmethod
-    def get_label_rhythm_data(
+    def _get_label_rhythm_data(
         onsets_arr: List[float], frame_length: int, hop_length: int
     ) -> List[float]:
         """

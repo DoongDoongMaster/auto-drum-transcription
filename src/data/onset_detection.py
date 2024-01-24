@@ -53,6 +53,19 @@ class OnsetDetect:
         return onsets_hfc
 
     @staticmethod
+    def _get_filtering_onsets(
+        onsets: List[float], start: float, end: float
+    ) -> List[float]:
+        """
+        start ~ end 초 까지의 onsets 배열 구하는 함수
+        """
+        filter_onset = np.array(onsets)
+        end = filter_onset[-1] + 1 if end == None else end
+        filter_onset = filter_onset[(filter_onset >= start) & (filter_onset < end)]
+
+        return filter_onset - start
+
+    @staticmethod
     def _load_xml_data(file_path: str):
         """
         xml data 불러오기
@@ -66,7 +79,9 @@ class OnsetDetect:
             return None
 
     @staticmethod
-    def get_onsets_from_xml(xml_path: str) -> List[float]:
+    def get_onsets_from_xml(
+        xml_path: str, start: float = 0, end: float = None
+    ) -> List[float]:
         """
         -- XML file에서 onset 읽어오기
         """
@@ -81,11 +96,14 @@ class OnsetDetect:
             onset_sec = event.find("onsetSec").text
             onset_sec_list.append(float(onset_sec))
 
-        print("-- ! 파싱한 onsets: ", onset_sec_list)
+        onset_sec_list = OnsetDetect._get_filtering_onsets(onset_sec_list, start, end)
+        print(f"-- ! {start} sec ~ {end} sec 파생한 onsets: ", onset_sec_list)
         return onset_sec_list
 
     @staticmethod
-    def get_onsets_from_txt(txt_path: str) -> List[float]:
+    def get_onsets_from_txt(
+        txt_path: str, start: float = 0, end: float = None
+    ) -> List[float]:
         """
         -- TXT file에서 onset 읽어오기
         """
@@ -99,11 +117,14 @@ class OnsetDetect:
                 onset_sec = line.split()[0]
                 onset_sec_list.append(float(onset_sec))
 
-        print("-- ! 읽은 onsets: ", onset_sec_list)
+        onset_sec_list = OnsetDetect._get_filtering_onsets(onset_sec_list, start, end)
+        print(f"-- ! {start} sec ~ {end} sec 파생한 onsets: ", onset_sec_list)
         return onset_sec_list
 
     @staticmethod
-    def get_onsets_from_mid(midi_path: str) -> List[float]:
+    def get_onsets_from_mid(
+        midi_path: str, start: float = 0, end: float = None
+    ) -> List[float]:
         """
         -- MID file에서 onset 읽어오기
         """
@@ -122,4 +143,6 @@ class OnsetDetect:
         # onset_times를 정렬합니다.
         onset_times.sort()
 
-        return onset_times
+        onset_sec_list = OnsetDetect._get_filtering_onsets(onset_times, start, end)
+        print(f"-- ! {start} sec ~ {end} sec 파생한 onsets: ", onset_sec_list)
+        return onset_sec_list

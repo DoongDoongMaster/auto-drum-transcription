@@ -15,7 +15,6 @@ from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
 from feature.audio_to_feature import AudioToFeature
 
-
 from constant import (
     PATTERN_DIR,
     PER_DRUM_DIR,
@@ -31,6 +30,7 @@ from constant import (
     METHOD_DETECT,
     METHOD_RHYTHM,
     ROOT_PATH,
+    PROCESSED_FEATURE,
     CSV,
     PKL,
     DDM_OWN,
@@ -73,28 +73,52 @@ class FeatureExtractor:
     """
 
     def load_feature_file(self):
-        data_feature_label = None
-        if os.path.exists(self.save_path):  # 추출된 feature 존재 한다면
-            print("-- ! 기존 feature loading : ", self.save_path)
+        # data_feature_label = None
 
-            if self.feature_extension == CSV:
-                data_feature_label = pd.read_csv(
-                    self.save_path,
-                    index_col=0,
-                    converters={"feature": literal_eval, "label": literal_eval},
+        # combined_df = pd.DataFrame(columns=["feature", "label"])
+        combined_df = pd.DataFrame(
+            columns=["label"] + ["mel-spec" + str(i + 1) for i in range(128)]
+        )
+
+        save_folder_path = (
+            f"{ROOT_PATH}/{PROCESSED_FEATURE}/{METHOD_RHYTHM}/{MEL_SPECTROGRAM}/"
+        )
+        if os.path.exists(save_folder_path):
+            pkl_files = glob(f"{save_folder_path}/*.pkl")
+            for pkl_file in pkl_files:
+                # pkl 파일을 읽어와 DataFrame으로 변환합니다.
+                data_feature_label = pd.read_pickle(pkl_file)
+                # print(">>>>>>>>>>>>>>>data_feature_label", data_feature_label.head)
+
+                # 현재 파일의 데이터를 combined_df에 추가합니다.
+                combined_df = pd.concat(
+                    [combined_df, data_feature_label], ignore_index=True
                 )
-            elif self.feature_extension == PKL:
-                data_feature_label = pd.read_pickle(self.save_path)
 
-            print(
-                "-- ! 로딩 완료 ! --",
-                "data shape:",
-                data_feature_label.shape,
-            )
-            print("-- ! features ! -- ")
-            print(data_feature_label)
+            # for feature_file in feature_file_list:
+            #     if os.path.exists(
+            #         save_folder_path + feature_file
+            #     ):  # 추출된 feature 존재 한다면
+            #         # print("-- ! 기존 feature loading : ", self.save_path)
 
-        return data_feature_label
+            #         # if self.feature_extension == CSV:
+            #         #     data_feature_label = pd.read_csv(
+            #         #         self.save_path,
+            #         #         index_col=0,
+            #         #         converters={"feature": literal_eval, "label": literal_eval},
+            #         #     )
+            #         if self.feature_extension == PKL:
+            #             data_feature_label = pd.read_pickle(self.save_path)
+
+        print(
+            "-- ! 로딩 완료 ! --",
+            "data shape:",
+            combined_df.shape,
+        )
+        print("-- ! features ! -- ")
+        print(combined_df)
+
+        return combined_df
 
     """
     -- feature file 모두 불러오기
@@ -109,13 +133,15 @@ class FeatureExtractor:
     -- feature 파일 저장하기
     """
 
-    def save_feature_file(self, features: pd.DataFrame):
+    def save_feature_file(self, features: pd.DataFrame, number):
         if self.feature_extension == CSV:
             # Save csv file
             features.to_csv(self.save_path, sep=",")
         elif self.feature_extension == PKL:
             # Save pickle file
-            features.to_pickle(self.save_path)
+            features.to_pickle(
+                f"{self.data_root_path}/{self.method_type}/{self.feature_type}/{self.feature_type}-{number}.{self.feature_extension}"
+            )
 
         print("-- ! 완료 & 새로 저장 ! --")
         print("-- ! location: ", self.save_path)
@@ -131,6 +157,7 @@ class FeatureExtractor:
         chunk_onsets_arr = {}
         tmp = []
         current_chunk_idx = 0
+
         for onset_time in onsets_arr:
             if (
                 current_chunk_idx * CHUNK_LENGTH <= onset_time
@@ -144,7 +171,7 @@ class FeatureExtractor:
                 continue
             chunk_onsets_arr[current_chunk_idx] = tmp
             current_chunk_idx += 1
-            tmp = []
+            tmp = [onset_time - (current_chunk_idx * self.chunk_length)]
 
         chunk_onsets_arr[current_chunk_idx] = tmp
         return chunk_onsets_arr
@@ -220,16 +247,18 @@ class FeatureExtractor:
             # -- librosa feature load
             audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
 
-            if DDM_OWN in path:  # 우리 데이터라면
-                # -- trim first onset
-                audio = DataProcessing.trim_audio_first_onset(audio)
-                # -- feature extract
-                feature = self.audio_to_feature(audio)
-                # -- label: onset 여부
-                onsets_arr = self.onset_detection.onset_detection(audio)
-                label = self.get_label_rhythm_data(len(audio) / SAMPLE_RATE, onsets_arr)
-                data_feature_label.append([feature.tolist(), label])
-                continue
+            # if DDM_OWN in path:  # 우리 데이터라면
+            #     # -- trim first onset
+            #     audio = self.data_processing.trim_audio_first_onset(audio)
+            #     # -- feature extract
+            #     feature = self.audio_to_feature(audio)
+            #     # -- label: onset 여부
+            #     onsets_arr = self.onset_detection.onset_detection(audio)
+            #     label = self.get_label_rhythm_data(
+            #         len(audio) / self.sample_rate, onsets_arr
+            #     )
+            #     data_feature_label.append([feature.tolist(), label])
+            #     continue
 
             # -- chunk
             chunk_list = DataProcessing.cut_chunk_audio(audio)
@@ -266,16 +295,26 @@ class FeatureExtractor:
                 label = self.get_label_rhythm_data(
                     len(chunk) / SAMPLE_RATE, chunk_onsets_arr[idx]
                 )
-                data_feature_label.append([feature.tolist(), label])
+                meta_data = {
+                    "label": label,
+                }
 
-                del feature
-                del label
+                df_meta = pd.DataFrame(meta_data)
+                # mel-spectrogram feature size: 128
+                df_mel_spec = pd.DataFrame(
+                    np.transpose(feature),
+                    columns=["mel-spec" + str(i + 1) for i in range(128)],
+                )
+                df = pd.concat(
+                    [df_meta, df_mel_spec], axis=1
+                )  # Concatenate along columns
+                data_feature_label.append(df)
 
-            del chunk_list
-            del onsets_arr
-            del chunk_onsets_arr
+                # data_feature_label.append([feature.tolist(), label])
 
-        feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
+        # feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
+        feature_df = pd.concat(data_feature_label, ignore_index=True)
+
         if len(feature_df) > 0:
             self.show_rhythm_label_plot(feature_df.label[0])
         return feature_df
@@ -285,22 +324,19 @@ class FeatureExtractor:
     """
 
     def feature_extractor(self, audio_paths: List[str]):
-        features_df_origin = self.load_feature_file()  # load feature file
+        print("-- 총 audio_paths 몇 개??? >> ", len(audio_paths))
 
-        features_df_new = None
-        if self.method_type == METHOD_CLASSIFY:
-            features_df_new = self.classify_feature_extractor(audio_paths)
-        elif self.method_type == METHOD_DETECT:
-            features_df_new = self.detect_feature_extractor(audio_paths)
-        elif self.method_type == METHOD_RHYTHM:
-            features_df_new = self.rhythm_feature_extractor(audio_paths)
+        batch_size = 20
+        for i in range(0, len(audio_paths), batch_size):
+            features_df_new = None
+            batch_audio_paths = audio_paths[i : min(len(audio_paths), i + batch_size)]
 
-        # Convert into a Panda dataframe & Add dataframe
-        features_total_df = features_df_new
-        if features_df_origin is not None:
-            features_total_df = pd.concat(
-                [features_df_origin, features_df_new], ignore_index=True
-            )
+            if self.method_type == METHOD_CLASSIFY:
+                features_df_new = self.classify_feature_extractor(batch_audio_paths)
+            elif self.method_type == METHOD_DETECT:
+                features_df_new = self.detect_feature_extractor(batch_audio_paths)
+            elif self.method_type == METHOD_RHYTHM:
+                features_df_new = self.rhythm_feature_extractor(batch_audio_paths)
 
-        # Save feature file
-        self.save_feature_file(features_total_df)
+            # Save feature file
+            self.save_feature_file(features_df_new, i)

@@ -9,9 +9,9 @@ from tensorflow.keras.layers import (
     SimpleRNN,
     Flatten,
     Dense,
-    Conv1D,
+    Conv2D,
     BatchNormalization,
-    MaxPooling1D,
+    MaxPooling2D,
     GRU,
     Reshape,
 )
@@ -63,12 +63,11 @@ class RhythmDetectModel(BaseModel):
     def create_dataset(self):
         super().create_dataset()
 
-        self.x_train = self.input_reshape(self.x_train)
-        self.x_val = self.input_reshape(self.x_val)
-        self.x_test = self.input_reshape(self.x_test)
+        # self.x_train = self.input_reshape(self.x_train)
+        # self.x_val = self.input_reshape(self.x_val)
+        # self.x_test = self.input_reshape(self.x_test)
 
         print(">>>>>>>>>>>>>>>.self.x_train.shape", self.x_train.shape)
-
         # self.y_train = self.input_label_reshape(self.y_train)
         # self.y_val = self.input_label_reshape(self.y_val)
         # self.y_test = self.input_label_reshape(self.y_test)
@@ -83,24 +82,24 @@ class RhythmDetectModel(BaseModel):
 
         # Convolutional layers
         self.model.add(
-            Conv1D(
+            Conv2D(
                 32,
-                3,
+                (3, 3),
                 padding="same",
                 activation="relu",
-                input_shape=(128, 1),
+                input_shape=(128, 1, 1),
             )
         )
         self.model.add(BatchNormalization())
-        self.model.add(Conv1D(32, 3, padding="same", activation="relu"))
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
         self.model.add(BatchNormalization())
-        self.model.add(MaxPooling1D(pool_size=3))
+        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
 
-        self.model.add(Conv1D(32, 3, padding="same", activation="relu"))
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
         self.model.add(BatchNormalization())
-        self.model.add(Conv1D(32, 3, padding="same", activation="relu"))
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
         self.model.add(BatchNormalization())
-        self.model.add(MaxPooling1D(pool_size=3))
+        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
 
         # Recurrent layers (BiGRU)
         self.model.add(Reshape((-1, 32)))
@@ -110,7 +109,7 @@ class RhythmDetectModel(BaseModel):
 
         # Fully connected layer
         self.model.add(Flatten())
-        self.model.add(Dense(1, activation="softmax"))
+        self.model.add(Dense(1, activation="sigmoid"))
 
         # self.model.add(
         #     Bidirectional(

@@ -5,7 +5,9 @@ import tensorflow as tf
 from glob import glob
 from datetime import datetime
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.callbacks import EarlyStopping
+
 
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
@@ -110,8 +112,10 @@ class BaseModel:
         feature_df = self.load_data()
 
         # X = np.array(feature_df.feature.tolist())
-        X = feature_df.drop(["label"], axis=1)
-        y = feature_df["label"]
+
+        # mel-spec 1~128
+        X = feature_df.drop(["label"], axis=1).to_numpy()
+        y = feature_df["label"].to_numpy()
         # y = np.array(feature_df.label.tolist())
 
         # -- split train, val, test
@@ -133,6 +137,17 @@ class BaseModel:
         # self.x_train = self.input_reshape(x_train_final)
         # self.x_val = self.input_reshape(x_val_final)
         # self.x_test = self.input_reshape(x_test)
+
+        scaler = StandardScaler()
+        x_train_final = scaler.fit_transform(x_train_final)
+        x_val_final = scaler.transform(x_val_final)
+        x_test = scaler.transform(x_test)
+
+        # Reshape for model input
+        x_train_final = np.expand_dims(x_train_final, axis=-1)
+        x_val_final = np.expand_dims(x_val_final, axis=-1)
+        x_test = np.expand_dims(x_test, axis=-1)
+
         self.x_train = x_train_final
         self.x_val = x_val_final
         self.x_test = x_test

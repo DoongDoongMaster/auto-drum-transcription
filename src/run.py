@@ -82,12 +82,12 @@ from constant import (
 
 # print(separate_detect.predict("../data/raw/pattern/P1/08/P1_08_0001.m4a", 100, 0))
 
-rhythm_detect = RhythmDetectModel(40, 0.001, 20, 16)
+rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
 
 rhythm_detect.create_dataset()
 rhythm_detect.create()
 rhythm_detect.train()
 rhythm_detect.evaluate()
-rhythm_detect.save()
+# rhythm_detect.save()
 
 # print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))

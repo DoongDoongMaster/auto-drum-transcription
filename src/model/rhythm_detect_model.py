@@ -162,9 +162,7 @@ class RhythmDetectModel(BaseModel):
     """
 
     def get_bar_rhythm(self, audio_wav, bpm, onsets_arr):
-        return RhythmDetection.get_rhythm(
-            audio_wav, bpm, onsets_arr, is_our_train_data=True
-        )
+        return RhythmDetection.get_rhythm(audio_wav, bpm, onsets_arr)
 
     """
     -- input  : time stamp마다 onset 확률 (모델 결과)
@@ -199,10 +197,7 @@ class RhythmDetectModel(BaseModel):
         # -- predict
         predict_data = self.model.predict(audio_feature)
 
-        print(predict_data)
-
-        # -- output reshape
-        predict_data = self.output_reshape(predict_data)[0]
+        # print(predict_data)
 
         DataLabeling.show_label_plot(predict_data)
 

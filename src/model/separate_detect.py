@@ -111,9 +111,7 @@ class SeparateDetectModel(BaseModel):
     """
 
     def get_bar_rhythm(self, audio_wav, bpm, onsets_arr):
-        return RhythmDetection.get_rhythm(
-            audio_wav, bpm, onsets_arr, is_our_train_data=True
-        )
+        return RhythmDetection.get_rhythm(audio_wav, bpm, onsets_arr)
 
     """
     -- input  : time stamp마다 onset 확률 (모델 결과)

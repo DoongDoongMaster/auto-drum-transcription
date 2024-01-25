@@ -45,6 +45,8 @@ class DataLabeling:
         -- method type과 data origin에 따른 data labeling 메소드
         """
         onsets_arr = DataLabeling._get_onsets_arr(audio, path, idx)
+        if len(onsets_arr) == 0:
+            return False
 
         if method_type == METHOD_CLASSIFY:
             return DataLabeling._get_label_ddm_classify(idx, path)

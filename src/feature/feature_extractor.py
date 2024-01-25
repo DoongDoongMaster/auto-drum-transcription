@@ -68,6 +68,7 @@ class FeatureExtractor:
             combined_df = pd.concat(
                 [combined_df, data_feature_label], ignore_index=True
             )
+            del data_feature_label
 
         print(
             "-- ! 로딩 완료 ! --",
@@ -144,6 +145,9 @@ class FeatureExtractor:
                 label = DataLabeling.data_labeling(
                     audio, path, method_type, i, frame_length, hop_length
                 )
+                if label == False:  # label 없음
+                    continue
+
                 # make dataframe
                 df = FeatureExtractor._make_dataframe(
                     method_type, feature_type, feature, label
@@ -157,12 +161,12 @@ class FeatureExtractor:
     def _make_dataframe(
         method_type: str, feature_type: str, feature: np.ndarray, label
     ) -> pd.DataFrame:
-        if method_type in [METHOD_CLASSIFY, METHOD_DETECT]:
+        if method_type == METHOD_CLASSIFY:
             data_feature_label = [[feature.tolist(), label]]
             df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
             return df
 
-        if method_type == METHOD_RHYTHM:
+        if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
             n_features = FeatureExtractor._get_n_feature(
                 feature_type, FEATURE_PARAM[method_type][feature_type]
             )

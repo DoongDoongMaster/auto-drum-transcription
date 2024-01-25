@@ -9,14 +9,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.callbacks import EarlyStopping
 
-
-from data.data_processing import DataProcessing
-from data.onset_detection import OnsetDetect
 from feature.feature_extractor import FeatureExtractor
 from constant import (
     SAMPLE_RATE,
-    ROOT_PATH,
-    PROCESSED_FEATURE,
+    PKL,
+    METHOD_CLASSIFY,
+    METHOD_DETECT,
+    METHOD_RHYTHM,
     FEATURE_PARAM,
 )
 
@@ -32,7 +31,13 @@ from imblearn.over_sampling import ADASYN
 
 class BaseModel:
     def __init__(
-        self, training_epochs, opt_learning_rate, batch_size, method_type, feature_type
+        self,
+        training_epochs,
+        opt_learning_rate,
+        batch_size,
+        method_type,
+        feature_type,
+        feature_extension=PKL,
     ):
         self.model = None
         self.training_epochs = training_epochs
@@ -40,24 +45,22 @@ class BaseModel:
         self.batch_size = batch_size
         self.method_type = method_type
         self.feature_type = feature_type
+        self.feature_extension = feature_extension
+        self.feature_param = FEATURE_PARAM[method_type][feature_type]
         self.sample_rate = SAMPLE_RATE
-        self.x_train = None
-        self.y_train = None
-        self.x_val = None
-        self.y_val = None
-        self.x_test = None
-        self.y_test = None
-        self.onset_detection = OnsetDetect(self.sample_rate)
-        self.data_processing = DataProcessing(ROOT_PATH)
-        self.feature_extractor = FeatureExtractor(
-            data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
-            method_type=method_type,
-            feature_type=feature_type,
-        )
+        self.x_train: np.ndarray = None
+        self.y_train: np.ndarray = None
+        self.x_val: np.ndarray = None
+        self.y_val: np.ndarray = None
+        self.x_test: np.ndarray = None
+        self.y_test: np.ndarray = None
         self.save_path = f"../models/{method_type}_{feature_type}"
         self.model_save_type = "h5"
 
     def save(self):
+        """
+        -- 학습한 모델 저장하기
+        """
         # 현재 날짜와 시간 가져오기
         date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         # 모델 저장
@@ -66,6 +69,9 @@ class BaseModel:
         print("--! save model: ", model_path)
 
     def load_model(self):
+        """
+        -- method_type과 feature type에 맞는 가장 최근 모델 불러오기
+        """
         model_files = glob(f"{self.save_path}_*.{self.model_save_type}")
         if model_files is None or len(model_files) == 0:
             print("-- ! No pre-trained model ! --")
@@ -75,84 +81,42 @@ class BaseModel:
         print("-- ! load model: ", model_files[0])
         self.model = tf.keras.models.load_model(model_files[0])
 
-    def load_data(self):
-        # # feature file 존재안한다면 -> raw data feature 생성해서 저장하기
-        # if os.path.exists(self.feature_extractor.save_path) is False:
-        #     print("-- ! 기존 raw data에서 feature file 새로 생성 ! --")
-        #     paths = self.data_processing.get_paths(self.data_processing.raw_data_path)
-        #     self.feature_extractor.feature_extractor(paths)
-
-        # if self.data_processing.is_exist_new_data():  # 새로운 데이터 있는지 확인
-        #     print("-- ! 새로운 데이터 존재 ! --")
-        #     feature_file_list = self.feature_extractor.load_feature_file_all()
-        #     for feature_file in feature_file_list:
-        #         feature_extension = os.path.splitext(feature_file)[1][1:]  # 파일 확장자
-        #         feature_type_new = os.path.basename(feature_file)[:-4]
-        #         method_type_new = feature_file.split("/")[-2]  # 뒤에서 2번째 인덱스
-        #         print(
-        #             f"-- ! 기존 feature update: {method_type_new}/{feature_type_new}.{feature_extension}"
-        #         )
-        #         feature_extractor_new = FeatureExtractor(
-        #             data_root_path=f"{ROOT_PATH}/{PROCESSED_FEATURE}",
-        #             method_type=method_type_new,
-        #             feature_type=feature_type_new,
-        #             feature_extension=feature_extension,
-        #         )
-        #         new_data_paths = self.data_processing.get_paths(
-        #             self.data_processing.new_data_path
-        #         )
-        #         feature_extractor_new.feature_extractor(new_data_paths)
-
-        #     self.data_processing.move_new_to_raw()
-
-        # feature 불러오기
-        return self.feature_extractor.load_feature_file()
-
     def input_reshape(self, data) -> np.ndarray:
         # Implement input reshaping logic
         pass
 
-    """
-    -- load data from data file
-    -- Implement dataset split feature & label logic
-    """
+    @staticmethod
+    def _get_x_y(method_type: str, feature_df: pd.DataFrame):
+        if method_type == METHOD_CLASSIFY:
+            X = np.array(feature_df.feature.tolist())
+            y = np.array(feature_df.label.tolist())
+            return X, y
+        if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
+            X = feature_df.drop(["label"], axis=1).to_numpy()
+            y = feature_df["label"].to_numpy()
+            return X, y
 
     def create_dataset(self):
+        """
+        -- load data from data file
+        -- Implement dataset split feature & label logic
+        """
         # Implement dataset split feature & label logic
-        feature_df = self.load_data()
+        feature_df = FeatureExtractor.load_feature_file(
+            self.method_type, self.feature_type, self.feature_extension
+        )
 
-        # X = np.array(feature_df.feature.tolist())
-        # y = np.array(feature_df.label.tolist())
-
-        # mel-spec 1 ~ 128
-        X = feature_df.drop(["label"], axis=1).to_numpy()
-        y = feature_df["label"].to_numpy()
-
-        # # 그냥 0, 0.5, 1 로 하면 안 됨. 0.5가 있기 때문에 숫자화 해주기
-        # encoder = LabelEncoder()
-        # y = encoder.fit_transform(y)
-
-        # # oversample = SMOTE(random_state=22)
-        # oversample = RandomUnderSampler(random_state=22)
-        # # oversample = SMOTETomek(tomek=TomekLinks(sampling_strategy="majority"))
-        # X_train_over, y_train_over = oversample.fit_resample(X, y)
-        # # X_train_over, y_train_over = smoteto.fit_resample(X, y)
-
-        # print("SMOTE 적용 전 학습용 피처/레이블 데이터 세트: ", X.shape, y.shape)
-        # print("SMOTE 적용 후 학습용 피처/레이블 데이터 세트: ", X_train_over.shape, y_train_over.shape)
-        print("SMOTE 적용 전 레이블 값 분포: \n", pd.Series(y).value_counts())
-        # print("SMOTE 적용 후 레이블 값 분포: \n", pd.Series(y_train_over).value_counts())
-
-        # X = X_train_over
-        # y = encoder.inverse_transform(y_train_over)
-
-        # print(">>>>>>>>>>> y_train_over ", y_train_over[:-20])
-        # print(">>>>>>>>>>> y", y[:-20])
+        # -- get X, y
+        X, y = BaseModel._get_x_y(self.method_type, feature_df)
+        del feature_df
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
         )
+        del X
+        del y
+
         x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
             x_train_temp,
             y_train_temp,
@@ -160,24 +124,13 @@ class BaseModel:
             random_state=42,
             stratify=y_train_temp,
         )
+        del x_train_temp
+        del y_train_temp
+
         # input shape 조정
-        # self.x_train = self.input_reshape(x_train_final)
-        # self.x_val = self.input_reshape(x_val_final)
-        # self.x_test = self.input_reshape(x_test)
-
-        # scaler = StandardScaler()
-        # x_train_final = scaler.fit_transform(x_train_final)
-        # x_val_final = scaler.transform(x_val_final)
-        # x_test = scaler.transform(x_test)
-
-        # Reshape for model input
-        x_train_final = np.expand_dims(x_train_final, axis=-1)
-        x_val_final = np.expand_dims(x_val_final, axis=-1)
-        x_test = np.expand_dims(x_test, axis=-1)
-
-        self.x_train = x_train_final
-        self.x_val = x_val_final
-        self.x_test = x_test
+        self.x_train = self.input_reshape(x_train_final)
+        self.x_val = self.input_reshape(x_val_final)
+        self.x_test = self.input_reshape(x_test)
         self.y_train = y_train_final
         self.y_val = y_val_final
         self.y_test = y_test

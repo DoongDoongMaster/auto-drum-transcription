@@ -53,6 +53,10 @@ class AudioToFeature:
             audio, feature_param, frame_length
         )
 
+        # classify 방식에서만 pad 채우기
+        if method_type == METHOD_CLASSIFY:
+            result = AudioToFeature._pad_feature(result, frame_length)
+
         if method_type in [METHOD_DETECT, METHOD_RHYTHM]:  # separate & detect방식 확인
             result = np.transpose(result)  # row: time, col: feature
 
@@ -116,7 +120,6 @@ class AudioToFeature:
         mfccs = librosa.feature.mfcc(
             y=audio, sr=SAMPLE_RATE, n_mfcc=feature_param["n_mfcc"]
         )
-        mfccs = AudioToFeature._pad_feature(mfccs, frame_length)
         return mfccs
 
     @staticmethod
@@ -134,7 +137,6 @@ class AudioToFeature:
             window="hann",
         )
         stft = np.abs(stft)
-        stft = AudioToFeature._pad_feature(stft, frame_length)
         return stft
 
     @staticmethod
@@ -155,7 +157,6 @@ class AudioToFeature:
             fmin=feature_param["fmin"],
             fmax=feature_param["fmax"],
         )
-        mel_spectrogram = AudioToFeature._pad_feature(mel_spectrogram, frame_length)
         return mel_spectrogram
 
     @staticmethod

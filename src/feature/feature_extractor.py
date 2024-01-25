@@ -97,14 +97,13 @@ class FeatureExtractor:
         # feature parameter info
         feature_param = FEATURE_PARAM[method_type][feature_type]
         hop_length = feature_param.get("hop_length")
-        frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // hop_length
 
         batch_size = 20
         for i in range(0, len(audio_paths), batch_size):
             print(f"-- ! feature extracting ... {i} to {i + batch_size}")
             batch_audio_paths = audio_paths[i : min(len(audio_paths), i + batch_size)]
             features_df_new = FeatureExtractor._feature_extractor(
-                batch_audio_paths, method_type, feature_type, frame_length, hop_length
+                batch_audio_paths, method_type, feature_type, hop_length
             )
             if features_df_new.empty:
                 continue
@@ -119,7 +118,6 @@ class FeatureExtractor:
         audio_paths: List[str],
         method_type: str,
         feature_type: str,
-        frame_length: int,
         hop_length: int,
     ) -> pd.DataFrame:
         # feature에서 한 frame에 들어있는 sample 개수
@@ -143,7 +141,7 @@ class FeatureExtractor:
                 )
                 # get label
                 label = DataLabeling.data_labeling(
-                    audio, path, method_type, i, frame_length, hop_length
+                    audio, path, method_type, i, feature.shape[0], hop_length
                 )
                 if label == False:  # label 없음
                     continue

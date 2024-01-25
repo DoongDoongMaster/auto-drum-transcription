@@ -24,5 +24,5 @@ from constant import (
 audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
 # FeatureExtractor.feature_extractor(audio_paths, METHOD_RHYTHM, STFT, PKL)
 data = FeatureExtractor.load_feature_file(METHOD_RHYTHM, STFT, PKL)
-DataLabeling.show_label_plot(data["label"][:1200])
-AudioToFeature.show_feature_plot(data[:1200], METHOD_RHYTHM, STFT)
+DataLabeling.show_label_plot(data["label"][400000:401200])
+AudioToFeature.show_feature_plot(data[400000:401200], METHOD_RHYTHM, STFT)

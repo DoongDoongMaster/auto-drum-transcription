@@ -83,4 +83,4 @@ class RhythmDetection:
             print("-- ! There is not exist onsets ! --")
             return
 
-        return RhythmDetection.rhythm_detection(audio_wav, bpm, onset_full_audio)
+        return RhythmDetection._rhythm_detection(audio_wav, bpm, onset_full_audio)

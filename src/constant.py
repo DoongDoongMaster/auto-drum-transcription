@@ -53,6 +53,9 @@ CHUNK_LENGTH = 12
 # -- unit (1 sec)
 MILLISECOND = 1000000
 
+# -- classify method duration
+CLASSIFY_DURATION = 0.2
+
 
 """
 -- drum mapping

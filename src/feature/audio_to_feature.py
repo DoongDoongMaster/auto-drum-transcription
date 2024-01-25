@@ -16,6 +16,7 @@ from constant import (
     CHUNK_LENGTH,
     FEATURE_PARAM,
     IMAGE_PATH,
+    CLASSIFY_DURATION,
 )
 
 
@@ -37,7 +38,7 @@ class AudioToFeature:
         frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // feature_param["hop_length"]
         if method_type == METHOD_CLASSIFY:
             frame_length = (
-                int(0.2 * SAMPLE_RATE) // feature_param["hop_length"]
+                int(CLASSIFY_DURATION * SAMPLE_RATE) // feature_param["hop_length"]
             )  # feature frame length: 20 (hop length 441 기준)
 
         feature_extraction_functions = {

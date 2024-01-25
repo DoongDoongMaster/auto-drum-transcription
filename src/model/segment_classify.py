@@ -6,8 +6,10 @@ from tensorflow.keras import layers, Sequential
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
+from data.data_processing import DataProcessing
 from data.rhythm_detection import RhythmDetection
-from constant import METHOD_CLASSIFY, MFCC, MILLISECOND, CHUNK_LENGTH, SAMPLE_RATE
+from feature.audio_to_feature import AudioToFeature
+from constant import METHOD_CLASSIFY, MFCC, MILLISECOND, SAMPLE_RATE, CLASSIFY_DURATION
 
 
 class SegmentClassifyModel(BaseModel):
@@ -20,12 +22,12 @@ class SegmentClassifyModel(BaseModel):
             feature_type=MFCC,
         )
         self.predict_standard = 0.5
-        self.n_row = self.feature_extractor.feature_param["n_mfcc"]
+        self.n_row = self.feature_param["n_mfcc"]
         self.n_columns = (
-            CHUNK_LENGTH * SAMPLE_RATE
-        ) // self.feature_extractor.feature_param["hop_length"]
-        self.n_channels = self.feature_extractor.feature_param["n_channels"]
-        self.n_classes = self.feature_extractor.feature_param["n_classes"]
+            int(CLASSIFY_DURATION * SAMPLE_RATE) // self.feature_param["hop_length"]
+        )
+        self.n_channels = self.feature_param["n_channels"]
+        self.n_classes = self.feature_param["n_classes"]
         self.load_model()
 
     def input_reshape(self, data):
@@ -39,6 +41,9 @@ class SegmentClassifyModel(BaseModel):
                 self.n_channels,
             ],
         )
+
+    def create_dataset(self):
+        return super().create_dataset()
 
     def create(self):
         # Implement model creation logic
@@ -120,12 +125,14 @@ class SegmentClassifyModel(BaseModel):
 
     def get_drum_instrument(self, audio):
         # -- trimmed audio
-        trimmed_audios = self.data_processing.trim_audio_per_onset(audio)
+        trimmed_audios = DataProcessing.trim_audio_per_onset(audio)
 
         # -- trimmed feature
         predict_data = []
         for _, taudio in enumerate(trimmed_audios):
-            trimmed_feature = self.feature_extractor.audio_to_feature(taudio)
+            trimmed_feature = AudioToFeature.extract_feature(
+                taudio, self.method_type, self.feature_type
+            )
             predict_data.append(trimmed_feature)
 
         # -- reshape
@@ -138,13 +145,11 @@ class SegmentClassifyModel(BaseModel):
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
-        audio, _ = librosa.load(wav_path, sr=self.sample_rate)
+        audio, _ = librosa.load(wav_path, sr=SAMPLE_RATE)
         # -- instrument
         drum_instrument = self.get_drum_instrument(audio)
         # -- rhythm
-        new_audio = self.data_processing.trim_audio_first_onset(
-            audio, delay / MILLISECOND
-        )
+        new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
         bar_rhythm = self.get_bar_rhythm(new_audio, bpm)
 
         return {"instrument": drum_instrument, "rhythm": bar_rhythm}

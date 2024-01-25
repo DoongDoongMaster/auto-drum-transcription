@@ -9,7 +9,16 @@ from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
 from data.rhythm_detection import RhythmDetection
-from constant import METHOD_DETECT, STFT, MILLISECOND, CHUNK_LENGTH, SAMPLE_RATE
+from data.data_processing import DataProcessing
+from feature.audio_to_feature import AudioToFeature
+from constant import (
+    METHOD_DETECT,
+    STFT,
+    MILLISECOND,
+    CHUNK_LENGTH,
+    SAMPLE_RATE,
+    FEATURE_PARAM,
+)
 
 
 class SeparateDetectModel(BaseModel):
@@ -25,17 +34,12 @@ class SeparateDetectModel(BaseModel):
         )
         self.unit_number = unit_number
         self.predict_standard = 0.8
-        # self.n_rows = self.feature_extractor.feature_param["n_times"]
-        # self.n_columns = self.feature_extractor.feature_param["n_mfcc"]
-        # self.n_classes = self.feature_extractor.feature_param["n_classes"]
         # STFT feature type
-        self.n_rows = (
-            CHUNK_LENGTH * SAMPLE_RATE
-        ) // self.feature_extractor.feature_param["hop_length"]
-        self.n_columns = self.feature_extractor.feature_param["n_fft"] // 2 + 1
-        self.n_classes = self.feature_extractor.feature_param["n_classes"]
-        self.hop_length = self.feature_extractor.feature_param["hop_length"]
-        self.win_length = self.feature_extractor.feature_param["win_length"]
+        self.n_rows = (CHUNK_LENGTH * SAMPLE_RATE) // self.feature_param["hop_length"]
+        self.n_columns = self.feature_param["n_fft"] // 2 + 1
+        self.n_classes = self.feature_param["n_classes"]
+        self.hop_length = self.feature_param["hop_length"]
+        self.win_length = self.feature_param["win_length"]
         self.load_model()
 
     def input_reshape(self, data):
@@ -58,6 +62,10 @@ class SeparateDetectModel(BaseModel):
     def create_dataset(self):
         super().create_dataset()
 
+        # input shape 조정
+        self.x_train = self.input_reshape(self.x_train)
+        self.x_val = self.input_reshape(self.x_val)
+        self.x_test = self.input_reshape(self.x_test)
         self.y_train = self.input_label_reshape(self.y_train)
         self.y_val = self.input_label_reshape(self.y_val)
         self.y_test = self.input_label_reshape(self.y_test)
@@ -132,22 +140,22 @@ class SeparateDetectModel(BaseModel):
                     is_onset = True
                     drums.append(j)
             if is_onset:
-                onsets_arr.append(i / self.sample_rate)
+                onsets_arr.append(i / SAMPLE_RATE)
                 drum_instrument.append([len(onsets_arr), drums])
 
         return onsets_arr, drum_instrument
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
-        audio, _ = librosa.load(wav_path, sr=self.sample_rate)
+        audio, _ = librosa.load(wav_path, sr=SAMPLE_RATE)
 
         # -- cut delay
-        new_audio = self.data_processing.trim_audio_first_onset(
-            audio, delay / MILLISECOND
-        )
+        new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
 
         # -- wav to feature
-        audio_feature = self.feature_extractor.audio_to_feature(new_audio)
+        audio_feature = AudioToFeature.extract_feature(
+            new_audio, self.method_type, self.feature_type
+        )
 
         # -- input reshape
         audio_feature = self.input_reshape(audio_feature)

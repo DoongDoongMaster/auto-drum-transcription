@@ -88,6 +88,6 @@ rhythm_detect.create_dataset()
 rhythm_detect.create()
 rhythm_detect.train()
 rhythm_detect.evaluate()
-# rhythm_detect.save()
+rhythm_detect.save()
 
-# print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))
+print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))

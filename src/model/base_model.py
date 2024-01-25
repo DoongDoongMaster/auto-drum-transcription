@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tensorflow as tf
+import pandas as pd
 
 from glob import glob
 from datetime import datetime
@@ -18,6 +19,15 @@ from constant import (
     PROCESSED_FEATURE,
     FEATURE_PARAM,
 )
+
+from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTENC
+from imblearn.under_sampling import RandomUnderSampler
+from sklearn.preprocessing import LabelEncoder
+
+from imblearn.combine import SMOTETomek
+from imblearn.under_sampling import TomekLinks
+from imblearn.over_sampling import ADASYN
 
 
 class BaseModel:
@@ -112,36 +122,53 @@ class BaseModel:
         feature_df = self.load_data()
 
         # X = np.array(feature_df.feature.tolist())
+        # y = np.array(feature_df.label.tolist())
 
-        # mel-spec 1~128
+        # mel-spec 1 ~ 128
         X = feature_df.drop(["label"], axis=1).to_numpy()
         y = feature_df["label"].to_numpy()
-        # y = np.array(feature_df.label.tolist())
+
+        # # 그냥 0, 0.5, 1 로 하면 안 됨. 0.5가 있기 때문에 숫자화 해주기
+        # encoder = LabelEncoder()
+        # y = encoder.fit_transform(y)
+
+        # # oversample = SMOTE(random_state=22)
+        # oversample = RandomUnderSampler(random_state=22)
+        # # oversample = SMOTETomek(tomek=TomekLinks(sampling_strategy="majority"))
+        # X_train_over, y_train_over = oversample.fit_resample(X, y)
+        # # X_train_over, y_train_over = smoteto.fit_resample(X, y)
+
+        # print("SMOTE 적용 전 학습용 피처/레이블 데이터 세트: ", X.shape, y.shape)
+        # print("SMOTE 적용 후 학습용 피처/레이블 데이터 세트: ", X_train_over.shape, y_train_over.shape)
+        print("SMOTE 적용 전 레이블 값 분포: \n", pd.Series(y).value_counts())
+        # print("SMOTE 적용 후 레이블 값 분포: \n", pd.Series(y_train_over).value_counts())
+
+        # X = X_train_over
+        # y = encoder.inverse_transform(y_train_over)
+
+        # print(">>>>>>>>>>> y_train_over ", y_train_over[:-20])
+        # print(">>>>>>>>>>> y", y[:-20])
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
+            X, y, test_size=0.2, random_state=42, stratify=y
         )
-
-        del X
-        del y
-
         x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
-            x_train_temp, y_train_temp, test_size=0.2, random_state=42
+            x_train_temp,
+            y_train_temp,
+            test_size=0.2,
+            random_state=42,
+            stratify=y_train_temp,
         )
-
-        del x_train_temp
-        del y_train_temp
-
         # input shape 조정
         # self.x_train = self.input_reshape(x_train_final)
         # self.x_val = self.input_reshape(x_val_final)
         # self.x_test = self.input_reshape(x_test)
 
-        scaler = StandardScaler()
-        x_train_final = scaler.fit_transform(x_train_final)
-        x_val_final = scaler.transform(x_val_final)
-        x_test = scaler.transform(x_test)
+        # scaler = StandardScaler()
+        # x_train_final = scaler.fit_transform(x_train_final)
+        # x_val_final = scaler.transform(x_val_final)
+        # x_test = scaler.transform(x_test)
 
         # Reshape for model input
         x_train_final = np.expand_dims(x_train_final, axis=-1)

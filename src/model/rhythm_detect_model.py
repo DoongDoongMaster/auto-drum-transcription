@@ -1,5 +1,6 @@
 import librosa
 import tensorflow as tf
+import numpy as np
 
 from typing import List
 
@@ -18,9 +19,17 @@ from tensorflow.keras.layers import (
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
-from constant import METHOD_RHYTHM, STFT, MILLISECOND, CHUNK_LENGTH, SAMPLE_RATE
+from constant import (
+    METHOD_RHYTHM,
+    STFT,
+    MILLISECOND,
+    CHUNK_LENGTH,
+    SAMPLE_RATE,
+    MEL_SPECTROGRAM,
+)
 
 from keras.utils import to_categorical
+from sklearn.preprocessing import StandardScaler
 
 
 class RhythmDetectModel(BaseModel):
@@ -32,7 +41,7 @@ class RhythmDetectModel(BaseModel):
             opt_learning_rate=opt_learning_rate,
             batch_size=batch_size,
             method_type=METHOD_RHYTHM,
-            feature_type=STFT,
+            feature_type=MEL_SPECTROGRAM,
         )
         self.unit_number = unit_number
         self.predict_standard = 0.8
@@ -67,7 +76,7 @@ class RhythmDetectModel(BaseModel):
         # self.x_val = self.input_reshape(self.x_val)
         # self.x_test = self.input_reshape(self.x_test)
 
-        print(">>>>>>>>>>>>>>>.self.x_train.shape", self.x_train.shape)
+        # print(">>>>>>>>>>>>>>>.self.x_train.shape", self.x_train)
         # self.y_train = self.input_label_reshape(self.y_train)
         # self.y_val = self.input_label_reshape(self.y_val)
         # self.y_test = self.input_label_reshape(self.y_test)
@@ -93,13 +102,13 @@ class RhythmDetectModel(BaseModel):
         self.model.add(BatchNormalization())
         self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
         self.model.add(BatchNormalization())
-        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
+        self.model.add(MaxPooling2D(pool_size=(3, 1)))
 
         self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
         self.model.add(BatchNormalization())
         self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
         self.model.add(BatchNormalization())
-        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
+        self.model.add(MaxPooling2D(pool_size=(3, 1)))
 
         # Recurrent layers (BiGRU)
         self.model.add(Reshape((-1, 32)))
@@ -183,16 +192,22 @@ class RhythmDetectModel(BaseModel):
         # -- wav to feature
         audio_feature = self.feature_extractor.audio_to_feature(new_audio)
 
-        # -- input reshape
-        audio_feature = self.input_reshape(audio_feature)
+        # # -- input reshape
+        # audio_feature = self.input_reshape(audio_feature)
+
+        # ======================== new work ==============================
+        # scaler = StandardScaler()
+        # audio_feature = scaler.fit_transform(audio_feature)
+        # Reshape for model input
+        audio_feature = np.expand_dims(audio_feature, axis=-1)
 
         # -- predict
         predict_data = self.model.predict(audio_feature)
 
         print(predict_data)
 
-        # -- output reshape
-        predict_data = self.output_reshape(predict_data)[0]
+        # # -- output reshape
+        # predict_data = self.output_reshape(predict_data)[0]
 
         self.feature_extractor.show_rhythm_label_plot(predict_data)
 

@@ -45,7 +45,7 @@ SAMPLE_RATE = 44100
 ONSET_DURATION = 0.1
 
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
-ONSET_OFFSET = 5
+ONSET_OFFSET = 0
 
 # -- chunk time
 CHUNK_LENGTH = 12

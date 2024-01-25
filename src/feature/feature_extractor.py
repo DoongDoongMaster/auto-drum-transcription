@@ -15,6 +15,7 @@ from datetime import datetime
 from data.data_processing import DataProcessing
 from data.onset_detection import OnsetDetect
 
+
 from constant import (
     PATTERN_DIR,
     PER_DRUM_DIR,
@@ -212,19 +213,19 @@ class FeatureExtractor:
         # show graph
         # self.show_mel_spectrogram_plot(mel_spectrogram)
 
-        if mel_spectrogram.shape[1] < self.frame_length:
-            mel_spectrogram_new = np.pad(
-                mel_spectrogram,
-                pad_width=(
-                    (0, 0),
-                    (0, self.frame_length - mel_spectrogram.shape[1]),
-                ),
-                mode="constant",
-            )
-        else:
-            mel_spectrogram_new = mel_spectrogram[:, : self.frame_length]
+        # if mel_spectrogram.shape[1] < self.frame_length:
+        #     mel_spectrogram_new = np.pad(
+        #         mel_spectrogram,
+        #         pad_width=(
+        #             (0, 0),
+        #             (0, self.frame_length - mel_spectrogram.shape[1]),
+        #         ),
+        #         mode="constant",
+        #     )
+        if mel_spectrogram.shape[1] >= self.frame_length:
+            mel_spectrogram = mel_spectrogram[:, : self.frame_length]
 
-        return mel_spectrogram_new
+        return mel_spectrogram
 
     """
     -- feature type에 따라 feature 추출
@@ -239,10 +240,10 @@ class FeatureExtractor:
         elif self.feature_type == MEL_SPECTROGRAM:
             result = self.audio_to_mel_spectrogram(audio)
 
-        # if (
-        #     self.method_type == METHOD_DETECT or self.method_type == METHOD_RHYTHM
-        # ):  # separate & detect방식이라면 transpose
-        #     result = np.transpose(result)  # row: time, col: feature
+        if (
+            self.method_type == METHOD_DETECT or self.method_type == METHOD_RHYTHM
+        ):  # separate & detect방식이라면 transpose
+            result = np.transpose(result)  # row: time, col: feature
 
         print(
             "-- length:",
@@ -579,13 +580,13 @@ class FeatureExtractor:
                     len(chunk) / self.sample_rate, chunk_onsets_arr[idx]
                 )
                 meta_data = {
-                    "label": label,
+                    "label": label[: feature.shape[1]],
                 }
 
                 df_meta = pd.DataFrame(meta_data)
                 # mel-spectrogram feature size: 128
                 df_mel_spec = pd.DataFrame(
-                    np.transpose(feature),
+                    feature,
                     columns=["mel-spec" + str(i + 1) for i in range(128)],
                 )
                 df = pd.concat(

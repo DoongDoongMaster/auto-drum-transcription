@@ -62,10 +62,6 @@ class SeparateDetectModel(BaseModel):
     def create_dataset(self):
         super().create_dataset()
 
-        # input shape 조정
-        self.x_train = self.input_reshape(self.x_train)
-        self.x_val = self.input_reshape(self.x_val)
-        self.x_test = self.input_reshape(self.x_test)
         self.y_train = self.input_label_reshape(self.y_train)
         self.y_val = self.input_label_reshape(self.y_val)
         self.y_test = self.input_label_reshape(self.y_test)

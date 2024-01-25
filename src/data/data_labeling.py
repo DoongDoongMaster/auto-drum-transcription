@@ -44,11 +44,6 @@ class DataLabeling:
         """
         -- method type과 data origin에 따른 data labeling 메소드
         """
-
-        # 우선 classify, detect 방식에는 ddm own data만 가능
-        if method_type in [METHOD_CLASSIFY, METHOD_DETECT]:
-            DataLabeling._validate_supported_data(path, method_type)
-
         onsets_arr = DataLabeling._get_onsets_arr(audio, path, idx)
 
         if method_type == METHOD_CLASSIFY:
@@ -64,12 +59,16 @@ class DataLabeling:
                 onsets_arr, frame_length, hop_length
             )
 
-        raise Exception("지원하지 않는 모델 방식")
+        raise Exception(f"지원하지 않는 모델 방식 {method_type} !!!")
 
     @staticmethod
-    def _validate_supported_data(path: str, method_type: str):
-        if DDM_OWN not in path:
-            raise Exception(f"{method_type}에서 지원하지 않는 데이터 !!!")
+    def validate_supported_data(path: str, method_type: str):
+        # 우선 classify, detect 방식에는 ddm own data만 가능
+        if method_type in [METHOD_CLASSIFY, METHOD_DETECT] and DDM_OWN not in path:
+            return False
+        if IDMT in path and "MIX" not in path:
+            return False
+        return True
 
     @staticmethod
     def _get_onsets_arr(audio: np.ndarray, path: str, idx: int) -> List[float]:

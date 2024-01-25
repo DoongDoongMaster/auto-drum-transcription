@@ -10,6 +10,7 @@ from constant import (
     MFCC,
     STFT,
     MEL_SPECTROGRAM,
+    METHOD_CLASSIFY,
     METHOD_DETECT,
     METHOD_RHYTHM,
     CHUNK_LENGTH,
@@ -34,6 +35,10 @@ class AudioToFeature:
         """
         feature_param = FEATURE_PARAM[method_type][feature_type]
         frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // feature_param["hop_length"]
+        if method_type == METHOD_CLASSIFY:
+            frame_length = (
+                int(0.2 * SAMPLE_RATE) // feature_param["hop_length"]
+            )  # feature frame length: 20 (hop length 441 기준)
 
         feature_extraction_functions = {
             MFCC: AudioToFeature._audio_to_mfcc,

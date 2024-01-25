@@ -2,31 +2,21 @@ import os
 import librosa
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import xml.etree.ElementTree as ET
-import pretty_midi
 
 from ast import literal_eval
+from datetime import datetime
 from typing import List
 from glob import glob
-from datetime import datetime
 
 from data.data_labeling import DataLabeling
-from data.onset_detection import OnsetDetect
 from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 
 from constant import (
-    PATTERN_DIR,
-    PER_DRUM_DIR,
     SAMPLE_RATE,
-    ONSET_OFFSET,
-    PATTERN2CODE,
-    ONEHOT_DRUM2CODE,
     MFCC,
     STFT,
     MEL_SPECTROGRAM,
-    CODE2DRUM,
     METHOD_CLASSIFY,
     METHOD_DETECT,
     METHOD_RHYTHM,
@@ -34,13 +24,8 @@ from constant import (
     PROCESSED_FEATURE,
     CSV,
     PKL,
-    DDM_OWN,
-    IDMT,
-    ENST,
-    E_GMD,
     FEATURE_PARAM,
     CHUNK_LENGTH,
-    IMAGE_PATH,
 )
 
 
@@ -50,49 +35,39 @@ class FeatureExtractor:
     """
 
     @staticmethod
-    def load_feature_file(method_type: str, feature_type: str):
+    def load_feature_file(
+        method_type: str, feature_type: str, feature_extension: str
+    ) -> pd.DataFrame:
         """
         -- feature 추출한 파일 불러오기
         """
-        save_folder_path = (
-            f"{ROOT_PATH}/{PROCESSED_FEATURE}/{method_type}/{feature_type}/"
+        save_folder_path = FeatureExtractor._get_save_folder_path(
+            method_type, feature_type
         )
-
         if not os.path.exists(save_folder_path):
             raise Exception(f"모델: {method_type}, 피쳐: {feature_type} 에 해당하는 피쳐가 없습니다!!!")
 
         feature_param = FEATURE_PARAM[method_type][feature_type]
 
-        combined_df = pd.DataFrame(
-            columns=["label"] + ["mel-spec" + str(i + 1) for i in range(128)]
+        # feature에서 한 frame에 들어있는 sample 개수
+        n_feature = FeatureExtractor._get_n_feature(feature_type, feature_param)
+
+        # dataframe 초기화
+        combined_df = FeatureExtractor._init_combine_df(
+            method_type, feature_type, n_feature
         )
 
-        if os.path.exists(save_folder_path):
-            pkl_files = glob(f"{save_folder_path}/*.pkl")
-            for pkl_file in pkl_files:
-                # pkl 파일을 읽어와 DataFrame으로 변환합니다.
-                data_feature_label = pd.read_pickle(pkl_file)
-                # print(">>>>>>>>>>>>>>>data_feature_label", data_feature_label.head)
+        feature_files = glob(f"{save_folder_path}/*.{feature_extension}")
+        for feature_file in feature_files:
+            # feature 파일을 읽어와 DataFrame으로 변환
+            data_feature_label = FeatureExtractor._load_feature_one_file(
+                feature_file, feature_extension
+            )
 
-                # 현재 파일의 데이터를 combined_df에 추가합니다.
-                combined_df = pd.concat(
-                    [combined_df, data_feature_label], ignore_index=True
-                )
-
-            # for feature_file in feature_file_list:
-            #     if os.path.exists(
-            #         save_folder_path + feature_file
-            #     ):  # 추출된 feature 존재 한다면
-            #         # print("-- ! 기존 feature loading : ", self.save_path)
-
-            #         # if self.feature_extension == CSV:
-            #         #     data_feature_label = pd.read_csv(
-            #         #         self.save_path,
-            #         #         index_col=0,
-            #         #         converters={"feature": literal_eval, "label": literal_eval},
-            #         #     )
-            #         if self.feature_extension == PKL:
-            #             data_feature_label = pd.read_pickle(self.save_path)
+            # 현재 파일의 데이터를 combined_df에 추가
+            combined_df = pd.concat(
+                [combined_df, data_feature_label], ignore_index=True
+            )
 
         print(
             "-- ! 로딩 완료 ! --",
@@ -104,194 +79,185 @@ class FeatureExtractor:
 
         return combined_df
 
-    """
-    -- feature file 모두 불러오기
-    """
-
-    def load_feature_file_all(self):
-        feature_file_list = glob(f"{self.data_root_path}/**/*.*", recursive=True)
-        print("-- ! feature file all load: ", feature_file_list)
-        return feature_file_list
-
-    """
-    -- feature 파일 저장하기
-    """
-
-    def save_feature_file(self, features: pd.DataFrame, number):
-        if self.feature_extension == CSV:
-            # Save csv file
-            features.to_csv(self.save_path, sep=",")
-        elif self.feature_extension == PKL:
-            # Save pickle file
-            features.to_pickle(
-                f"{self.data_root_path}/{self.method_type}/{self.feature_type}/{self.feature_type}-{number}.{self.feature_extension}"
-            )
-
-        print("-- ! 완료 & 새로 저장 ! --")
-        print("-- ! location: ", self.save_path)
-        print("-- ! features shape:", features.shape)
-
-    """
-    -- classify type feature, label 추출
-    """
-
-    def classify_feature_extractor(self, audio_paths: List[str]) -> pd.DataFrame:
-        data_feature_label = []
-
-        print(f"-- ! ADT type : {self.method_type} ! --")
-        print(f"-- ! {self.feature_type} feature extracting ! --")
-        for path in audio_paths:
-            print("-- current file: ", path)
-            # -- librosa feature load
-            audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
-
-            if DDM_OWN in path:  # 우리 데이터라면
-                # -- trimmed audio
-                trimmed_audios = DataProcessing.trim_audio_per_onset(audio)
-                # -- trimmed feature
-                for idx, taudio in enumerate(trimmed_audios):
-                    trimmed_feature = self.audio_to_feature(taudio)
-                    # -- label: 드럼 종류
-                    label = self.get_label_classify_data(idx, path)
-                    data_feature_label.append([trimmed_feature.tolist(), label])
-
-        feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
-        return feature_df
-
-    """
-    -- detect type feature, label 추출
-    """
-
-    def detect_feature_extractor(self, audio_paths: List[str]) -> pd.DataFrame:
-        data_feature_label = []
-
-        print(f"-- ! ADT type : {self.method_type} ! --")
-        print(f"-- ! {self.feature_type} feature extracting ! --")
-        for path in audio_paths:
-            print("-- current file: ", path)
-            # -- librosa feature load
-            audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
-
-            if DDM_OWN in path:  # 우리 데이터라면
-                # -- trim first onset
-                audio = DataProcessing.trim_audio_first_onset(audio)
-                # -- feature extract
-                feature = self.audio_to_feature(audio)
-                # -- label: 드럼 종류마다 onset 여부
-                label = self.get_label_detect_data(audio, path)
-                data_feature_label.append([feature.tolist(), label])
-
-        feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
-        return feature_df
-
-    """
-    -- rhythm type feature, label 추출
-    """
-
-    def rhythm_feature_extractor(self, audio_paths: List[str]):
-        data_feature_label = []
-
-        print(f"-- ! ADT type : {self.method_type} ! --")
-        print(f"-- ! {self.feature_type} feature extracting ! --")
-        for path in audio_paths:
-            if IDMT in path:  # IDMT data
-                if "MIX" not in path:
-                    continue
-
-            print("-- current file: ", path)
-            # -- librosa feature load
-            audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
-
-            # if DDM_OWN in path:  # 우리 데이터라면
-            #     # -- trim first onset
-            #     audio = self.data_processing.trim_audio_first_onset(audio)
-            #     # -- feature extract
-            #     feature = self.audio_to_feature(audio)
-            #     # -- label: onset 여부
-            #     onsets_arr = self.onset_detection.onset_detection(audio)
-            #     label = self.get_label_rhythm_data(
-            #         len(audio) / self.sample_rate, onsets_arr
-            #     )
-            #     data_feature_label.append([feature.tolist(), label])
-            #     continue
-
-            # -- chunk
-            chunk_list = DataProcessing.cut_chunk_audio(audio)
-            onsets_arr = []
-
-            if IDMT in path:  # IDMT data
-                file_name = os.path.basename(path)[:-4]  # 파일 이름
-                file_paths = path.split("/")[:-2]  # 뒤에서 2개 제외한 폴더 list
-                xml_file = os.path.join(os.path.join(*file_paths), "annotation_xml")
-                xml_file = os.path.join(xml_file, f"{file_name}.xml")
-                onsets_arr = self.get_onsets_arr_from_xml(xml_file)
-
-            if ENST in path:  # ENST data
-                file_name = os.path.basename(path)[:-4]  # 파일 이름
-                file_paths = path.split("/")[:-3]  # 뒤에서 3개 제외한 폴더 list
-                txt_file = os.path.join(os.path.join(*file_paths), "annotation")
-                txt_file = os.path.join(txt_file, f"{file_name}.txt")
-                onsets_arr = self.get_onsets_arr_from_txt(txt_file)
-
-            if E_GMD in path:  # E-GMD data
-                file_name = os.path.basename(path)[:-4]  # 파일 이름
-                file_paths = path.split("/")[:-1]  # 뒤에서 1개 제외한 폴더 list
-                mid_file = os.path.join(os.path.join(*file_paths), f"{file_name}.mid")
-                onsets_arr = self.get_onsets_arr_from_mid(mid_file)
-
-            # -- labeling: onset 여부
-            chunk_onsets_arr = self.split_onset_match_chunk(onsets_arr)
-            for idx, chunk in enumerate(chunk_list):
-                if not idx in chunk_onsets_arr:
-                    continue
-
-                # -- feature extract
-                feature = self.audio_to_feature(chunk)
-                label = self.get_label_rhythm_data(
-                    len(chunk) / SAMPLE_RATE, chunk_onsets_arr[idx]
-                )
-                meta_data = {
-                    "label": label,
-                }
-
-                df_meta = pd.DataFrame(meta_data)
-                # mel-spectrogram feature size: 128
-                df_mel_spec = pd.DataFrame(
-                    np.transpose(feature),
-                    columns=["mel-spec" + str(i + 1) for i in range(128)],
-                )
-                df = pd.concat(
-                    [df_meta, df_mel_spec], axis=1
-                )  # Concatenate along columns
-                data_feature_label.append(df)
-
-                # data_feature_label.append([feature.tolist(), label])
-
-        # feature_df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
-        feature_df = pd.concat(data_feature_label, ignore_index=True)
-
-        if len(feature_df) > 0:
-            self.show_rhythm_label_plot(feature_df.label[0])
-        return feature_df
-
-    """ 
-    -- method type 에 따라 feature, label 추출 후 저장
-    """
-
-    def feature_extractor(self, audio_paths: List[str]):
+    @staticmethod
+    def feature_extractor(
+        audio_paths: List[str],
+        method_type: str,
+        feature_type: str,
+        feature_extension: str,
+    ):
+        """
+        -- method type 에 따라 feature, label 추출 후 저장
+        """
+        print(f"-- ! ADT type : {method_type} ! --")
+        print(f"-- ! {feature_type} feature extracting ! --")
         print("-- 총 audio_paths 몇 개??? >> ", len(audio_paths))
+
+        # feature parameter info
+        feature_param = FEATURE_PARAM[method_type][feature_type]
+        hop_length = feature_param.get("hop_length")
+        frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // hop_length
 
         batch_size = 20
         for i in range(0, len(audio_paths), batch_size):
-            features_df_new = None
+            print(f"-- ! feature extracting ... {i} to {i + batch_size}")
             batch_audio_paths = audio_paths[i : min(len(audio_paths), i + batch_size)]
-
-            if self.method_type == METHOD_CLASSIFY:
-                features_df_new = self.classify_feature_extractor(batch_audio_paths)
-            elif self.method_type == METHOD_DETECT:
-                features_df_new = self.detect_feature_extractor(batch_audio_paths)
-            elif self.method_type == METHOD_RHYTHM:
-                features_df_new = self.rhythm_feature_extractor(batch_audio_paths)
+            features_df_new = FeatureExtractor._feature_extractor(
+                batch_audio_paths, method_type, feature_type, frame_length, hop_length
+            )
+            if features_df_new.empty:
+                continue
 
             # Save feature file
-            self.save_feature_file(features_df_new, i)
+            FeatureExtractor._save_feature_file(
+                method_type, feature_type, feature_extension, features_df_new, i
+            )
+
+    @staticmethod
+    def _feature_extractor(
+        audio_paths: List[str],
+        method_type: str,
+        feature_type: str,
+        frame_length: int,
+        hop_length: int,
+    ) -> pd.DataFrame:
+        # feature에서 한 frame에 들어있는 sample 개수
+        n_feature = FeatureExtractor._get_n_feature(
+            feature_type, FEATURE_PARAM[method_type][feature_type]
+        )
+        # dataframe 초기화
+        combined_df = FeatureExtractor._init_combine_df(
+            method_type, feature_type, n_feature
+        )
+        for path in audio_paths:
+            if DataLabeling.validate_supported_data(path, method_type) == False:
+                continue
+
+            print("-- current file: ", path)
+            audios = FeatureExtractor._get_chunk_audio(path, method_type)
+            for i, audio in enumerate(audios):
+                # audio to feature
+                feature = AudioToFeature.extract_feature(
+                    audio, method_type, feature_type
+                )
+                # get label
+                label = DataLabeling.data_labeling(
+                    audio, path, method_type, i, frame_length, hop_length
+                )
+                # make dataframe
+                df = FeatureExtractor._make_dataframe(
+                    method_type, feature_type, feature, label
+                )
+                # combine dataframe
+                combined_df = pd.concat([combined_df, df], ignore_index=True)
+
+        return combined_df
+
+    @staticmethod
+    def _make_dataframe(
+        method_type: str, feature_type: str, feature: np.ndarray, label
+    ) -> pd.DataFrame:
+        if method_type in [METHOD_CLASSIFY, METHOD_DETECT]:
+            data_feature_label = [[feature.tolist(), label]]
+            df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
+            return df
+
+        if method_type == METHOD_RHYTHM:
+            n_features = FeatureExtractor._get_n_feature(
+                feature_type, FEATURE_PARAM[method_type][feature_type]
+            )
+            label_data = {
+                "label": label,
+            }
+            df_meta = pd.DataFrame(
+                label_data,
+                dtype="float16",
+            )
+            df_feature = pd.DataFrame(
+                feature,
+                columns=[feature_type[:8] + str(i + 1) for i in range(n_features)],
+                dtype="float32",
+            )
+            df = pd.concat([df_meta, df_feature], axis=1)  # Concatenate along columns
+            return df
+
+    @staticmethod
+    def _get_chunk_audio(path: str, method_type: str) -> List[np.ndarray]:
+        # -- librosa feature load
+        audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
+
+        if method_type == METHOD_CLASSIFY:
+            return DataProcessing.trim_audio_per_onset(audio)
+        if method_type == METHOD_DETECT:
+            return [DataProcessing.trim_audio_first_onset(audio)]
+        if method_type == METHOD_RHYTHM:
+            return DataProcessing.cut_chunk_audio(audio)
+
+    @staticmethod
+    def _save_feature_file(
+        method_type: str,
+        feature_type: str,
+        feature_extension: str,
+        features: pd.DataFrame,
+        number: int,
+    ):
+        """
+        -- feature 파일 저장하기
+        """
+        save_folder_path = FeatureExtractor._get_save_folder_path(
+            method_type, feature_type
+        )
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        save_path = f"{save_folder_path}/{feature_type}-{date_time}-{number:04}.{feature_extension}"
+
+        os.makedirs(save_folder_path, exist_ok=True)  # feature 폴더 생성
+
+        if feature_extension == CSV:
+            # Save csv file
+            features.to_csv(save_path, sep=",")
+        elif feature_extension == PKL:
+            # Save pickle file
+            features.to_pickle(save_path)
+
+        print("-- ! 완료 & 새로 저장 ! --")
+        print("-- ! location: ", save_path)
+        print("-- ! features shape:", features.shape)
+
+    @staticmethod
+    def _load_feature_one_file(path: str, feature_extension: str) -> pd.DataFrame:
+        if feature_extension == CSV:
+            return pd.read_csv(
+                path,
+                index_col=0,
+                converters={"feature": literal_eval, "label": literal_eval},
+            )
+        if feature_extension == PKL:
+            return pd.read_pickle(path)
+
+    @staticmethod
+    def _get_n_feature(feature_type: str, feature_param: dict) -> int:
+        if feature_type == STFT:
+            return 1 + (feature_param["n_fft"] // 2)
+        if feature_type == MFCC:
+            return feature_param["n_mfcc"]
+        if feature_type == MEL_SPECTROGRAM:
+            return feature_param["n_mels"]
+
+    @staticmethod
+    def _init_combine_df(
+        method_type: str, feature_type: str, n_feature: int
+    ) -> pd.DataFrame:
+        """
+        -- dataframe 헤더 초기화
+        """
+        if method_type == METHOD_CLASSIFY:  # feature + label 형식
+            return pd.DataFrame(columns=["feature", "label"])
+        if method_type == METHOD_DETECT or method_type == METHOD_RHYTHM:
+            return pd.DataFrame(
+                columns=["label"]
+                + [feature_type[:8] + str(i + 1) for i in range(n_feature)]
+            )
+
+    @staticmethod
+    def _get_save_folder_path(method_type, feature_type) -> str:
+        return f"{ROOT_PATH}/{PROCESSED_FEATURE}/{method_type}/{feature_type}"

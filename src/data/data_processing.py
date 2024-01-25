@@ -102,7 +102,7 @@ class DataProcessing:
         """
         if first_onset == None:
             onsets = OnsetDetect.onset_detection(audio)
-            first_onset = onsets[0] if onsets else 0
+            first_onset = onsets[0] if len(onsets) > 0 else 0
 
         start = int(first_onset * SAMPLE_RATE)
         trimmed = audio[start:]

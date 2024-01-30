@@ -198,8 +198,8 @@ class RhythmDetectModel(BaseModel):
         predict_data = np.array([item[0] for item in predict_data])
 
         # -- (임시) test 5s ~ 15s
-        chunk_samples_start = int(5 * SAMPLE_RATE)
-        chunk_samples_end = int(15 * SAMPLE_RATE)
+        chunk_samples_start = 500
+        chunk_samples_end = 1500
         predict_data = predict_data[chunk_samples_start : chunk_samples_end + 1]
 
         # -- get onsets

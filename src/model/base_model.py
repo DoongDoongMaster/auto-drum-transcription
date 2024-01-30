@@ -103,13 +103,17 @@ class BaseModel:
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
+            X, y, test_size=0.2, random_state=42, stratify=y
         )
         del X
         del y
 
         x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
-            x_train_temp, y_train_temp, test_size=0.2, random_state=42
+            x_train_temp,
+            y_train_temp,
+            test_size=0.2,
+            random_state=42,
+            stratify=y_train_temp,
         )
         del x_train_temp
         del y_train_temp

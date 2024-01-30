@@ -1,6 +1,7 @@
 import librosa
 import numpy as np
 import tensorflow as tf
+import numpy as np
 
 from typing import List
 from sklearn.preprocessing import StandardScaler
@@ -32,7 +33,7 @@ from constant import (
     MEL_SPECTROGRAM,
 )
 
-from keras.utils import to_categorical
+from sklearn.preprocessing import StandardScaler
 
 
 class RhythmDetectModel(BaseModel):
@@ -73,19 +74,6 @@ class RhythmDetectModel(BaseModel):
     def create_dataset(self):
         super().create_dataset()
 
-        # self.x_train = self.input_reshape(self.x_train)
-        # self.x_val = self.input_reshape(self.x_val)
-        # self.x_test = self.input_reshape(self.x_test)
-
-        print(">>>>>>>>>>>>>>>.self.x_train.shape", self.x_train.shape)
-        # self.y_train = self.input_label_reshape(self.y_train)
-        # self.y_val = self.input_label_reshape(self.y_val)
-        # self.y_test = self.input_label_reshape(self.y_test)
-
-        # self.y_train = to_categorical(self.y_train, num_classes=self.n_classes * 1200)
-        # self.y_val = to_categorical(self.y_val, num_classes=self.n_classes * 1200)
-        # self.y_test = to_categorical(self.y_test, num_classes=self.n_classes * 1200)
-
     def create(self):
         # Implement model creation logic
         self.model = Sequential()
@@ -103,13 +91,13 @@ class RhythmDetectModel(BaseModel):
         self.model.add(BatchNormalization())
         self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
         self.model.add(BatchNormalization())
-        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
+        self.model.add(MaxPooling2D(pool_size=(3, 1)))
 
         self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
         self.model.add(BatchNormalization())
         self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
         self.model.add(BatchNormalization())
-        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
+        self.model.add(MaxPooling2D(pool_size=(3, 1)))
 
         # Recurrent layers (BiGRU)
         self.model.add(Reshape((-1, 32)))
@@ -170,14 +158,17 @@ class RhythmDetectModel(BaseModel):
         - onsets 배열
     """
 
-    def get_predict_onsets_instrument(self, predict_data) -> List[float]:
-        onsets_arr = []
-
-        for i in range(len(predict_data)):
-            if predict_data[i] > self.predict_standard:
-                onsets_arr.append(i / SAMPLE_RATE)
-
-        return onsets_arr
+    def get_predict_onsets_instrument(self, predict_data):
+        peaks = librosa.util.peak_pick(
+            predict_data,
+            pre_max=20,
+            post_max=20,
+            pre_avg=10,
+            post_avg=10,
+            delta=0.1,
+            wait=10,
+        )
+        return peaks
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
@@ -191,20 +182,29 @@ class RhythmDetectModel(BaseModel):
             new_audio, self.method_type, self.feature_type
         )
 
-        # -- input reshape
         audio_feature = self.input_reshape(audio_feature)
 
         # -- predict
         predict_data = self.model.predict(audio_feature)
 
-        # print(predict_data)
+        # 이차원 배열을 1차원 배열로 변환
+        predict_data = np.array([item[0] for item in predict_data])
 
-        DataLabeling.show_label_plot(predict_data)
+        # -- (임시) test 5s ~ 15s
+        chunk_samples_start = 500
+        chunk_samples_end = 1500
+        predict_data = predict_data[chunk_samples_start : chunk_samples_end + 1]
 
         # -- get onsets
         onsets_arr = self.get_predict_onsets_instrument(predict_data)
 
+        DataLabeling.show_label_onset_plot(predict_data, onsets_arr)
+
+        result = []
+        for onset in onsets_arr:
+            result.append(onset * self.hop_length / self.sample_rate)
+
         # -- rhythm
-        bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
+        bar_rhythm = self.get_bar_rhythm(new_audio, bpm, result)
 
         return {"rhythm": bar_rhythm}

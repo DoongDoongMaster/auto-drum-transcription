@@ -12,6 +12,7 @@ from data.data_labeling import DataLabeling
 from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 
+
 from constant import (
     SAMPLE_RATE,
     MFCC,

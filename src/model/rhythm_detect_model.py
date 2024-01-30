@@ -182,11 +182,7 @@ class RhythmDetectModel(BaseModel):
             new_audio, self.method_type, self.feature_type
         )
 
-        # # -- input reshape
-        # audio_feature = self.input_reshape(audio_feature)
-
-        # ======================== new work ==============================
-        self.input_reshape(audio_feature)
+        audio_feature = self.input_reshape(audio_feature)
 
         # -- predict
         predict_data = self.model.predict(audio_feature)

@@ -186,10 +186,7 @@ class RhythmDetectModel(BaseModel):
         # audio_feature = self.input_reshape(audio_feature)
 
         # ======================== new work ==============================
-        scaler = StandardScaler()
-        audio_feature = scaler.fit_transform(audio_feature)
-        # Reshape for model input
-        audio_feature = np.expand_dims(audio_feature, axis=-1)
+        self.input_reshape(audio_feature)
 
         # -- predict
         predict_data = self.model.predict(audio_feature)

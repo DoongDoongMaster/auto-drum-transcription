@@ -197,13 +197,13 @@ class RhythmDetectModel(BaseModel):
         # 이차원 배열을 1차원 배열로 변환
         predict_data = np.array([item[0] for item in predict_data])
 
-        # -- get onsets
-        onsets_arr = self.get_predict_onsets_instrument(predict_data)
-
         # -- (임시) test 5s ~ 15s
         chunk_samples_start = int(5 * SAMPLE_RATE)
         chunk_samples_end = int(15 * SAMPLE_RATE)
-        onsets_arr = onsets_arr[chunk_samples_start : chunk_samples_end + 1]
+        predict_data = predict_data[chunk_samples_start : chunk_samples_end + 1]
+
+        # -- get onsets
+        onsets_arr = self.get_predict_onsets_instrument(predict_data)
 
         DataLabeling.show_label_onset_plot(predict_data, onsets_arr)
 

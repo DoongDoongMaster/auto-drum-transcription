@@ -93,7 +93,7 @@ class DataLabeling:
             return OnsetDetect.get_onsets_from_mid(label_path, start, end)
 
     @staticmethod
-    def show_label_plot(label):
+    def show_label_plot(label, peaks=[]):
         """
         -- label 그래프
         """
@@ -104,6 +104,7 @@ class DataLabeling:
             plt.subplot(data.shape[1], 1, i + 1)
             plt.plot(data[:, i])
 
+        plt.plot(peaks, data[peaks], "x")
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
         date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기

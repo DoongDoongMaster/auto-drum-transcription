@@ -198,16 +198,12 @@ class RhythmDetectModel(BaseModel):
         predict_data = np.array([item[0] for item in predict_data])
         print("----------------->>", predict_data)
 
-        # # -- output reshape
-        # predict_data = self.output_reshape(predict_data)[0]
-
-        DataLabeling.show_label_plot(predict_data)
-
         # -- get onsets
         onsets_arr = self.get_predict_onsets_instrument(predict_data)
         print("----------------->>", onsets_arr)
 
-        self.feature_extractor.show_rhythm_label_plot(predict_data, onsets_arr)
+        # self.feature_extractor.show_rhythm_label_plot(predict_data, onsets_arr)
+        DataLabeling.show_label_plot(predict_data, onsets_arr)
 
         result = []
         for onset in onsets_arr:

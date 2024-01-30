@@ -159,12 +159,6 @@ class RhythmDetectModel(BaseModel):
     """
 
     def get_predict_onsets_instrument(self, predict_data):
-        onsets_arr = []
-
-        # for i in range(len(predict_data)):
-        #     if predict_data[i] > self.predict_standard:
-        #         onsets_arr.append(i / self.sample_rate)
-
         peaks = librosa.util.peak_pick(
             predict_data,
             pre_max=20,
@@ -174,32 +168,7 @@ class RhythmDetectModel(BaseModel):
             delta=0.1,
             wait=10,
         )
-        # predict_data,
-        # pre_max=1.0,
-        # post_max=1.0,
-        # pre_avg=0,
-        # post_avg=1,
-        # delta=0.1,
-        # wait=0,
-
-        # peaks = peaks.astype(np.float) / 100.0
-        # for i in range(len(predict_data)):
-        #     if predict_data[i] > self.predict_standard:
-        #         onsets_arr.append(i / self.sample_rate)
-
         return peaks
-
-    # def postprocess_y(y):
-    #     onsets = peak_picking(y, threshold = 0.54, smooth = 5, pre_avg = 0,post_avg = 0,pre_max = 1.0, post_max = 1.0)
-    #     onsets = onsets.astype(np.float) / 100.0
-    #     onsets = combine_events(onsets, 0.03, ’left’)
-    #     return np.asarray(onsets)
-
-    # def postprocess_y(y):
-    #     onsets = peak_picking(y, threshold =0.35, smooth = 7, pre_avg = 0, post_avg = 0, pre_max = 1.0, post_max = 1.0)
-    #     onsets = onsets.astype(np.float) / 100.0
-    #     onsets = combine_events(onsets, 0.03, ’left’)
-    #     return np.asarray(onsets)
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
@@ -229,8 +198,8 @@ class RhythmDetectModel(BaseModel):
         predict_data = np.array([item[0] for item in predict_data])
         print("----------------->>", predict_data)
 
-        # -- output reshape
-        predict_data = self.output_reshape(predict_data)[0]
+        # # -- output reshape
+        # predict_data = self.output_reshape(predict_data)[0]
 
         DataLabeling.show_label_plot(predict_data)
 

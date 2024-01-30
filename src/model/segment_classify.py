@@ -92,7 +92,7 @@ class SegmentClassifyModel(BaseModel):
     """
 
     def get_bar_rhythm(self, audio_wav, bpm):
-        return RhythmDetection.get_rhythm(audio_wav, bpm, is_our_train_data=True)
+        return RhythmDetection.get_rhythm(audio_wav, bpm)
 
     """
     -- input  : onset마다 예측한 악기 확률

@@ -19,15 +19,6 @@ from constant import (
     FEATURE_PARAM,
 )
 
-from imblearn.over_sampling import SMOTE
-from imblearn.over_sampling import SMOTENC
-from imblearn.under_sampling import RandomUnderSampler
-from sklearn.preprocessing import LabelEncoder
-
-from imblearn.combine import SMOTETomek
-from imblearn.under_sampling import TomekLinks
-from imblearn.over_sampling import ADASYN
-
 
 class BaseModel:
     def __init__(

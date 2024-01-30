@@ -33,7 +33,6 @@ from constant import (
     MEL_SPECTROGRAM,
 )
 
-from keras.utils import to_categorical
 from sklearn.preprocessing import StandardScaler
 
 
@@ -74,19 +73,6 @@ class RhythmDetectModel(BaseModel):
 
     def create_dataset(self):
         super().create_dataset()
-
-        # self.x_train = self.input_reshape(self.x_train)
-        # self.x_val = self.input_reshape(self.x_val)
-        # self.x_test = self.input_reshape(self.x_test)
-
-        # print(">>>>>>>>>>>>>>>.self.x_train.shape", self.x_train)
-        # self.y_train = self.input_label_reshape(self.y_train)
-        # self.y_val = self.input_label_reshape(self.y_val)
-        # self.y_test = self.input_label_reshape(self.y_test)
-
-        # self.y_train = to_categorical(self.y_train, num_classes=self.n_classes * 1200)
-        # self.y_val = to_categorical(self.y_val, num_classes=self.n_classes * 1200)
-        # self.y_test = to_categorical(self.y_test, num_classes=self.n_classes * 1200)
 
     def create(self):
         # Implement model creation logic
@@ -172,14 +158,48 @@ class RhythmDetectModel(BaseModel):
         - onsets 배열
     """
 
-    def get_predict_onsets_instrument(self, predict_data) -> List[float]:
+    def get_predict_onsets_instrument(self, predict_data):
         onsets_arr = []
 
-        for i in range(len(predict_data)):
-            if predict_data[i] > self.predict_standard:
-                onsets_arr.append(i / SAMPLE_RATE)
+        # for i in range(len(predict_data)):
+        #     if predict_data[i] > self.predict_standard:
+        #         onsets_arr.append(i / self.sample_rate)
 
-        return onsets_arr
+        peaks = librosa.util.peak_pick(
+            predict_data,
+            pre_max=20,
+            post_max=20,
+            pre_avg=10,
+            post_avg=10,
+            delta=0.1,
+            wait=10,
+        )
+        # predict_data,
+        # pre_max=1.0,
+        # post_max=1.0,
+        # pre_avg=0,
+        # post_avg=1,
+        # delta=0.1,
+        # wait=0,
+
+        # peaks = peaks.astype(np.float) / 100.0
+        # for i in range(len(predict_data)):
+        #     if predict_data[i] > self.predict_standard:
+        #         onsets_arr.append(i / self.sample_rate)
+
+        return peaks
+
+    # def postprocess_y(y):
+    #     onsets = peak_picking(y, threshold = 0.54, smooth = 5, pre_avg = 0,post_avg = 0,pre_max = 1.0, post_max = 1.0)
+    #     onsets = onsets.astype(np.float) / 100.0
+    #     onsets = combine_events(onsets, 0.03, ’left’)
+    #     return np.asarray(onsets)
+
+    # def postprocess_y(y):
+    #     onsets = peak_picking(y, threshold =0.35, smooth = 7, pre_avg = 0, post_avg = 0, pre_max = 1.0, post_max = 1.0)
+    #     onsets = onsets.astype(np.float) / 100.0
+    #     onsets = combine_events(onsets, 0.03, ’left’)
+    #     return np.asarray(onsets)
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
@@ -197,15 +217,17 @@ class RhythmDetectModel(BaseModel):
         # audio_feature = self.input_reshape(audio_feature)
 
         # ======================== new work ==============================
-        # scaler = StandardScaler()
-        # audio_feature = scaler.fit_transform(audio_feature)
+        scaler = StandardScaler()
+        audio_feature = scaler.fit_transform(audio_feature)
         # Reshape for model input
         audio_feature = np.expand_dims(audio_feature, axis=-1)
 
         # -- predict
         predict_data = self.model.predict(audio_feature)
 
-        # print(predict_data)
+        # 이차원 배열을 1차원 배열로 변환
+        predict_data = np.array([item[0] for item in predict_data])
+        print("----------------->>", predict_data)
 
         # -- output reshape
         predict_data = self.output_reshape(predict_data)[0]
@@ -214,8 +236,15 @@ class RhythmDetectModel(BaseModel):
 
         # -- get onsets
         onsets_arr = self.get_predict_onsets_instrument(predict_data)
+        print("----------------->>", onsets_arr)
+
+        self.feature_extractor.show_rhythm_label_plot(predict_data, onsets_arr)
+
+        result = []
+        for onset in onsets_arr:
+            result.append(onset * self.hop_length / self.sample_rate)
 
         # -- rhythm
-        bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
+        bar_rhythm = self.get_bar_rhythm(new_audio, bpm, result)
 
         return {"rhythm": bar_rhythm}

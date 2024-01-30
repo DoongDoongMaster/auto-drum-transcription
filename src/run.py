@@ -23,8 +23,8 @@ from constant import (
     PKL,
 )
 
-audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
-FeatureExtractor.feature_extractor(audio_paths, METHOD_RHYTHM, MEL_SPECTROGRAM, PKL)
+# audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
+# FeatureExtractor.feature_extractor(audio_paths, METHOD_RHYTHM, MEL_SPECTROGRAM, PKL)
 # data = FeatureExtractor.load_feature_file(METHOD_RHYTHM, MEL_SPECTROGRAM, PKL)
 # DataLabeling.show_label_plot(data["label"][400000:401200])
 # AudioToFeature.show_feature_plot(data[400000:401200], METHOD_RHYTHM, MEL_SPECTROGRAM)
@@ -42,7 +42,7 @@ FeatureExtractor.feature_extractor(audio_paths, METHOD_RHYTHM, MEL_SPECTROGRAM, 
 #     )
 # )
 
-# rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
+rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
 
 # rhythm_detect.create_dataset()
 # rhythm_detect.create()
@@ -50,7 +50,7 @@ FeatureExtractor.feature_extractor(audio_paths, METHOD_RHYTHM, MEL_SPECTROGRAM, 
 # rhythm_detect.evaluate()
 # rhythm_detect.save()
 
-# print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))
+print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))
 # print(rhythm_detect.predict("../data/test/004_hits_low-tom_sticks_x5.wav", 100, 0))
 
 # ---------------------------------------------------------------------------------------

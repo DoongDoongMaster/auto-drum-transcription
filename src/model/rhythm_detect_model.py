@@ -203,7 +203,7 @@ class RhythmDetectModel(BaseModel):
         print("----------------->>", onsets_arr)
 
         # self.feature_extractor.show_rhythm_label_plot(predict_data, onsets_arr)
-        DataLabeling.show_label_plot(predict_data, onsets_arr)
+        DataLabeling.show_label_onset_plot(predict_data, onsets_arr)
 
         result = []
         for onset in onsets_arr:

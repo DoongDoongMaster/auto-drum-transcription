@@ -93,7 +93,7 @@ class DataLabeling:
             return OnsetDetect.get_onsets_from_mid(label_path, start, end)
 
     @staticmethod
-    def show_label_plot(label, peaks=[]):
+    def show_label_plot(label):
         """
         -- label 그래프
         """
@@ -104,11 +104,29 @@ class DataLabeling:
             plt.subplot(data.shape[1], 1, i + 1)
             plt.plot(data[:, i])
 
-        plt.plot(peaks, data[peaks], "x")
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
         date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
+        plt.show()
+
+    @staticmethod
+    def show_label_onset_plot(label, onset):
+        """
+        -- label, onset 그래프
+        """
+        data = np.array(label)
+        data = data.reshape(data.shape[0], -1)
+
+        for i in range(data.shape[1]):
+            plt.subplot(data.shape[1], 1, i + 1)
+            plt.plot(data[:, i])
+
+        plt.plot(onset, data[onset], "x")
+        plt.title("Model Label")
+        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        plt.savefig(f"{IMAGE_PATH}/label-onset-{date_time}.png")
         plt.show()
 
     @staticmethod

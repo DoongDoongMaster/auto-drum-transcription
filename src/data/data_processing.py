@@ -6,7 +6,14 @@ import librosa
 import numpy as np
 from typing import List
 
-from constant import SAMPLE_RATE, RAW_PATH, NEW_PATH, ONSET_DURATION, CHUNK_LENGTH
+from constant import (
+    SAMPLE_RATE,
+    RAW_PATH,
+    NEW_PATH,
+    ONSET_DURATION_LEFT,
+    ONSET_DURATION_RIGHT,
+    CHUNK_LENGTH,
+)
 from data.onset_detection import OnsetDetect
 
 
@@ -83,8 +90,8 @@ class DataProcessing:
 
         trimmed_audios = []
         for i in range(0, len(onsets)):
-            start = int(onsets[i] * SAMPLE_RATE)
-            end = int((onsets[i] + ONSET_DURATION) * SAMPLE_RATE)
+            start = min(int((onsets[i] - ONSET_DURATION_LEFT) * SAMPLE_RATE), 0)
+            end = int((onsets[i] + ONSET_DURATION_RIGHT) * SAMPLE_RATE)
 
             if i + 1 < len(onsets):
                 end_by_onset = int(onsets[i + 1] * SAMPLE_RATE)

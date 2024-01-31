@@ -21,6 +21,7 @@ from constant import (
     RAW_PATH,
     NEW_PATH,
     PKL,
+    CLASSIFY_ALL,
 )
 
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
@@ -29,20 +30,26 @@ from constant import (
 # DataLabeling.show_label_plot(data["label"][400000:401200])
 # AudioToFeature.show_feature_plot(data[400000:401200], METHOD_RHYTHM, MEL_SPECTROGRAM)
 
-# segment_classify = SegmentClassifyModel()
-# # segment_classify.create_dataset()
-# # segment_classify.create()
-# # segment_classify.train()
-# # segment_classify.evaluate()
-# print(
-#     segment_classify.predict(
-#         "../data/raw/ENST-drums-public/drummer_1/audio/snare/001_hits_snare-drum_sticks_x6.wav",
-#         100,
-#         0,
-#     )
-# )
 
-rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
+# predict_test_data = "../data/raw/ENST-drums-public/drummer_1/audio/snare/001_hits_snare-drum_sticks_x6.wav"
+# segment_classify = SegmentClassifyModel()
+# segment_classify.create_dataset()
+# segment_classify.create()
+# segment_classify.train()
+# segment_classify.evaluate()
+# print(segment_classify.predict(predict_test_data, 100, 0))
+
+# file_path = "../data/raw/ENST-drums-public/drummer_1/audio/snare/001_hits_snare-drum_sticks_x6.wav"
+# file_path = "../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_00#MIX.wav"
+# audio, _ = librosa.load(file_path, sr=44100)
+# # print(len(OnsetDetect.get_onsets_using_librosa(audio, 441)))
+# print(DataLabeling.data_labeling(audio, file_path, METHOD_CLASSIFY))
+
+# if not any(p in file_path for p in CLASSIFY_ALL):
+#     print("no")
+# else:
+#     print("포함")
+# rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
 
 # rhythm_detect.create_dataset()
 # rhythm_detect.create()
@@ -50,7 +57,7 @@ rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
 # rhythm_detect.evaluate()
 # rhythm_detect.save()
 
-print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))
+# print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))
 # print(rhythm_detect.predict("../data/test/004_hits_low-tom_sticks_x5.wav", 100, 0))
 
 # ---------------------------------------------------------------------------------------

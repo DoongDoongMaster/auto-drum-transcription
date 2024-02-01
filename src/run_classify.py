@@ -1,37 +1,22 @@
 import librosa
-from feature.audio_to_feature import AudioToFeature
-from data.data_labeling import DataLabeling
-from data.data_processing import DataProcessing
-from feature.feature_extractor import FeatureExtractor
-from data.onset_detection import OnsetDetect
 from model.segment_classify import SegmentClassifyModel
-from model.rhythm_detect_model import RhythmDetectModel
+from data.onset_detection import OnsetDetect
+from data.data_processing import DataProcessing
+from constant import ROOT_PATH, RAW_PATH, IDMT, ENST
 
-from constant import (
-    SAMPLE_RATE,
-    MFCC,
-    STFT,
-    MEL_SPECTROGRAM,
-    METHOD_CLASSIFY,
-    METHOD_DETECT,
-    METHOD_RHYTHM,
-    FEATURE_PARAM,
-    CHUNK_LENGTH,
-    ROOT_PATH,
-    RAW_PATH,
-    NEW_PATH,
-    PKL,
-    CLASSIFY_ALL,
+# onsets = OnsetDetect.get_onsets_from_svl(
+#     "../data/raw/IDMT-SMT-DRUMS-V2/annotation_svl/WaveDrum02_01#HH.svl"
+# )
+
+# audio, _ = librosa.load("../data/raw/ddm-own/pattern/P2/16/P2_16_0001.m4a", sr=44100)
+# onsets = OnsetDetect.get_onsets_using_librosa(audio, 441)
+# trimmed = DataProcessing.trim_audio_per_onset(audio, onsets)
+# DataProcessing.write_trimmed_audio(f"{ROOT_PATH}/test", "test", trimmed)
+
+predict_test_data = (
+    f"../data/raw/{ENST}/drummer_1/audio/hi-hat/003_hits_medium-tom_sticks_x5.wav"
 )
-
-# audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
-# FeatureExtractor.feature_extractor(audio_paths, METHOD_CLASSIFY, MFCC, PKL)
-
-predict_test_data = "../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_00#KD#train.wav"
 segment_classify = SegmentClassifyModel()
-# segment_classify.create_dataset()
-# segment_classify.create()
-# segment_classify.train()
-# segment_classify.evaluate()
-# segment_classify.save()
+# segment_classify.extract_feature(f"{ROOT_PATH}/{RAW_PATH}/{IDMT}")
+# segment_classify.run()
 print(segment_classify.predict(predict_test_data, 100, 0))

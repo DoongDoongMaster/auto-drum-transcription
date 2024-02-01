@@ -25,6 +25,7 @@ from constant import (
     CHUNK_LENGTH,
     IMAGE_PATH,
     CLASSIFY_ALL,
+    CLASSIFY_IDMT_NOT,
     CLASSIFY_DRUM,
 )
 
@@ -46,14 +47,17 @@ class DataLabeling:
         """
         -- method type과 data origin에 따른 data labeling 메소드
         """
-        onsets_arr = DataLabeling.get_onsets_arr(audio, path, idx)
-        if len(onsets_arr) == 0:
-            return False
-
         if method_type == METHOD_CLASSIFY:
             if DDM_OWN in path:
                 return DataLabeling._get_label_ddm_classify(idx, path)
             return DataLabeling._get_label_classify(path)
+
+        onsets_arr = DataLabeling.get_onsets_arr(audio, path, idx)
+        if len(onsets_arr) == 0:
+            return False
+
+        if frame_length == 0:
+            frame_length = len(audio) // hop_length
 
         if method_type == METHOD_DETECT:
             return DataLabeling._get_label_ddm_detect(
@@ -72,10 +76,16 @@ class DataLabeling:
         # 우선 detect 방식에는 ddm own data만 가능
         if method_type in [METHOD_DETECT] and DDM_OWN not in path:
             return False
-        if IDMT in path and "MIX" not in path:
+        if method_type == METHOD_RHYTHM and IDMT in path and "MIX" not in path:
             return False
         # classify 방법 관련
         if method_type == METHOD_CLASSIFY and not any(p in path for p in CLASSIFY_ALL):
+            return False
+        if (
+            method_type == METHOD_CLASSIFY
+            and IDMT in path
+            and any(p in path for p in CLASSIFY_IDMT_NOT)
+        ):
             return False
         return True
 
@@ -92,8 +102,16 @@ class DataLabeling:
             return OnsetDetect.onset_detection(audio)
 
         if IDMT in path:
-            label_path = DataLabeling._get_label_path(path, 2, "xml", "annotation_xml")
-            return OnsetDetect.get_onsets_from_xml(label_path, start, end)
+            if "MIX" in path:
+                label_path = DataLabeling._get_label_path(
+                    path, 2, "xml", "annotation_xml"
+                )
+                return OnsetDetect.get_onsets_from_xml(label_path, start, end)
+            else:
+                label_path = DataLabeling._get_label_path(
+                    path, 2, "svl", "annotation_svl"
+                )
+                return OnsetDetect.get_onsets_from_svl(label_path, start, end)
 
         if ENST in path:
             label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
@@ -122,7 +140,7 @@ class DataLabeling:
         plt.show()
 
     @staticmethod
-    def show_label_onset_plot(label, onset):
+    def show_label_onset_plot(label: List[float], onset: List[int]):
         """
         -- label, onset 그래프
         """

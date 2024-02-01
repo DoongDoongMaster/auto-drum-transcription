@@ -1,6 +1,7 @@
 import librosa
 import numpy as np
 import pretty_midi
+import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 
 from typing import List
@@ -67,6 +68,7 @@ class OnsetDetect:
         filter_onset = filter_onset[(filter_onset >= start) & (filter_onset < end)]
         result = filter_onset - start  # start 빼서 0초부터 시작으로 맞추기
 
+        np.set_printoptions(precision=2, suppress=True)
         print(f"-- ! {start} sec ~ {end} sec 파생한 onsets: ", result)
         return result
 
@@ -101,6 +103,42 @@ class OnsetDetect:
             onset_sec = event.find("onsetSec").text
             onset_sec_list.append(float(onset_sec))
 
+        onset_sec_list = OnsetDetect._get_filtering_onsets(onset_sec_list, start, end)
+        return onset_sec_list
+
+    @staticmethod
+    def _read_svl_file(file_path: str):
+        """
+        svl file 읽어오기
+        """
+        with open(file_path, "r", encoding="utf-8") as file:
+            svl_content = file.read()
+        return svl_content
+
+    @staticmethod
+    def get_onsets_from_svl(svl_path: str, start: float = 0, end: float = None):
+        """
+        -- svl file에서 onset 읽어오기
+        """
+        print("-- ! svl file location: ", svl_path)
+
+        point_frames = []
+
+        # Parse the XML content
+        svl_content = OnsetDetect._read_svl_file(svl_path)
+        root = ET.fromstring(svl_content)
+
+        # Find all 'point' elements within 'dataset'
+        dataset_element = root.find(".//dataset")
+        if dataset_element is not None:
+            point_elements = dataset_element.findall(".//point")
+
+            # Extract frame attribute from each 'point' element
+            for point_element in point_elements:
+                frame_value = int(point_element.get("frame"))
+                point_frames.append(frame_value)
+
+        onset_sec_list = np.array(point_frames) / SAMPLE_RATE
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_sec_list, start, end)
         return onset_sec_list
 
@@ -180,6 +218,13 @@ class OnsetDetect:
         return onset_sec_list
 
     @staticmethod
+    def _show_onset_plot(onset_env, onset_frames):
+        plt.plot(onset_env, alpha=0.8)
+        plt.plot(onset_frames, onset_env[onset_frames], "x")
+        plt.legend(frameon=True, framealpha=0.8)
+        plt.show()
+
+    @staticmethod
     def get_onsets_using_librosa(
         audio: np.ndarray,
         hop_length: int,
@@ -190,7 +235,7 @@ class OnsetDetect:
         -- librosa 라이브러리 사용해서 onset 구하기
         """
         onset_env = librosa.onset.onset_strength(
-            y=audio, sr=SAMPLE_RATE, hop_length=hop_length, lag=3
+            y=audio, sr=SAMPLE_RATE, hop_length=hop_length, lag=1
         )
         onset_frames = librosa.onset.onset_detect(
             onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=hop_length
@@ -198,6 +243,8 @@ class OnsetDetect:
         onset_times = librosa.frames_to_time(
             onset_frames, sr=SAMPLE_RATE, hop_length=hop_length
         )
+
+        OnsetDetect._show_onset_plot(onset_env, onset_frames)
 
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_times, start, end)
         return onset_sec_list

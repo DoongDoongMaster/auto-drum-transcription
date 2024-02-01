@@ -197,10 +197,10 @@ PER_DRUM_DIR = "per-drum"
 """
 -- classify 방법에서 사용하는 data path와 관련된 상수
 """
-CLASSIFY_IDMT = (
-    "WaveDrum02_01#HH.wav",
-    "WaveDrum02_01#SD.wav",
-    "WaveDrum02_01#KD.wav",
+CLASSIFY_IDMT = ("WaveDrum02",)
+CLASSIFY_IDMT_NOT = (
+    "train",
+    "MIX",
 )
 CLASSIFY_ENST = (
     "hits_snare-drum_sticks",

@@ -118,11 +118,12 @@ class SegmentClassifyModel(BaseModel):
         for index in indices_above_threshold:
             row, col = index
             if row != current_row:
-                tmp = [row, cols]
+                tmp = [current_row, cols]
                 result.append(tmp)
                 current_row = row
                 cols = []
             cols.append(col)
+        result.append([current_row, cols])
         return result
 
     """
@@ -150,6 +151,9 @@ class SegmentClassifyModel(BaseModel):
 
         # -- predict
         predict_data = self.model.predict(predict_data)
+
+        print("-- ! classify 방법 예측 결과 ! --")
+        print(predict_data)
 
         return self.get_predict_result(predict_data)
 

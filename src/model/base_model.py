@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import tensorflow as tf
 import pandas as pd
@@ -6,9 +5,9 @@ import pandas as pd
 from glob import glob
 from datetime import datetime
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.callbacks import EarlyStopping
 
+from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from constant import (
     SAMPLE_RATE,
@@ -17,6 +16,8 @@ from constant import (
     METHOD_DETECT,
     METHOD_RHYTHM,
     FEATURE_PARAM,
+    ROOT_PATH,
+    RAW_PATH,
 )
 
 
@@ -170,6 +171,25 @@ class BaseModel:
         )
         print("test loss:", results[0])
         print("test accuracy:", results[1])
+
+    def extract_feature(self, data_path: str = f"{ROOT_PATH}/{RAW_PATH}"):
+        """
+        모델 학습에 사용하는 피쳐 추출하는 함수
+        """
+        audio_paths = DataProcessing.get_paths(data_path)
+        FeatureExtractor.feature_extractor(
+            audio_paths, self.method_type, self.feature_type, self.feature_extension
+        )
+
+    def run(self):
+        """
+        데이터셋 생성, 모델 생성, 학습, 평가, 모델 저장 파이프라인
+        """
+        self.create_dataset()
+        self.create()
+        self.train()
+        self.evaluate()
+        self.save()
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic

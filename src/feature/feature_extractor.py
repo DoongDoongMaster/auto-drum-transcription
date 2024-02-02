@@ -174,14 +174,14 @@ class FeatureExtractor:
             label_data = {}
             if method_type == METHOD_DETECT:
                 label_data = {
-                    "label": label,
-                }
-            elif method_type == METHOD_RHYTHM:
-                label_data = {
                     "HH": label.HH,
                     "MT": label.MT,
                     "SD": label.SD,
                     "KK": label.KK,
+                }
+            elif method_type == METHOD_RHYTHM:
+                label_data = {
+                    "label": label,
                 }
             df_meta = pd.DataFrame(
                 label_data,

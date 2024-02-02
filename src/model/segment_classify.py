@@ -6,6 +6,7 @@ from tensorflow.keras import layers, Sequential
 from tensorflow.keras.optimizers import Adam
 
 from model.base_model import BaseModel
+from data.onset_detection import OnsetDetect
 from data.data_processing import DataProcessing
 from data.rhythm_detection import RhythmDetection
 from feature.audio_to_feature import AudioToFeature
@@ -13,13 +14,19 @@ from constant import METHOD_CLASSIFY, MFCC, MILLISECOND, SAMPLE_RATE, CLASSIFY_D
 
 
 class SegmentClassifyModel(BaseModel):
-    def __init__(self, training_epochs=40, opt_learning_rate=0.001, batch_size=20):
+    def __init__(
+        self,
+        training_epochs=40,
+        opt_learning_rate=0.001,
+        batch_size=20,
+        feature_type=MFCC,
+    ):
         super().__init__(
             training_epochs=training_epochs,
             opt_learning_rate=opt_learning_rate,
             batch_size=batch_size,
             method_type=METHOD_CLASSIFY,
-            feature_type=MFCC,
+            feature_type=feature_type,
         )
         self.predict_standard = 0.5
         self.n_row = self.feature_param["n_mfcc"]
@@ -91,8 +98,8 @@ class SegmentClassifyModel(BaseModel):
     -- 전체 wav 주어졌을 때, 한 마디에 대한 rhythm 계산
     """
 
-    def get_bar_rhythm(self, audio_wav, bpm):
-        return RhythmDetection.get_rhythm(audio_wav, bpm)
+    def get_bar_rhythm(self, audio_wav, bpm, onsets_arr):
+        return RhythmDetection.get_rhythm(audio_wav, bpm, onsets_arr)
 
     """
     -- input  : onset마다 예측한 악기 확률
@@ -111,11 +118,12 @@ class SegmentClassifyModel(BaseModel):
         for index in indices_above_threshold:
             row, col = index
             if row != current_row:
-                tmp = [row, cols]
+                tmp = [current_row, cols]
                 result.append(tmp)
                 current_row = row
                 cols = []
             cols.append(col)
+        result.append([current_row, cols])
         return result
 
     """
@@ -125,7 +133,10 @@ class SegmentClassifyModel(BaseModel):
 
     def get_drum_instrument(self, audio):
         # -- trimmed audio
-        trimmed_audios = DataProcessing.trim_audio_per_onset(audio)
+        onsets_arr = OnsetDetect.get_onsets_using_librosa(
+            audio, self.feature_param["hop_length"]
+        )
+        trimmed_audios = DataProcessing.trim_audio_per_onset(audio, onsets_arr)
 
         # -- trimmed feature
         predict_data = []
@@ -141,6 +152,9 @@ class SegmentClassifyModel(BaseModel):
         # -- predict
         predict_data = self.model.predict(predict_data)
 
+        print("-- ! classify 방법 예측 결과 ! --")
+        print(predict_data)
+
         return self.get_predict_result(predict_data)
 
     def predict(self, wav_path, bpm, delay):
@@ -149,7 +163,10 @@ class SegmentClassifyModel(BaseModel):
         # -- instrument
         drum_instrument = self.get_drum_instrument(audio)
         # -- rhythm
+        onsets_arr = OnsetDetect.get_onsets_using_librosa(
+            audio, self.feature_param["hop_length"]
+        )
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
-        bar_rhythm = self.get_bar_rhythm(new_audio, bpm)
+        bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
 
         return {"instrument": drum_instrument, "rhythm": bar_rhythm}

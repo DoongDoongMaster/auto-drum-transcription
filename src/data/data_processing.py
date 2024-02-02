@@ -6,7 +6,14 @@ import librosa
 import numpy as np
 from typing import List
 
-from constant import SAMPLE_RATE, RAW_PATH, NEW_PATH, ONSET_DURATION, CHUNK_LENGTH
+from constant import (
+    SAMPLE_RATE,
+    RAW_PATH,
+    NEW_PATH,
+    ONSET_DURATION_LEFT,
+    ONSET_DURATION_RIGHT,
+    CHUNK_LENGTH,
+)
 from data.onset_detection import OnsetDetect
 
 
@@ -83,11 +90,11 @@ class DataProcessing:
 
         trimmed_audios = []
         for i in range(0, len(onsets)):
-            start = int(onsets[i] * SAMPLE_RATE)
-            end = int((onsets[i] + ONSET_DURATION) * SAMPLE_RATE)
+            start = max(int((onsets[i] - ONSET_DURATION_LEFT) * SAMPLE_RATE), 0)
+            end = int((onsets[i] + ONSET_DURATION_RIGHT) * SAMPLE_RATE)
 
             if i + 1 < len(onsets):
-                end_by_onset = int(onsets[i + 1] * SAMPLE_RATE)
+                end_by_onset = int((onsets[i + 1] - ONSET_DURATION_LEFT) * SAMPLE_RATE)
                 end = min(end, end_by_onset)
 
             trimmed = audio[start:end]
@@ -144,4 +151,4 @@ class DataProcessing:
         -- file name : 본래wavfile이름_몇번째onset인지.wav
         """
         for i, audio in enumerate(trimmed_audios, start=1):
-            DataProcessing.write_wav_audio_one(root_path, f"{name}_{i:04}", audio)
+            DataProcessing.write_wav_audio_one(root_path, f"/{name}_{i:04}", audio)

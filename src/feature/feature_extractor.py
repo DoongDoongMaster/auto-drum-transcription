@@ -26,7 +26,6 @@ from constant import (
     CSV,
     PKL,
     FEATURE_PARAM,
-    CHUNK_LENGTH,
 )
 
 
@@ -190,7 +189,8 @@ class FeatureExtractor:
         audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
 
         if method_type == METHOD_CLASSIFY:
-            return DataProcessing.trim_audio_per_onset(audio)
+            onsets_arr = DataLabeling.get_onsets_arr(audio, path)
+            return DataProcessing.trim_audio_per_onset(audio, onsets_arr)
         if method_type == METHOD_DETECT:
             return [DataProcessing.trim_audio_first_onset(audio)]
         if method_type == METHOD_RHYTHM:

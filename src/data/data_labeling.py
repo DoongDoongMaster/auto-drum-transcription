@@ -24,6 +24,9 @@ from constant import (
     METHOD_RHYTHM,
     CHUNK_LENGTH,
     IMAGE_PATH,
+    CLASSIFY_ALL,
+    CLASSIFY_IDMT_NOT,
+    CLASSIFY_DRUM,
 )
 
 
@@ -37,19 +40,24 @@ class DataLabeling:
         audio: np.ndarray,
         path: str,
         method_type: str,
-        idx: int = 0,
+        idx: int = None,
         frame_length: int = 0,
         hop_length: int = 0,
     ):
         """
         -- method type과 data origin에 따른 data labeling 메소드
         """
-        onsets_arr = DataLabeling._get_onsets_arr(audio, path, idx)
+        if method_type == METHOD_CLASSIFY:
+            if DDM_OWN in path:
+                return DataLabeling._get_label_ddm_classify(idx, path)
+            return DataLabeling._get_label_classify(path)
+
+        onsets_arr = DataLabeling.get_onsets_arr(audio, path, idx)
         if len(onsets_arr) == 0:
             return False
 
-        if method_type == METHOD_CLASSIFY:
-            return DataLabeling._get_label_ddm_classify(idx, path)
+        if frame_length == 0:
+            frame_length = len(audio) // hop_length
 
         if method_type == METHOD_DETECT:
             return DataLabeling._get_label_ddm_detect(
@@ -65,24 +73,45 @@ class DataLabeling:
 
     @staticmethod
     def validate_supported_data(path: str, method_type: str):
-        # 우선 classify, detect 방식에는 ddm own data만 가능
-        if method_type in [METHOD_CLASSIFY, METHOD_DETECT] and DDM_OWN not in path:
+        # 우선 detect 방식에는 ddm own data만 가능
+        if method_type in [METHOD_DETECT] and DDM_OWN not in path:
             return False
-        if IDMT in path and "MIX" not in path:
+        if method_type == METHOD_RHYTHM and IDMT in path and "MIX" not in path:
+            return False
+        # classify 방법 관련
+        if method_type == METHOD_CLASSIFY and not any(p in path for p in CLASSIFY_ALL):
+            return False
+        if (
+            method_type == METHOD_CLASSIFY
+            and IDMT in path
+            and any(p in path for p in CLASSIFY_IDMT_NOT)
+        ):
             return False
         return True
 
     @staticmethod
-    def _get_onsets_arr(audio: np.ndarray, path: str, idx: int) -> List[float]:
-        start = idx * CHUNK_LENGTH  # onset 자르는 시작 초
-        end = (idx + 1) * CHUNK_LENGTH  # onset 자르는 끝 초
+    def get_onsets_arr(audio: np.ndarray, path: str, idx: int = None) -> List[float]:
+        if idx is None:  # idx 없다면 처음부터 끝까지의 onset을 구함
+            start = 0
+            end = None
+        else:
+            start = idx * CHUNK_LENGTH  # onset 자르는 시작 초
+            end = (idx + 1) * CHUNK_LENGTH  # onset 자르는 끝 초
 
         if DDM_OWN in path:
             return OnsetDetect.onset_detection(audio)
 
         if IDMT in path:
-            label_path = DataLabeling._get_label_path(path, 2, "xml", "annotation_xml")
-            return OnsetDetect.get_onsets_from_xml(label_path, start, end)
+            if "MIX" in path:
+                label_path = DataLabeling._get_label_path(
+                    path, 2, "xml", "annotation_xml"
+                )
+                return OnsetDetect.get_onsets_from_xml(label_path, start, end)
+            else:
+                label_path = DataLabeling._get_label_path(
+                    path, 2, "svl", "annotation_svl"
+                )
+                return OnsetDetect.get_onsets_from_svl(label_path, start, end)
 
         if ENST in path:
             label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
@@ -111,7 +140,7 @@ class DataLabeling:
         plt.show()
 
     @staticmethod
-    def show_label_onset_plot(label, onset):
+    def show_label_onset_plot(label: List[float], onset: List[int]):
         """
         -- label, onset 그래프
         """
@@ -157,6 +186,12 @@ class DataLabeling:
             drum_name = file_name[:2]  # -- CC
             label = ONEHOT_DRUM2CODE[drum_name]
         return label
+
+    @staticmethod
+    def _get_label_classify(path: str):
+        for idx, words in CLASSIFY_DRUM.items():
+            if any((w in path) for w in words):
+                return ONEHOT_DRUM2CODE[CODE2DRUM[idx]]
 
     @staticmethod
     def _get_frame_index(time: float, hop_length: int) -> int:

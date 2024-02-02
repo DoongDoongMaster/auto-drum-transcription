@@ -49,7 +49,7 @@ class DataLabeling:
         """
         if method_type == METHOD_CLASSIFY:
             if DDM_OWN in path:
-                return DataLabeling._get_label_ddm_classify(idx, path)
+                return DataLabeling._get_ddm_single_label(idx, path)
             return DataLabeling._get_label_classify(path)
 
         if frame_length == 0:
@@ -61,7 +61,7 @@ class DataLabeling:
             if len(onsets_arr) == 0:
                 return False
             if DDM_OWN in path:
-                return DataLabeling._get_label_ddm_detect(
+                return DataLabeling._get_ddm_multiple_label(
                     onsets_arr, path, frame_length, hop_length
                 )
             return DataLabeling._get_label_detect(
@@ -228,7 +228,7 @@ class DataLabeling:
         return label_file
 
     @staticmethod
-    def _get_label_ddm_classify(idx: int, path: str) -> List[int]:
+    def _get_ddm_single_label(idx: int, path: str) -> List[int]:
         """
         -- ddm own data classify type (trimmed data) 라벨링
         """
@@ -239,6 +239,29 @@ class DataLabeling:
         elif PER_DRUM_DIR in path:  # -- per drum
             drum_name = file_name[:2]  # -- CC
             label = ONEHOT_DRUM2CODE[drum_name]
+        return label
+
+    @staticmethod
+    def _get_ddm_multiple_label(idx: int, path: str) -> List[int]:
+        """
+        -- ddm own data classify type (trimmed data) 라벨링
+        """
+        label = {}
+        """
+        1
+        HH [1,0,0,0]
+
+        {hh:[1], sd:[0]}
+
+
+        2
+        HH
+        SD
+
+        {hh:[1,1], sd:[0,1]}
+        
+        """
+
         return label
 
     @staticmethod
@@ -278,7 +301,7 @@ class DataLabeling:
                 onset_position + ONSET_OFFSET + 1, frame_length
             )
 
-            one_hot_label = DataLabeling._get_label_ddm_classify(pattern_idx, path)
+            one_hot_label = DataLabeling._get_ddm_single_label(pattern_idx, path)
             for i in range(soft_start_position, soft_end_position):
                 if (np.array(labels[i]) == np.array(one_hot_label)).all():
                     continue

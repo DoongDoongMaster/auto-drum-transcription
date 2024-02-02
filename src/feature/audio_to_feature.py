@@ -39,7 +39,7 @@ class AudioToFeature:
         if method_type == METHOD_CLASSIFY:
             frame_length = (
                 int(CLASSIFY_DURATION * SAMPLE_RATE) // feature_param["hop_length"]
-            )  # feature frame length: 20 (hop length 441 기준)
+            )
 
         feature_extraction_functions = {
             MFCC: AudioToFeature._audio_to_mfcc,
@@ -50,9 +50,7 @@ class AudioToFeature:
         if feature_type not in feature_extraction_functions:
             raise ValueError("Invalid feature_type")
 
-        result = feature_extraction_functions[feature_type](
-            audio, feature_param, frame_length
-        )
+        result = feature_extraction_functions[feature_type](audio, feature_param)
 
         # classify 방식에서만 pad 채우기
         if method_type == METHOD_CLASSIFY:
@@ -112,9 +110,7 @@ class AudioToFeature:
         return feature
 
     @staticmethod
-    def _audio_to_mfcc(
-        audio: np.ndarray, feature_param: dict, frame_length: int
-    ) -> np.ndarray:
+    def _audio_to_mfcc(audio: np.ndarray, feature_param: dict) -> np.ndarray:
         """
         -- mfcc feature 추출
         """
@@ -124,9 +120,7 @@ class AudioToFeature:
         return mfccs
 
     @staticmethod
-    def _audio_to_stft(
-        audio: np.ndarray, feature_param: dict, frame_length: int
-    ) -> np.ndarray:
+    def _audio_to_stft(audio: np.ndarray, feature_param: dict) -> np.ndarray:
         """
         -- stft feature 추출
         """
@@ -141,9 +135,7 @@ class AudioToFeature:
         return stft
 
     @staticmethod
-    def _audio_to_mel_spectrogram(
-        audio: np.ndarray, feature_param: dict, frame_length: int
-    ) -> np.ndarray:
+    def _audio_to_mel_spectrogram(audio: np.ndarray, feature_param: dict) -> np.ndarray:
         """
         -- mel-spectrogram feature 추출
         """

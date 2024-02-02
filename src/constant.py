@@ -1,6 +1,7 @@
 """
 -- image path (그래프와 같은 이미지 저장)
 """
+
 IMAGE_PATH = "../images"
 
 
@@ -65,7 +66,7 @@ CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
 -- per_drum : CC_04_9949.wav
 -- pattern : P1_08_0001.wav
 """
-CODE2DRUM = {0: "HH", 1: "MT", 2: "SD", 3: "KK"}
+CODE2DRUM = {0: "HH", 1: "ST", 2: "SD", 3: "KK"}
 # -- {'HH':0, 'MT':1, ...}
 DRUM2CODE = {v: k for k, v in CODE2DRUM.items()}
 # -- {'HH':[1,0,0,0], 'MT':[0,1,0,0], ...}

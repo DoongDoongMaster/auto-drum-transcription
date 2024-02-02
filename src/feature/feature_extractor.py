@@ -14,6 +14,7 @@ from feature.audio_to_feature import AudioToFeature
 
 
 from constant import (
+    CODE2DRUM,
     SAMPLE_RATE,
     MFCC,
     STFT,
@@ -45,7 +46,9 @@ class FeatureExtractor:
             method_type, feature_type
         )
         if not os.path.exists(save_folder_path):
-            raise Exception(f"모델: {method_type}, 피쳐: {feature_type} 에 해당하는 피쳐가 없습니다!!!")
+            raise Exception(
+                f"모델: {method_type}, 피쳐: {feature_type} 에 해당하는 피쳐가 없습니다!!!"
+            )
 
         feature_param = FEATURE_PARAM[method_type][feature_type]
 
@@ -168,9 +171,18 @@ class FeatureExtractor:
             n_features = FeatureExtractor._get_n_feature(
                 feature_type, FEATURE_PARAM[method_type][feature_type]
             )
-            label_data = {
-                "label": label,
-            }
+            label_data = {}
+            if method_type == METHOD_DETECT:
+                label_data = {
+                    "HH": label.HH,
+                    "MT": label.MT,
+                    "SD": label.SD,
+                    "KK": label.KK,
+                }
+            elif method_type == METHOD_RHYTHM:
+                label_data = {
+                    "label": label,
+                }
             df_meta = pd.DataFrame(
                 label_data,
                 dtype="float16",
@@ -191,9 +203,7 @@ class FeatureExtractor:
         if method_type == METHOD_CLASSIFY:
             onsets_arr = DataLabeling.get_onsets_arr(audio, path)
             return DataProcessing.trim_audio_per_onset(audio, onsets_arr)
-        if method_type == METHOD_DETECT:
-            return [DataProcessing.trim_audio_first_onset(audio)]
-        if method_type == METHOD_RHYTHM:
+        if method_type == METHOD_RHYTHM or method_type == METHOD_DETECT:
             return DataProcessing.cut_chunk_audio(audio)
 
     @staticmethod
@@ -210,7 +220,9 @@ class FeatureExtractor:
         save_folder_path = FeatureExtractor._get_save_folder_path(
             method_type, feature_type
         )
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
         save_path = f"{save_folder_path}/{feature_type}-{date_time}-{number:04}.{feature_extension}"
 
         os.makedirs(save_folder_path, exist_ok=True)  # feature 폴더 생성
@@ -255,7 +267,12 @@ class FeatureExtractor:
         """
         if method_type == METHOD_CLASSIFY:  # feature + label 형식
             return pd.DataFrame(columns=["feature", "label"])
-        if method_type == METHOD_DETECT or method_type == METHOD_RHYTHM:
+        if method_type == METHOD_DETECT:
+            return pd.DataFrame(
+                columns=[v for _, v in CODE2DRUM.items()]  # ['HH', 'ST', 'SD', 'KK']
+                + [feature_type[:8] + str(i + 1) for i in range(n_feature)]
+            )
+        if method_type == METHOD_RHYTHM:
             return pd.DataFrame(
                 columns=["label"]
                 + [feature_type[:8] + str(i + 1) for i in range(n_feature)]

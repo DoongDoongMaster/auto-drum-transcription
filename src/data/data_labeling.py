@@ -49,22 +49,30 @@ class DataLabeling:
         """
         if method_type == METHOD_CLASSIFY:
             if DDM_OWN in path:
-                return DataLabeling._get_label_ddm_classify(idx, path)
+                return DataLabeling._get_ddm_single_label(idx, path)
             return DataLabeling._get_label_classify(path)
-
-        onsets_arr = DataLabeling.get_onsets_arr(audio, path, idx)
-        if len(onsets_arr) == 0:
-            return False
 
         if frame_length == 0:
             frame_length = len(audio) // hop_length
 
+        # -- [instrument] --
         if method_type == METHOD_DETECT:
-            return DataLabeling._get_label_ddm_detect(
+            onsets_arr = DataLabeling.get_onsets_instrument_arr(audio, path, idx)
+            if len(onsets_arr) == 0:
+                return False
+            if DDM_OWN in path:
+                return DataLabeling._get_ddm_multiple_label(
+                    onsets_arr, path, frame_length, hop_length
+                )
+            return DataLabeling._get_label_detect(
                 onsets_arr, path, frame_length, hop_length
             )
 
+        # -- [only onset] --
         if method_type == METHOD_RHYTHM:
+            onsets_arr = DataLabeling.get_onsets_arr(audio, path, idx)
+            if len(onsets_arr) == 0:
+                return False
             return DataLabeling._get_label_rhythm_data(
                 onsets_arr, frame_length, hop_length
             )
@@ -73,9 +81,6 @@ class DataLabeling:
 
     @staticmethod
     def validate_supported_data(path: str, method_type: str):
-        # 우선 detect 방식에는 ddm own data만 가능
-        if method_type in [METHOD_DETECT] and DDM_OWN not in path:
-            return False
         if method_type == METHOD_RHYTHM and IDMT in path and "MIX" not in path:
             return False
         # classify 방법 관련
@@ -122,6 +127,51 @@ class DataLabeling:
             return OnsetDetect.get_onsets_from_mid(label_path, start, end)
 
     @staticmethod
+    def get_onsets_instrument_arr(
+        audio: np.ndarray, path: str, idx: int = None
+    ) -> List[float]:
+        if idx is None:  # idx 없다면 처음부터 끝까지의 onset을 구함
+            start = 0
+            end = None
+        else:
+            start = idx * CHUNK_LENGTH  # onset 자르는 시작 초
+            end = (idx + 1) * CHUNK_LENGTH  # onset 자르는 끝 초
+
+        label = {
+            v: [] for _, v in CODE2DRUM.items()
+        }  # {'HH':[], 'ST':[], 'SD':[], 'HH':[]}
+
+        if DDM_OWN in path:
+            # return OnsetDetect.onset_detection(audio)
+            label = {}
+
+        if IDMT in path:
+            if "MIX" in path:
+                label_path = DataLabeling._get_label_path(
+                    path, 2, "xml", "annotation_xml"
+                )
+                # return OnsetDetect.get_onsets_from_xml(label_path, start, end)
+                label = {}
+            else:
+                label_path = DataLabeling._get_label_path(
+                    path, 2, "svl", "annotation_svl"
+                )
+                # return OnsetDetect.get_onsets_from_svl(label_path, start, end)
+                label = {}
+
+        if ENST in path:
+            label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
+            # return OnsetDetect.get_onsets_from_txt(label_path, start, end)
+            label = {}
+
+        if E_GMD in path:
+            label_path = DataLabeling._get_label_path(path, 1, "mid")
+            # return OnsetDetect.get_onsets_from_mid(label_path, start, end)
+            label = {}
+
+        return label
+
+    @staticmethod
     def show_label_plot(label):
         """
         -- label 그래프
@@ -135,7 +185,9 @@ class DataLabeling:
 
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
         plt.show()
 
@@ -154,7 +206,9 @@ class DataLabeling:
         plt.plot(onset, data[onset], "x")
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/label-onset-{date_time}.png")
         plt.show()
 
@@ -174,7 +228,7 @@ class DataLabeling:
         return label_file
 
     @staticmethod
-    def _get_label_ddm_classify(idx: int, path: str) -> List[int]:
+    def _get_ddm_single_label(idx: int, path: str) -> List[int]:
         """
         -- ddm own data classify type (trimmed data) 라벨링
         """
@@ -185,6 +239,29 @@ class DataLabeling:
         elif PER_DRUM_DIR in path:  # -- per drum
             drum_name = file_name[:2]  # -- CC
             label = ONEHOT_DRUM2CODE[drum_name]
+        return label
+
+    @staticmethod
+    def _get_ddm_multiple_label(idx: int, path: str) -> List[int]:
+        """
+        -- ddm own data classify type (trimmed data) 라벨링
+        """
+        label = {}
+        """
+        1
+        HH [1,0,0,0]
+
+        {hh:[1], sd:[0]}
+
+
+        2
+        HH
+        SD
+
+        {hh:[1,1], sd:[0,1]}
+        
+        """
+
         return label
 
     @staticmethod
@@ -224,12 +301,24 @@ class DataLabeling:
                 onset_position + ONSET_OFFSET + 1, frame_length
             )
 
-            one_hot_label = DataLabeling._get_label_ddm_classify(pattern_idx, path)
+            one_hot_label = DataLabeling._get_ddm_single_label(pattern_idx, path)
             for i in range(soft_start_position, soft_end_position):
                 if (np.array(labels[i]) == np.array(one_hot_label)).all():
                     continue
                 labels[i] = (np.array(one_hot_label) / 2).tolist()  # ex. [0.5, 0, ...]
             labels[int(onset_position)] = one_hot_label  # ex. [1, 0, ...]
+
+        return labels
+
+    @staticmethod
+    def _get_label_detect(
+        onsets_arr: List[float], path: str, frame_length: int, hop_length: int
+    ) -> List[List[int]]:
+        labels = [[0] * len(CODE2DRUM) for _ in range(frame_length)]
+
+        """
+        각 HH, SD... 마다 _get_label_rhythm_data 해서 라벨링
+        """
 
         return labels
 

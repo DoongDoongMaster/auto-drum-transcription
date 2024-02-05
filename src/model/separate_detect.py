@@ -58,23 +58,13 @@ class SeparateDetectModel(BaseModel):
 
     def input_reshape(self, data):
         # Implement input reshaping logic
-        # return data
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
 
         return data.reshape((data.shape[0], data.shape[1], 1))
-        # return tf.reshape(
-        #     data,
-        #     [
-        #         -1,
-        #         self.n_rows,
-        #         self.n_columns,
-        #     ],
-        # )
 
     def input_label_reshape(self, data):
         return data
-        return tf.reshape(data, [-1, self.n_rows * self.n_classes])
 
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
@@ -159,9 +149,6 @@ class SeparateDetectModel(BaseModel):
         # -- predict
         predict_data = self.model.predict(audio_feature)
 
-        # -- output reshape
-        # predict_data = self.output_reshape(predict_data)[0]
-        print("predict_data>>>>", predict_data)
         DataLabeling.show_label_plot(predict_data)
 
         # -- get onsets

@@ -83,7 +83,13 @@ class BaseModel:
             X = np.array(feature_df.feature.tolist())
             y = np.array(feature_df.label.tolist())
             return X, y
-        if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
+        if method_type in METHOD_DETECT:
+            # label(HH, ST, SD, KK onset 여부) | mel-1, mel-2, mel-3, ...
+            X = feature_df.drop(["HH", "ST", "SD", "KK"], axis=1).to_numpy()
+            y = feature_df[["HH", "ST", "SD", "KK"]].to_numpy()
+            return X, y
+        if method_type in METHOD_RHYTHM:
+            # label(onset 여부) | mel-1, mel-2, mel-3, ...
             X = feature_df.drop(["label"], axis=1).to_numpy()
             y = feature_df["label"].to_numpy()
             return X, y
@@ -101,6 +107,9 @@ class BaseModel:
         # -- get X, y
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
+
+        print("ㅇㄴㅁ러ㅣ;ㅏ얼;나이~!!!!>> X >>>>", X)
+        print("ㅇㄴㅁ러ㅣ;ㅏ얼;나이~!!!!>> y >>>>", y)
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(

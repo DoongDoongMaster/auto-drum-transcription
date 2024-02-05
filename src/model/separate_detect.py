@@ -4,8 +4,8 @@ import tensorflow as tf
 from typing import List
 
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense, LSTM, GRU
+from tensorflow.keras.optimizers import Adam, SGD, Adagrad, RMSprop
 
 from model.base_model import BaseModel
 from data.rhythm_detection import RhythmDetection
@@ -14,10 +14,21 @@ from feature.audio_to_feature import AudioToFeature
 from constant import (
     METHOD_DETECT,
     STFT,
+    MEL_SPECTROGRAM,
     MILLISECOND,
     CHUNK_LENGTH,
     SAMPLE_RATE,
-    FEATURE_PARAM,
+)
+from tensorflow.keras.layers import (
+    Bidirectional,
+    # SimpleRNN,
+    Flatten,
+    Dense,
+    Conv2D,
+    BatchNormalization,
+    MaxPooling2D,
+    GRU,
+    Reshape,
 )
 
 
@@ -30,7 +41,7 @@ class SeparateDetectModel(BaseModel):
             opt_learning_rate=opt_learning_rate,
             batch_size=batch_size,
             method_type=METHOD_DETECT,
-            feature_type=STFT,
+            feature_type=MEL_SPECTROGRAM,
         )
         self.unit_number = unit_number
         self.predict_standard = 0.8
@@ -44,16 +55,19 @@ class SeparateDetectModel(BaseModel):
 
     def input_reshape(self, data):
         # Implement input reshaping logic
-        return tf.reshape(
-            data,
-            [
-                -1,
-                self.n_rows,
-                self.n_columns,
-            ],
-        )
+        # return data
+        return data.reshape((data.shape[0], data.shape[1], 1))
+        # return tf.reshape(
+        #     data,
+        #     [
+        #         -1,
+        #         self.n_rows,
+        #         self.n_columns,
+        #     ],
+        # )
 
     def input_label_reshape(self, data):
+        return data
         return tf.reshape(data, [-1, self.n_rows * self.n_classes])
 
     def output_reshape(self, data):
@@ -70,34 +84,10 @@ class SeparateDetectModel(BaseModel):
         # Implement model creation logic
         self.model = Sequential()
 
-        self.model.add(
-            Bidirectional(
-                SimpleRNN(
-                    self.unit_number,
-                    return_sequences=True,
-                    input_shape=(self.n_rows, self.n_columns),
-                    activation="tanh",
-                )
-            )
-        )
-        self.model.add(
-            Bidirectional(
-                SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
-            )
-        )
-        self.model.add(
-            Bidirectional(
-                SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
-            )
-        )
+        self.model.add(GRU(units=128, activation="tanh", input_shape=(128, 1)))
+        # self.model.add(GRU(64, activation="tanh"))
+        self.model.add(Dense(4, activation="sigmoid"))
 
-        # Flatten layer
-        self.model.add(Flatten())
-
-        # dense layer
-        self.model.add(Dense(self.n_rows * self.n_classes, activation="softmax"))
-
-        self.model.build((None, self.n_rows, self.n_columns))
         self.model.summary()
 
         # compile the self.model
@@ -127,7 +117,9 @@ class SeparateDetectModel(BaseModel):
         drum_instrument = []
 
         for i in range(len(predict_data)):
-            is_onset = False  # predict standard 이상 (1) 인 j가 하나라도 있다면 onset으로 판단
+            is_onset = (
+                False  # predict standard 이상 (1) 인 j가 하나라도 있다면 onset으로 판단
+            )
             drums = []
             for j in range(self.n_classes):
                 if predict_data[i][j] > self.predict_standard:

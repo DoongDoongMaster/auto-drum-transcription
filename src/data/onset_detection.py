@@ -5,7 +5,7 @@ import pretty_midi
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 
-from typing import List
+from typing import List, Dict
 from datetime import datetime
 from essentia import Pool, array
 from essentia.standard import (

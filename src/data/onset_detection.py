@@ -4,7 +4,7 @@ import pretty_midi
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 
-from typing import List
+from typing import Dict, List
 from essentia import Pool, array
 from essentia.standard import (
     OnsetDetection,
@@ -107,6 +107,37 @@ class OnsetDetect:
         return onset_sec_list
 
     @staticmethod
+    def get_onsets_instrument_from_xml(
+        xml_path: str, start: float = 0, end: float = None, onset_dict={}
+    ) -> Dict[str, List[float]]:
+        """
+        -- XML file에서 drum onsets 읽어오기
+
+        * onset_dict: {'HH': [], 'ST': [], 'SD': [], 'KD': []}
+        """
+        print("-- ! xml file location: ", xml_path)
+
+        xml_root = OnsetDetect._load_xml_data(xml_path)
+        # transcription 엘리먼트의 정보 출력
+        transcription_element = xml_root.find(".//transcription")
+        events = transcription_element.findall("event")
+        for event in events:
+            onset_sec = float(event.find("onsetSec").text)
+            drum_type = event.find("instrument").text
+
+            if drum_type in onset_dict:
+                onset_dict[drum_type].append(onset_sec)
+
+        # Apply filtering
+        for drum_type, onset_list in onset_dict.items():
+            print("drum_type: ", drum_type, " ↴")
+            onset_dict[drum_type] = OnsetDetect._get_filtering_onsets(
+                onset_list, start, end
+            )
+
+        return onset_dict
+
+    @staticmethod
     def _read_svl_file(file_path: str):
         """
         svl file 읽어오기
@@ -141,6 +172,29 @@ class OnsetDetect:
         onset_sec_list = np.array(point_frames) / SAMPLE_RATE
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_sec_list, start, end)
         return onset_sec_list
+
+    @staticmethod
+    def get_onsets_instrument_from_svl(
+        svl_path: str, start: float = 0, end: float = None, onset_dict={}
+    ) -> Dict[str, List[float]]:
+        """
+        -- svl file에서 onset 및 drum onsets 읽어오기
+
+        * onset_dict: {'HH': [], 'ST': [], 'SD': [], 'KD': []}
+        """
+
+        # WaveDrum02_01#HH.svl -> HH 추출
+        drum_type = svl_path[-6:-4]
+        if drum_type == "KD":
+            drum_type = "KK"
+
+        if drum_type in onset_dict:
+            print("drum_type: ", drum_type, " ↴")
+            onset_dict[drum_type] = OnsetDetect.get_onsets_from_svl(
+                svl_path, start, end
+            )
+
+        return onset_dict
 
     @staticmethod
     def get_onsets_from_txt(

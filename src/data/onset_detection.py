@@ -55,6 +55,23 @@ class OnsetDetect:
             [1],
         )
 
+        n_frames = len(pool["odf.hfc"])
+        frames_position_samples = np.array(range(n_frames)) * 512
+
+        fig, ((ax1, ax3)) = plt.subplots(
+            2, 1, sharex=True, sharey=False, figsize=(15, 16)
+        )
+
+        ax1.set_title("HFC ODF")
+        ax1.plot(frames_position_samples, pool["odf.hfc"], color="magenta")
+
+        ax3.set_title("Audio waveform and the estimated onset positions (HFC ODF)")
+        ax3.plot(audio)
+        for onset in onsets_hfc:
+            ax3.axvline(x=onset * SAMPLE_RATE, color="magenta")
+
+        plt.show()
+
         print("-- ! onset ! --", onsets_hfc)
         return onsets_hfc
 
@@ -276,7 +293,9 @@ class OnsetDetect:
         plt.plot(onset_frames, onset_env[onset_frames], "x")
         plt.legend(frameon=True, framealpha=0.8)
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
         plt.show()
 
@@ -291,7 +310,14 @@ class OnsetDetect:
         -- librosa 라이브러리 사용해서 onset 구하기
         """
         onset_env = librosa.onset.onset_strength(
-            y=audio, sr=SAMPLE_RATE, hop_length=hop_length, lag=1
+            y=audio,
+            sr=SAMPLE_RATE,
+            hop_length=hop_length,
+            lag=1,
+            aggregate=np.median,
+            n_fft=1024,
+            fmax=8000,
+            n_mels=256,
         )
         onset_frames = librosa.onset.onset_detect(
             onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=hop_length

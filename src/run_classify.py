@@ -2,10 +2,30 @@ import librosa
 from model.segment_classify import SegmentClassifyModel
 from data.onset_detection import OnsetDetect
 from data.data_processing import DataProcessing
-from constant import ROOT_PATH, RAW_PATH, IDMT, ENST, E_GMD
+from constant import (
+    ROOT_PATH,
+    RAW_PATH,
+    IDMT,
+    ENST,
+    E_GMD,
+    SAMPLE_RATE,
+    DDM_OWN,
+    DRUM_KIT,
+)
 
-midi_path = "../data/raw/e-gmd-v1.0.0/drummer1/session1/1_funk_80_beat_4-4.mid"
-OnsetDetect.get_onsets_instrument_midi(midi_path, 10, 20)
+midi_path = "../data/raw/drum-kit-sound/kick/Bass Sample 1.wav"
+# midi_path = "../data/raw/drum-kit-sound/snare/Snare Sample 10.wav"
+# midi_path = "../data/raw/ddm-own/pattern/P1/08/P1_08_0014.m4a"
+# audio, _ = librosa.load(midi_path, sr=SAMPLE_RATE)
+midi_paths = DataProcessing.get_paths(f"../data/raw/{DRUM_KIT}/kick/Bass Sample 1.wav")
+for path in midi_paths:
+    print(path)
+    audio, _ = librosa.load(path, sr=None)
+    # audio = audio[: 5 * SAMPLE_RATE]
+    onsets = OnsetDetect.get_onsets_using_librosa(audio, 256)
+    audio = DataProcessing.trim_audio_first_onset(audio, onsets[0])
+    DataProcessing.write_wav_audio_one("../data/test", "test_drum_kit", audio)
+# OnsetDetect.onset_detection(audio)
 
 # onsets = OnsetDetect.get_onsets_from_svl(
 #     "../data/raw/IDMT-SMT-DRUMS-V2/annotation_svl/WaveDrum02_01#HH.svl"

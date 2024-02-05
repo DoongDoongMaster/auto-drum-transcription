@@ -108,9 +108,6 @@ class BaseModel:
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
-        print("ㅇㄴㅁ러ㅣ;ㅏ얼;나이~!!!!>> X >>>>", X)
-        print("ㅇㄴㅁ러ㅣ;ㅏ얼;나이~!!!!>> y >>>>", y)
-
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y

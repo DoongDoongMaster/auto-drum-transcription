@@ -168,16 +168,18 @@ class FeatureExtractor:
             return df
 
         if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
+            # 추출할 feature 개수
             n_features = FeatureExtractor._get_n_feature(
                 feature_type, FEATURE_PARAM[method_type][feature_type]
             )
+            # detect | rhythm 에 따라 라벨링 다르니까
             label_data = {}
             if method_type == METHOD_DETECT:
                 label_data = {
-                    "HH": label.HH,
-                    "MT": label.MT,
-                    "SD": label.SD,
-                    "KK": label.KK,
+                    "HH": label["HH"],
+                    "ST": label["ST"],
+                    "SD": label["SD"],
+                    "KK": label["KK"],
                 }
             elif method_type == METHOD_RHYTHM:
                 label_data = {

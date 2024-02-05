@@ -60,10 +60,10 @@ class DataLabeling:
             onsets_arr = DataLabeling.get_onsets_instrument_arr(audio, path, idx)
             if len(onsets_arr) == 0:
                 return False
-            if DDM_OWN in path:
-                return DataLabeling._get_ddm_multiple_label(
-                    onsets_arr, path, frame_length, hop_length
-                )
+            # if DDM_OWN in path:
+            #     return DataLabeling._get_ddm_multiple_label(
+            #         onsets_arr, path, frame_length, hop_length
+            #     )
             return DataLabeling._get_label_detect(
                 onsets_arr, path, frame_length, hop_length
             )
@@ -81,16 +81,11 @@ class DataLabeling:
 
     @staticmethod
     def validate_supported_data(path: str, method_type: str):
-        if method_type == METHOD_RHYTHM and IDMT in path and "MIX" not in path:
-            return False
         # classify 방법 관련
         if method_type == METHOD_CLASSIFY and not any(p in path for p in CLASSIFY_ALL):
             return False
-        if (
-            method_type == METHOD_CLASSIFY
-            and IDMT in path
-            and any(p in path for p in CLASSIFY_IDMT_NOT)
-        ):
+        # IDMT: train 들어가면 x
+        if IDMT in path and any(p in path for p in CLASSIFY_IDMT_NOT):
             return False
         return True
 
@@ -137,37 +132,39 @@ class DataLabeling:
             start = idx * CHUNK_LENGTH  # onset 자르는 시작 초
             end = (idx + 1) * CHUNK_LENGTH  # onset 자르는 끝 초
 
-        label = {
-            v: [] for _, v in CODE2DRUM.items()
-        }  # {'HH':[], 'ST':[], 'SD':[], 'HH':[]}
+        # {'HH':[], 'ST':[], 'SD':[], 'HH':[]}
+        label_init = {v: [] for _, v in CODE2DRUM.items()}
+        label = label_init
 
-        if DDM_OWN in path:
-            # return OnsetDetect.onset_detection(audio)
-            label = {}
+        # if DDM_OWN in path:
+        #     # return OnsetDetect.onset_detection(audio)
+        #     label = {}
 
         if IDMT in path:
             if "MIX" in path:
                 label_path = DataLabeling._get_label_path(
                     path, 2, "xml", "annotation_xml"
                 )
-                # return OnsetDetect.get_onsets_from_xml(label_path, start, end)
-                label = {}
+                label = OnsetDetect.get_onsets_instrument_from_xml(
+                    label_path, start, end, label_init
+                )
             else:
                 label_path = DataLabeling._get_label_path(
                     path, 2, "svl", "annotation_svl"
                 )
-                # return OnsetDetect.get_onsets_from_svl(label_path, start, end)
-                label = {}
+                label = OnsetDetect.get_onsets_instrument_from_svl(
+                    label_path, start, end, label_init
+                )
 
-        if ENST in path:
-            label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
-            # return OnsetDetect.get_onsets_from_txt(label_path, start, end)
-            label = {}
+        # if ENST in path:
+        #     label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
+        #     # return OnsetDetect.get_onsets_from_txt(label_path, start, end)
+        #     label = {}
 
-        if E_GMD in path:
-            label_path = DataLabeling._get_label_path(path, 1, "mid")
-            # return OnsetDetect.get_onsets_from_mid(label_path, start, end)
-            label = {}
+        # if E_GMD in path:
+        #     label_path = DataLabeling._get_label_path(path, 1, "mid")
+        #     # return OnsetDetect.get_onsets_from_mid(label_path, start, end)
+        #     label = {}
 
         return label
 
@@ -314,13 +311,18 @@ class DataLabeling:
     def _get_label_detect(
         onsets_arr: List[float], path: str, frame_length: int, hop_length: int
     ) -> List[List[int]]:
-        labels = [[0] * len(CODE2DRUM) for _ in range(frame_length)]
+        label = {v: [] for _, v in CODE2DRUM.items()}
 
         """
         각 HH, SD... 마다 _get_label_rhythm_data 해서 라벨링
         """
+        for drum_type, onset_times in onsets_arr.items():
+            drum_label = DataLabeling._get_label_rhythm_data(
+                onset_times, frame_length, hop_length
+            )
+            label[drum_type] = drum_label
 
-        return labels
+        return label
 
     @staticmethod
     def _get_label_rhythm_data(

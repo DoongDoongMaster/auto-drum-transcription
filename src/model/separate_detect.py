@@ -4,8 +4,8 @@ import tensorflow as tf
 from typing import List
 
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense, LSTM, GRU
-from tensorflow.keras.optimizers import Adam, SGD, Adagrad, RMSprop
+from tensorflow.keras.layers import Dense, GRU
+from tensorflow.keras.optimizers import Adam
 from data.data_labeling import DataLabeling
 from sklearn.preprocessing import StandardScaler
 
@@ -16,22 +16,14 @@ from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 from constant import (
     METHOD_DETECT,
-    STFT,
     MEL_SPECTROGRAM,
     MILLISECOND,
     CHUNK_LENGTH,
     SAMPLE_RATE,
 )
 from tensorflow.keras.layers import (
-    Bidirectional,
-    # SimpleRNN,
-    Flatten,
     Dense,
-    Conv2D,
-    BatchNormalization,
-    MaxPooling2D,
     GRU,
-    Reshape,
 )
 
 
@@ -106,9 +98,6 @@ class SeparateDetectModel(BaseModel):
         - 일정 확률 이상으로 예측된 악기 추출
           [몇 번째 onset, [악기]]
           ex. [[1, [1, 7]], [2, [1]], [3, [1]], [4, [1]], ...
-
-
-
     """
 
     def get_predict_onsets_instrument(self, predict_data) -> List[float]:

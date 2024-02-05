@@ -280,7 +280,7 @@ class OnsetDetect:
         return onset_sec_list
 
     @staticmethod
-    def get_onsets_instrument_midi(
+    def get_onsets_instrument_from_mid(
         midi_path: str, start: float = 0, end: float = None
     ) -> dict[str, List[float]]:
         """
@@ -305,6 +305,39 @@ class OnsetDetect:
             for drum, numbers in midi_drum.items():
                 if note.pitch in numbers:
                     drum_onsets[drum].append(note.start)
+
+        drum_onsets = OnsetDetect._get_filtering_onsets_instrument(
+            drum_onsets, start, end
+        )
+        return drum_onsets
+
+    @staticmethod
+    def get_onsets_instrument_from_wav(
+        audio: np.ndarray,
+        wav_path: str,
+        start: float = 0,
+        end: float = None,
+        onset_dict: dict[str, List[float]] = {},
+    ):
+        """
+        -- wav file에서 악기별로 onset을 가져오는 함수 (drum_kit data에서 사용)
+        """
+        onsets = OnsetDetect.get_onsets_using_librosa(audio)
+
+        wav_drum = {
+            "HH": ["overheads"],
+            "ST": ["toms"],
+            "SD": ["snare"],
+            "KK": ["kick"],
+        }
+
+        # Dictionary to store onsets for each selected drum instrument
+        drum_onsets = onset_dict
+
+        for drum, words in wav_drum.items():
+            if any((w in wav_path) for w in words):
+                drum_onsets[drum] = [onsets[0]]
+                break
 
         drum_onsets = OnsetDetect._get_filtering_onsets_instrument(
             drum_onsets, start, end
@@ -356,7 +389,6 @@ class OnsetDetect:
     @staticmethod
     def get_onsets_using_librosa(
         audio: np.ndarray,
-        hop_length: int,
         start: float = 0,
         end: float = None,
     ) -> List[float]:
@@ -366,18 +398,18 @@ class OnsetDetect:
         onset_env = librosa.onset.onset_strength(
             y=audio,
             sr=SAMPLE_RATE,
-            hop_length=hop_length,
+            hop_length=441,
             lag=1,
-            aggregate=np.median,
-            n_fft=1024,
-            fmax=8000,
-            n_mels=256,
+            # aggregate=np.median,
+            # n_fft=2048,
+            # fmax=8000,
+            # n_mels=256,
         )
         onset_frames = librosa.onset.onset_detect(
-            onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=hop_length
+            onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=441
         )
         onset_times = librosa.frames_to_time(
-            onset_frames, sr=SAMPLE_RATE, hop_length=hop_length
+            onset_frames, sr=SAMPLE_RATE, hop_length=441
         )
 
         OnsetDetect._show_onset_plot(onset_env, onset_frames)

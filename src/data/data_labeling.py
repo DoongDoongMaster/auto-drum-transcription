@@ -167,10 +167,12 @@ class DataLabeling:
 
         if E_GMD in path:
             label_path = DataLabeling._get_label_path(path, 1, "mid")
-            label = OnsetDetect.get_onsets_instrument_midi(label_path)
+            label = OnsetDetect.get_onsets_instrument_from_mid(label_path)
 
         if DRUM_KIT in path:
-            pass
+            label = OnsetDetect.get_onsets_instrument_from_wav(
+                audio, path, start, end, label_init
+            )
 
         return label
 
@@ -188,7 +190,9 @@ class DataLabeling:
 
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
         plt.show()
 
@@ -207,7 +211,9 @@ class DataLabeling:
         plt.plot(onset, data[onset], "x")
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/label-onset-{date_time}.png")
         plt.show()
 

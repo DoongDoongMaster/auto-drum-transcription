@@ -25,8 +25,8 @@ from constant import (
     CLASSIFY_ALL,
 )
 
-audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
-FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
+# audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
+# FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
 # data = FeatureExtractor.load_feature_file(METHOD_DETECT, MEL_SPECTROGRAM, PKL)
 # DataLabeling.show_label_plot(data["label"][400000:401200])
 # AudioToFeature.show_feature_plot(data[400000:401200], METHOD_DETECT, MEL_SPECTROGRAM)
@@ -70,6 +70,7 @@ FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, 
 # separate_detect.train()
 # separate_detect.evaluate()
 # separate_detect.save()
+# print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
 
 
 # ---------------------------------------------------------------------------------------

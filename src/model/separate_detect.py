@@ -6,6 +6,9 @@ from typing import List
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense, LSTM, GRU
 from tensorflow.keras.optimizers import Adam, SGD, Adagrad, RMSprop
+from data.data_labeling import DataLabeling
+from sklearn.preprocessing import StandardScaler
+
 
 from model.base_model import BaseModel
 from data.rhythm_detection import RhythmDetection
@@ -44,7 +47,7 @@ class SeparateDetectModel(BaseModel):
             feature_type=MEL_SPECTROGRAM,
         )
         self.unit_number = unit_number
-        self.predict_standard = 0.8
+        self.predict_standard = 0.5
         # STFT feature type
         self.n_rows = (CHUNK_LENGTH * SAMPLE_RATE) // self.feature_param["hop_length"]
         self.n_columns = self.feature_param["n_fft"] // 2 + 1
@@ -56,6 +59,9 @@ class SeparateDetectModel(BaseModel):
     def input_reshape(self, data):
         # Implement input reshaping logic
         # return data
+        scaler = StandardScaler()
+        data = scaler.fit_transform(data)
+
         return data.reshape((data.shape[0], data.shape[1], 1))
         # return tf.reshape(
         #     data,
@@ -110,6 +116,9 @@ class SeparateDetectModel(BaseModel):
         - 일정 확률 이상으로 예측된 악기 추출
           [몇 번째 onset, [악기]]
           ex. [[1, [1, 7]], [2, [1]], [3, [1]], [4, [1]], ...
+
+
+
     """
 
     def get_predict_onsets_instrument(self, predict_data) -> List[float]:
@@ -126,7 +135,7 @@ class SeparateDetectModel(BaseModel):
                     is_onset = True
                     drums.append(j)
             if is_onset:
-                onsets_arr.append(i / SAMPLE_RATE)
+                onsets_arr.append(i * self.hop_length / SAMPLE_RATE)
                 drum_instrument.append([len(onsets_arr), drums])
 
         return onsets_arr, drum_instrument
@@ -134,6 +143,7 @@ class SeparateDetectModel(BaseModel):
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
         audio, _ = librosa.load(wav_path, sr=SAMPLE_RATE)
+        audio = librosa.effects.percussive(audio)
 
         # -- cut delay
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
@@ -150,7 +160,9 @@ class SeparateDetectModel(BaseModel):
         predict_data = self.model.predict(audio_feature)
 
         # -- output reshape
-        predict_data = self.output_reshape(predict_data)[0]
+        # predict_data = self.output_reshape(predict_data)[0]
+        print("predict_data>>>>", predict_data)
+        DataLabeling.show_label_plot(predict_data)
 
         # -- get onsets
         onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

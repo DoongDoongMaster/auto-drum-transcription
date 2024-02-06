@@ -1,10 +1,12 @@
+import os
 import librosa
 import numpy as np
 import pretty_midi
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 
-from typing import Dict, List
+from typing import List, Dict
+from datetime import datetime
 from essentia import Pool, array
 from essentia.standard import (
     OnsetDetection,
@@ -15,7 +17,7 @@ from essentia.standard import (
     Onsets,
 )
 
-from constant import DRUM_MAP, SAMPLE_RATE
+from constant import DRUM_MAP, SAMPLE_RATE, IMAGE_PATH
 
 
 class OnsetDetect:
@@ -53,6 +55,23 @@ class OnsetDetect:
             [1],
         )
 
+        n_frames = len(pool["odf.hfc"])
+        frames_position_samples = np.array(range(n_frames)) * 512
+
+        fig, ((ax1, ax3)) = plt.subplots(
+            2, 1, sharex=True, sharey=False, figsize=(15, 16)
+        )
+
+        ax1.set_title("HFC ODF")
+        ax1.plot(frames_position_samples, pool["odf.hfc"], color="magenta")
+
+        ax3.set_title("Audio waveform and the estimated onset positions (HFC ODF)")
+        ax3.plot(audio)
+        for onset in onsets_hfc:
+            ax3.axvline(x=onset * SAMPLE_RATE, color="magenta")
+
+        plt.show()
+
         print("-- ! onset ! --", onsets_hfc)
         return onsets_hfc
 
@@ -63,13 +82,29 @@ class OnsetDetect:
         """
         start ~ end 초 까지의 onsets 배열 구하는 함수
         """
+        if len(onsets) == 0:
+            return onsets
+
         filter_onset = np.array(onsets)
         end = filter_onset[-1] + 1 if end == None else end
         filter_onset = filter_onset[(filter_onset >= start) & (filter_onset < end)]
         result = filter_onset - start  # start 빼서 0초부터 시작으로 맞추기
 
-        np.set_printoptions(precision=2, suppress=True)
+        np.set_printoptions(precision=2, threshold=5)
         print(f"-- ! {start} sec ~ {end} sec 파생한 onsets: ", result)
+        return result
+
+    @staticmethod
+    def _get_filtering_onsets_instrument(
+        onsets: dict[str, List[float]], start: float, end: float
+    ) -> dict[str, List[float]]:
+        """
+        start ~ end 초 까지의 instrument별 onsets 배열 구하는 함수
+        """
+        result = {drum: [] for drum in onsets}
+        for drum, onsets_arr in onsets.items():
+            print(f"-- ! {drum} 악기의 onset ! --")
+            result[drum] = OnsetDetect._get_filtering_onsets(onsets_arr, start, end)
         return result
 
     @staticmethod
@@ -252,29 +287,97 @@ class OnsetDetect:
         return onset_dict
 
     @staticmethod
+    def _get_drum_track_from_mid(midi_data):
+        # Find the drum track
+        drum_track = next(
+            (instrument for instrument in midi_data.instruments if instrument.is_drum),
+            None,
+        )
+
+        if drum_track is None:
+            print("No drum track found in the MIDI file.")
+            return None
+
+        return drum_track
+
+    @staticmethod
     def get_onsets_from_mid(
         midi_path: str, start: float = 0, end: float = None
     ) -> List[float]:
         """
         -- MID file에서 onset 읽어오기
         """
-        # MIDI 파일을 PrettyMIDI 객체로 로드합니다.
         midi_data = pretty_midi.PrettyMIDI(midi_path)
-
-        # onset 정보를 저장할 리스트를 생성합니다.
-        onset_times = []
-
-        # 각 악기(track)에 대해 처리합니다.
-        for instrument in midi_data.instruments:
-            # 악기의 노트를 순회하며 onset을 찾습니다.
-            for note in instrument.notes:
-                onset_times.append(note.start)
-
-        # onset_times를 정렬합니다.
+        drum_track = OnsetDetect._get_drum_track_from_mid(midi_data)
+        onset_times = [note.start for note in drum_track.notes]
         onset_times.sort()
-
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_times, start, end)
         return onset_sec_list
+
+    @staticmethod
+    def get_onsets_instrument_from_mid(
+        midi_path: str, start: float = 0, end: float = None
+    ) -> dict[str, List[float]]:
+        """
+        -- midi file에서 드럼 악기별로 onset을 구하는 함수
+        """
+        midi_data = pretty_midi.PrettyMIDI(midi_path)
+        drum_track = OnsetDetect._get_drum_track_from_mid(midi_data)
+
+        # Define selected drum instruments (hi-hat, small tom, snare, kick)
+        midi_drum = {
+            "HH": [42],
+            "ST": [48, 50],
+            "SD": [38, 40],
+            "KK": [35, 36],
+        }
+
+        # Dictionary to store onsets for each selected drum instrument
+        drum_onsets = {instrument: [] for instrument in midi_drum}
+
+        # 악기의 노트를 순회하며 onset을 찾음
+        for note in drum_track.notes:
+            for drum, numbers in midi_drum.items():
+                if note.pitch in numbers:
+                    drum_onsets[drum].append(note.start)
+
+        drum_onsets = OnsetDetect._get_filtering_onsets_instrument(
+            drum_onsets, start, end
+        )
+        return drum_onsets
+
+    @staticmethod
+    def get_onsets_instrument_from_wav(
+        audio: np.ndarray,
+        wav_path: str,
+        start: float = 0,
+        end: float = None,
+        onset_dict: dict[str, List[float]] = {},
+    ):
+        """
+        -- wav file에서 악기별로 onset을 가져오는 함수 (drum_kit data에서 사용)
+        """
+        onsets = OnsetDetect.get_onsets_using_librosa(audio)
+
+        wav_drum = {
+            "HH": ["overheads"],
+            "ST": ["toms"],
+            "SD": ["snare"],
+            "KK": ["kick"],
+        }
+
+        # Dictionary to store onsets for each selected drum instrument
+        drum_onsets = onset_dict
+
+        for drum, words in wav_drum.items():
+            if any((w in wav_path) for w in words):
+                drum_onsets[drum] = [onsets[0]]
+                break
+
+        drum_onsets = OnsetDetect._get_filtering_onsets_instrument(
+            drum_onsets, start, end
+        )
+        return drum_onsets
 
     @staticmethod
     def get_peak_using_librosa(
@@ -311,12 +414,16 @@ class OnsetDetect:
         plt.plot(onset_env, alpha=0.8)
         plt.plot(onset_frames, onset_env[onset_frames], "x")
         plt.legend(frameon=True, framealpha=0.8)
+        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
+        plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
         plt.show()
 
     @staticmethod
     def get_onsets_using_librosa(
         audio: np.ndarray,
-        hop_length: int,
         start: float = 0,
         end: float = None,
     ) -> List[float]:
@@ -324,13 +431,20 @@ class OnsetDetect:
         -- librosa 라이브러리 사용해서 onset 구하기
         """
         onset_env = librosa.onset.onset_strength(
-            y=audio, sr=SAMPLE_RATE, hop_length=hop_length, lag=1
+            y=audio,
+            sr=SAMPLE_RATE,
+            hop_length=441,
+            lag=1,
+            # aggregate=np.median,
+            # n_fft=2048,
+            # fmax=8000,
+            # n_mels=256,
         )
         onset_frames = librosa.onset.onset_detect(
-            onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=hop_length
+            onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=441
         )
         onset_times = librosa.frames_to_time(
-            onset_frames, sr=SAMPLE_RATE, hop_length=hop_length
+            onset_frames, sr=SAMPLE_RATE, hop_length=441
         )
 
         OnsetDetect._show_onset_plot(onset_env, onset_frames)

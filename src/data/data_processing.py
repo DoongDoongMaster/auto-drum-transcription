@@ -72,7 +72,9 @@ class DataProcessing:
         new_data_paths = DataProcessing.get_paths(new_path, ["*"])
 
         for p in new_data_paths:
-            file_path = p.replace(NEW_PATH, RAW_PATH)  # new path의 폴더 경로를 유지하면서 옮기기
+            file_path = p.replace(
+                NEW_PATH, RAW_PATH
+            )  # new path의 폴더 경로를 유지하면서 옮기기
             file_dir = os.path.dirname(file_path)
             os.makedirs(file_dir, exist_ok=True)  # 파일 없다면 새로 생성
             shutil.move(p, file_path)
@@ -111,7 +113,7 @@ class DataProcessing:
             onsets = OnsetDetect.onset_detection(audio)
             first_onset = onsets[0] if len(onsets) > 0 else 0
 
-        start = int(first_onset * SAMPLE_RATE)
+        start = max(int((first_onset - ONSET_DURATION_LEFT) * SAMPLE_RATE), 0)
         trimmed = audio[start:]
 
         print(f"-- ! audio trimmed: {first_onset} sec ! --")

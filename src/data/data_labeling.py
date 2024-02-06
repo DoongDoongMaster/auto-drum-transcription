@@ -20,6 +20,7 @@ from constant import (
     IDMT,
     ENST,
     E_GMD,
+    DRUM_KIT,
     METHOD_CLASSIFY,
     METHOD_DETECT,
     METHOD_RHYTHM,
@@ -126,6 +127,9 @@ class DataLabeling:
             label_path = DataLabeling._get_label_path(path, 1, "mid")
             return OnsetDetect.get_onsets_from_mid(label_path, start, end)
 
+        if DRUM_KIT in path:
+            pass
+
     @staticmethod
     def get_onsets_instrument_arr(
         audio: np.ndarray, path: str, idx: int = None
@@ -167,10 +171,14 @@ class DataLabeling:
                 label_path, start, end, label_init
             )
 
-        # if E_GMD in path:
-        #     label_path = DataLabeling._get_label_path(path, 1, "mid")
-        #     # return OnsetDetect.get_onsets_from_mid(label_path, start, end)
-        #     label = {}
+        if E_GMD in path:
+            label_path = DataLabeling._get_label_path(path, 1, "mid")
+            label = OnsetDetect.get_onsets_instrument_from_mid(label_path)
+
+        if DRUM_KIT in path:
+            label = OnsetDetect.get_onsets_instrument_from_wav(
+                audio, path, start, end, label_init
+            )
 
         return label
 

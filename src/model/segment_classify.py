@@ -133,9 +133,7 @@ class SegmentClassifyModel(BaseModel):
 
     def get_drum_instrument(self, audio):
         # -- trimmed audio
-        onsets_arr = OnsetDetect.get_onsets_using_librosa(
-            audio, self.feature_param["hop_length"]
-        )
+        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
         trimmed_audios = DataProcessing.trim_audio_per_onset(audio, onsets_arr)
 
         # -- trimmed feature
@@ -164,9 +162,7 @@ class SegmentClassifyModel(BaseModel):
         # -- instrument
         drum_instrument = self.get_drum_instrument(audio)
         # -- rhythm
-        onsets_arr = OnsetDetect.get_onsets_using_librosa(
-            audio, self.feature_param["hop_length"]
-        )
+        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
         bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
 

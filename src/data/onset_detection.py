@@ -15,7 +15,7 @@ from essentia.standard import (
     Onsets,
 )
 
-from constant import SAMPLE_RATE
+from constant import DRUM_MAP, SAMPLE_RATE
 
 
 class OnsetDetect:
@@ -215,6 +215,41 @@ class OnsetDetect:
 
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_sec_list, start, end)
         return onset_sec_list
+
+    @staticmethod
+    def get_onsets_instrument_from_txt(
+        txt_path: str, start: float = 0, end: float = None, onset_dict={}
+    ) -> List[float]:
+        """
+        -- TXT file에서 onset 읽어오기
+
+        * onset_dict: {'HH': [], 'ST': [], 'SD': [], 'KD': []}
+        """
+        print("-- ! txt file location: ", txt_path)
+
+        # Open the text file
+        with open(txt_path, "r") as file:
+            lines = file.readlines()
+
+        # -- ex) 2.674 mt => 2.674 / mt->ST
+        for line in lines:
+            parts = line.strip().split()
+            if len(parts) == 2:
+                onset_sec = float(parts[0])
+                drum_type = parts[1]
+                drum_type = DRUM_MAP[drum_type]
+
+                if drum_type in onset_dict:
+                    onset_dict[drum_type].append(onset_sec)
+
+        # Print the drum type and onsets
+        for drum_type, onset_list in onset_dict.items():
+            print("drum_type: ", drum_type, " ↴")
+            onset_dict[drum_type] = OnsetDetect._get_filtering_onsets(
+                onset_list, start, end
+            )
+
+        return onset_dict
 
     @staticmethod
     def get_onsets_from_mid(

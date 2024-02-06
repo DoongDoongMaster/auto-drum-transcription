@@ -121,8 +121,7 @@ class SeparateDetectModel(BaseModel):
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
-        audio, _ = librosa.load(wav_path, sr=SAMPLE_RATE)
-        audio = librosa.effects.percussive(audio)
+        audio = SeparateDetectModel.load_audio(wav_path)
 
         # -- cut delay
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)

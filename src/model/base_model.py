@@ -1,3 +1,4 @@
+import librosa
 import numpy as np
 import tensorflow as tf
 import pandas as pd
@@ -200,3 +201,9 @@ class BaseModel:
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
         pass
+
+    @staticmethod
+    def load_audio(path):
+        audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
+        audio = librosa.effects.percussive(audio)
+        return audio

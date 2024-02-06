@@ -22,7 +22,6 @@ from constant import (
     RAW_PATH,
     NEW_PATH,
     PKL,
-    CLASSIFY_ALL,
 )
 
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
@@ -63,13 +62,13 @@ from constant import (
 
 # rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
 
-# separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
+separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
 
-# separate_detect.create_dataset()
-# separate_detect.create()
-# separate_detect.train()
-# separate_detect.evaluate()
-# separate_detect.save()
+separate_detect.create_dataset()
+separate_detect.create()
+separate_detect.train()
+separate_detect.evaluate()
+separate_detect.save()
 # print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
 
 

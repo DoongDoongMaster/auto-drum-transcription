@@ -157,7 +157,8 @@ class SegmentClassifyModel(BaseModel):
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
-        audio, _ = librosa.load(wav_path, sr=SAMPLE_RATE)
+        audio = SegmentClassifyModel.load_audio(wav_path)
+
         # -- instrument
         drum_instrument = self.get_drum_instrument(audio)
         # -- rhythm

@@ -8,6 +8,7 @@ from datetime import datetime
 from data.onset_detection import OnsetDetect
 
 from constant import (
+    DATA_ENST_NOT,
     PATTERN_DIR,
     PER_DRUM_DIR,
     PATTERN2CODE,
@@ -25,8 +26,8 @@ from constant import (
     METHOD_RHYTHM,
     CHUNK_LENGTH,
     IMAGE_PATH,
-    CLASSIFY_ALL,
-    CLASSIFY_IDMT_NOT,
+    DATA_ALL,
+    DATA_IDMT_NOT,
     CLASSIFY_DRUM,
 )
 
@@ -59,8 +60,9 @@ class DataLabeling:
         # -- [instrument] --
         if method_type == METHOD_DETECT:
             onsets_arr = DataLabeling.get_onsets_instrument_arr(audio, path, idx)
-            if len(onsets_arr) == 0:
+            if DataLabeling._is_dict_all_empty(onsets_arr):
                 return False
+
             # if DDM_OWN in path:
             #     return DataLabeling._get_ddm_multiple_label(
             #         onsets_arr, path, frame_length, hop_length
@@ -82,11 +84,14 @@ class DataLabeling:
 
     @staticmethod
     def validate_supported_data(path: str, method_type: str):
-        # classify 방법 관련
-        if method_type == METHOD_CLASSIFY and not any(p in path for p in CLASSIFY_ALL):
+        # 우리가 사용할 데이터 형태 아닌 경우
+        if not any(p in path for p in DATA_ALL):
             return False
         # IDMT: train 들어가면 x
-        if IDMT in path and any(p in path for p in CLASSIFY_IDMT_NOT):
+        if IDMT in path and any(p in path for p in DATA_IDMT_NOT):
+            return False
+        # ENST: accompaniment 들어가면 x
+        if ENST in path and any(p in path for p in DATA_ENST_NOT):
             return False
         return True
 
@@ -160,10 +165,11 @@ class DataLabeling:
                     label_path, start, end, label_init
                 )
 
-        # if ENST in path:
-        #     label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
-        #     # return OnsetDetect.get_onsets_from_txt(label_path, start, end)
-        #     label = {}
+        if ENST in path:
+            label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
+            label = OnsetDetect.get_onsets_instrument_from_txt(
+                label_path, start, end, label_init
+            )
 
         if E_GMD in path:
             label_path = DataLabeling._get_label_path(path, 1, "mid")
@@ -362,3 +368,10 @@ class DataLabeling:
             labels[onset_position] = 1
 
         return labels
+
+    @staticmethod
+    def _is_dict_all_empty(dict_arr):
+        """
+        딕셔너리의 모든 value가 비어있는 지 확인하는 함수
+        """
+        return all(len(value) == 0 for value in dict_arr.values())

@@ -109,34 +109,6 @@ class RhythmDetectModel(BaseModel):
         self.model.add(Flatten())
         self.model.add(Dense(1, activation="sigmoid"))
 
-        # self.model.add(
-        #     Bidirectional(
-        #         SimpleRNN(
-        #             self.unit_number,
-        #             return_sequences=True,
-        #             input_shape=(self.n_rows, self.n_columns),
-        #             activation="tanh",
-        #         )
-        #     )
-        # )
-        # self.model.add(
-        #     Bidirectional(
-        #         SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
-        #     )
-        # )
-        # self.model.add(
-        #     Bidirectional(
-        #         SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
-        #     )
-        # )
-
-        # # Flatten layer
-        # self.model.add(Flatten())
-
-        # # dense layer
-        # self.model.add(Dense(self.n_rows * self.n_classes, activation="softmax"))
-
-        # self.model.build((None, self.n_rows, self.n_columns))
         self.model.summary()
 
         # compile the self.model
@@ -172,7 +144,7 @@ class RhythmDetectModel(BaseModel):
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
-        audio, _ = librosa.load(wav_path, sr=SAMPLE_RATE)
+        audio = RhythmDetectModel.load_audio(wav_path)
 
         # -- cut delay
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)

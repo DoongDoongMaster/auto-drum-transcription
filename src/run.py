@@ -5,6 +5,7 @@ from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from data.onset_detection import OnsetDetect
 from model.segment_classify import SegmentClassifyModel
+from model.separate_detect import SeparateDetectModel
 from model.rhythm_detect_model import RhythmDetectModel
 
 from constant import (
@@ -21,14 +22,13 @@ from constant import (
     RAW_PATH,
     NEW_PATH,
     PKL,
-    CLASSIFY_ALL,
 )
 
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
-# FeatureExtractor.feature_extractor(audio_paths, METHOD_RHYTHM, MEL_SPECTROGRAM, PKL)
-# data = FeatureExtractor.load_feature_file(METHOD_RHYTHM, MEL_SPECTROGRAM, PKL)
+# FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
+# data = FeatureExtractor.load_feature_file(METHOD_DETECT, MEL_SPECTROGRAM, PKL)
 # DataLabeling.show_label_plot(data["label"][400000:401200])
-# AudioToFeature.show_feature_plot(data[400000:401200], METHOD_RHYTHM, MEL_SPECTROGRAM)
+# AudioToFeature.show_feature_plot(data[400000:401200], METHOD_DETECT, MEL_SPECTROGRAM)
 
 
 # predict_test_data = "../data/raw/ENST-drums-public/drummer_1/audio/snare/001_hits_snare-drum_sticks_x6.wav"
@@ -59,6 +59,18 @@ from constant import (
 
 # print(rhythm_detect.predict("../data/test/test_shifting.wav", 100, 0))
 # print(rhythm_detect.predict("../data/test/004_hits_low-tom_sticks_x5.wav", 100, 0))
+
+# rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
+
+separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
+
+separate_detect.create_dataset()
+separate_detect.create()
+separate_detect.train()
+separate_detect.evaluate()
+separate_detect.save()
+# print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
+
 
 # ---------------------------------------------------------------------------------------
 # import librosa

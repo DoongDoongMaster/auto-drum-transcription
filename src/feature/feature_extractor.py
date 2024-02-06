@@ -201,6 +201,7 @@ class FeatureExtractor:
     def _get_chunk_audio(path: str, method_type: str) -> List[np.ndarray]:
         # -- librosa feature load
         audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
+        audio = librosa.effects.percussive(audio)
 
         if method_type == METHOD_CLASSIFY:
             onsets_arr = DataLabeling.get_onsets_arr(audio, path)

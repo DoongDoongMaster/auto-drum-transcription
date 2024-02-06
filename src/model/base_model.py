@@ -1,3 +1,4 @@
+import librosa
 import numpy as np
 import tensorflow as tf
 import pandas as pd
@@ -83,7 +84,13 @@ class BaseModel:
             X = np.array(feature_df.feature.tolist())
             y = np.array(feature_df.label.tolist())
             return X, y
-        if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
+        if method_type in METHOD_DETECT:
+            # label(HH, ST, SD, KK onset 여부) | mel-1, mel-2, mel-3, ...
+            X = feature_df.drop(["HH", "ST", "SD", "KK"], axis=1).to_numpy()
+            y = feature_df[["HH", "ST", "SD", "KK"]].to_numpy()
+            return X, y
+        if method_type in METHOD_RHYTHM:
+            # label(onset 여부) | mel-1, mel-2, mel-3, ...
             X = feature_df.drop(["label"], axis=1).to_numpy()
             y = feature_df["label"].to_numpy()
             return X, y
@@ -194,3 +201,9 @@ class BaseModel:
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
         pass
+
+    @staticmethod
+    def load_audio(path):
+        audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
+        audio = librosa.effects.percussive(audio)
+        return audio

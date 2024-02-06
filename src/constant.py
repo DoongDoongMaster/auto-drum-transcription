@@ -199,9 +199,9 @@ PER_DRUM_DIR = "per-drum"
 """
 -- classify 방법에서 사용하는 data path와 관련된 상수
 """
-CLASSIFY_IDMT = ("WaveDrum02",)
-CLASSIFY_IDMT_NOT = ("train",)
-CLASSIFY_ENST = (
+DATA_IDMT = ("WaveDrum02", "MIX")
+DATA_IDMT_NOT = ("train",)
+DATA_ENST = (
     "hits_snare-drum_sticks",
     "hits_snare-drum_mallets",
     "hits_medium-tom_sticks",
@@ -209,14 +209,17 @@ CLASSIFY_ENST = (
     "hits_pedal-hi-hat-close_pedal",
     "hits_pedal-hi-hat-open_pedal",
 )
-CLASSIFY_DDM_OWN = (
+DATA_ENST_NOT = ("accompaniment",)  # ENST dataset에서 제외할 데이터
+DATA_DDM_OWN = (
     "per-drum/1_HH",
     "per-drum/4_MT",
     "per-drum/5_SD",
     "per-drum/7_KK",
+    "pattern/P1",
+    "pattern/P2",
 )
 
-CLASSIFY_ALL = CLASSIFY_IDMT + CLASSIFY_ENST + CLASSIFY_DDM_OWN
+DATA_ALL = DATA_IDMT + DATA_ENST + DATA_DDM_OWN
 
 CLASSIFY_DRUM = {
     0: (
@@ -234,3 +237,33 @@ CLASSIFY_DRUM = {
         "bass",
     ),
 }
+
+# -------------------------------------------------------------------------------------
+"""
+-- Mapping drum_type
+DRUM_TYPES에 추가하기
+
+=> DRUM_MAP을 접근해서 사용 {"sd": "SD", "mt": "ST", "bd": "KK", "chh": "HH", "ohh": "HH"}
+"""
+DRUM_TYPES = {
+    "SD": [
+        "sd",
+    ],
+    "ST": [
+        "mt",
+    ],
+    "KK": [
+        "bd",
+    ],
+    "HH": [
+        "chh",
+        "ohh",
+    ],
+}
+DRUM_MAP = {}
+# Iterate over the DRUM_TYPES
+for drum_type, values in DRUM_TYPES.items():
+    # Iterate over the values for each drum_type
+    for value in values:
+        # Add the mapping to the new dictionary
+        DRUM_MAP[value] = drum_type

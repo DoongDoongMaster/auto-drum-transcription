@@ -57,11 +57,6 @@ class DataLabeling:
             onsets_arr = DataLabeling.get_onsets_instrument_arr(audio, path, idx)
             if DataLabeling._is_dict_all_empty(onsets_arr):
                 return False
-
-            # if DDM_OWN in path:
-            #     return DataLabeling._get_ddm_multiple_label(
-            #         onsets_arr, path, frame_length, hop_length
-            #     )
             return DataLabeling._get_label_detect(
                 onsets_arr, path, frame_length, hop_length
             )
@@ -140,9 +135,15 @@ class DataLabeling:
         label_init = {v: [] for _, v in CODE2DRUM.items()}
         label = label_init
 
-        # if DDM_OWN in path:
-        #     # return OnsetDetect.onset_detection(audio)
-        #     label = {}
+        if DDM_OWN in path:
+            if PER_DRUM_DIR in path:
+                label = OnsetDetect.get_onsets_instrument_from_wav(
+                    audio, path, start, end, label_init
+                )
+            # elif PATTERN_DIR in path:
+            #     label_path = DataLabeling._get_ddm_label_path(
+            #         path, 3, "txt", "annotation"
+            #     )
 
         if IDMT in path:
             if "MIX" in path:
@@ -226,9 +227,37 @@ class DataLabeling:
         -- label file의 path를 audio path로부터 구하는 함수
         """
         file_name = os.path.basename(audio_path)[:-4]  # 파일 이름
-        file_paths = audio_path.split("/")[
-            :-back_move_num
-        ]  # 뒤에서 back_move_num 개 제외한 폴더 list
+        # 뒤에서 back_move_num 개 제외한 폴더 list
+        file_paths = audio_path.split("/")[:-back_move_num]
+        label_file = DataLabeling._get_label_file(
+            file_name, file_paths, extension, folder_name
+        )
+        return label_file
+
+    @staticmethod
+    def _get_ddm_label_path(
+        audio_path: str, back_move_num: int, extension: str, folder_name: str = ""
+    ) -> str:
+        """
+        (DDM용)
+        -- label file의 path를 audio path로부터 구하는 함수
+        """
+        split_path = audio_path.split("/")
+        file_name = split_path[-3]  # 파일 이름 (P1, P2,...)
+        # 뒤에서 back_move_num 개 제외한 폴더 list
+        file_paths = split_path[:-back_move_num]
+        label_file = DataLabeling._get_label_file(
+            file_name, file_paths, extension, folder_name
+        )
+        return label_file
+
+    @staticmethod
+    def _get_label_file(
+        file_name: str, file_paths: [], extension: str, folder_name: str = ""
+    ) -> str:
+        """
+        label file 구하는 함수
+        """
         label_file = os.path.join(os.path.join(*file_paths), folder_name)
         label_file = os.path.join(label_file, f"{file_name}.{extension}")
         return label_file
@@ -245,29 +274,6 @@ class DataLabeling:
         elif PER_DRUM_DIR in path:  # -- per drum
             drum_name = file_name[:2]  # -- CC
             label = ONEHOT_DRUM2CODE[drum_name]
-        return label
-
-    @staticmethod
-    def _get_ddm_multiple_label(idx: int, path: str) -> List[int]:
-        """
-        -- ddm own data classify type (trimmed data) 라벨링
-        """
-        label = {}
-        """
-        1
-        HH [1,0,0,0]
-
-        {hh:[1], sd:[0]}
-
-
-        2
-        HH
-        SD
-
-        {hh:[1,1], sd:[0,1]}
-        
-        """
-
         return label
 
     @staticmethod

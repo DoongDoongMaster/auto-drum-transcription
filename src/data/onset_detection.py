@@ -159,7 +159,8 @@ class OnsetDetect:
         for event in events:
             onset_sec = float(event.find("onsetSec").text)
             drum_type = event.find("instrument").text
-
+            if drum_type == "KD":
+                drum_type = "KK"
             if drum_type in onset_dict:
                 onset_dict[drum_type].append(onset_sec)
 

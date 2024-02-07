@@ -17,7 +17,7 @@ from essentia.standard import (
     Onsets,
 )
 
-from constant import DRUM_MAP, SAMPLE_RATE, IMAGE_PATH
+from constant import DRUM_KIT, DRUM_MAP, SAMPLE_RATE, IMAGE_PATH
 
 
 class OnsetDetect:
@@ -163,13 +163,9 @@ class OnsetDetect:
             if drum_type in onset_dict:
                 onset_dict[drum_type].append(onset_sec)
 
-        # Apply filtering
-        for drum_type, onset_list in onset_dict.items():
-            print("drum_type: ", drum_type, " ↴")
-            onset_dict[drum_type] = OnsetDetect._get_filtering_onsets(
-                onset_list, start, end
-            )
-
+        onset_dict = OnsetDetect._get_filtering_onsets_instrument(
+            onset_dict, start, end
+        )
         return onset_dict
 
     @staticmethod
@@ -224,7 +220,6 @@ class OnsetDetect:
             drum_type = "KK"
 
         if drum_type in onset_dict:
-            print("drum_type: ", drum_type, " ↴")
             onset_dict[drum_type] = OnsetDetect.get_onsets_from_svl(
                 svl_path, start, end
             )
@@ -277,13 +272,9 @@ class OnsetDetect:
                 if drum_type in onset_dict:
                     onset_dict[drum_type].append(onset_sec)
 
-        # Print the drum type and onsets
-        for drum_type, onset_list in onset_dict.items():
-            print("drum_type: ", drum_type, " ↴")
-            onset_dict[drum_type] = OnsetDetect._get_filtering_onsets(
-                onset_list, start, end
-            )
-
+        onset_dict = OnsetDetect._get_filtering_onsets_instrument(
+            onset_dict, start, end
+        )
         return onset_dict
 
     @staticmethod
@@ -355,29 +346,29 @@ class OnsetDetect:
         onset_dict: dict[str, List[float]] = {},
     ):
         """
-        -- wav file에서 악기별로 onset을 가져오는 함수 (drum_kit data에서 사용)
+        -- wav file에서 악기별로 onset을 가져오는 함수 (drum_kit, ddm data에서 사용)
+        drum_kit : 실제로 둥 한 번 치는 데이터인데, librosa에서 onset이 여러 개 추출돼서 onset[0]만 데이터로 사용
+        ddm : librosa에서 추출된 그대로 데이터로 사용
         """
         onsets = OnsetDetect.get_onsets_using_librosa(audio)
 
         wav_drum = {
-            "HH": ["overheads"],
+            "HH": ["overheads", "HH"],
             "ST": ["toms"],
-            "SD": ["snare"],
-            "KK": ["kick"],
+            "SD": ["snare", "SD"],
+            "KK": ["kick", "KK"],
         }
-
-        # Dictionary to store onsets for each selected drum instrument
-        drum_onsets = onset_dict
-
         for drum, words in wav_drum.items():
             if any((w in wav_path) for w in words):
-                drum_onsets[drum] = [onsets[0]]
+                if DRUM_KIT in wav_path:  # drum_kit
+                    onsets = onsets[0]
+                onset_dict[drum] = onsets
                 break
 
-        drum_onsets = OnsetDetect._get_filtering_onsets_instrument(
-            drum_onsets, start, end
+        onset_dict = OnsetDetect._get_filtering_onsets_instrument(
+            onset_dict, start, end
         )
-        return drum_onsets
+        return onset_dict
 
     @staticmethod
     def get_peak_using_librosa(

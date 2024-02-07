@@ -17,7 +17,7 @@ PROCESSED_FEATURE = "processed-feature"
 """
 -- data origin (데이터 출처)
 """
-DDM_OWN = "ddm-own"
+DDM_OWN = "ddm-own-v2"
 IDMT = "IDMT-SMT-DRUMS-V2"
 ENST = "ENST-drums-public"
 E_GMD = "e-gmd-v1.0.0"
@@ -211,10 +211,10 @@ DATA_ENST = (
 )
 DATA_ENST_NOT = ("accompaniment",)  # ENST dataset에서 제외할 데이터
 DATA_DDM_OWN = (
-    "per-drum/1_HH",
-    "per-drum/4_MT",
-    "per-drum/5_SD",
-    "per-drum/7_KK",
+    "per-drum/HH",
+    "per-drum/MT",
+    "per-drum/SD",
+    "per-drum/KK",
     "pattern/P1",
     "pattern/P2",
 )

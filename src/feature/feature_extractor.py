@@ -50,15 +50,8 @@ class FeatureExtractor:
                 f"모델: {method_type}, 피쳐: {feature_type} 에 해당하는 피쳐가 없습니다!!!"
             )
 
-        feature_param = FEATURE_PARAM[method_type][feature_type]
-
-        # feature에서 한 frame에 들어있는 sample 개수
-        n_feature = FeatureExtractor._get_n_feature(feature_type, feature_param)
-
         # dataframe 초기화
-        combined_df = FeatureExtractor._init_combine_df(
-            method_type, feature_type, n_feature
-        )
+        combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
 
         feature_files = glob(f"{save_folder_path}/*.{feature_extension}")
         for feature_file in feature_files:
@@ -97,16 +90,12 @@ class FeatureExtractor:
         print(f"-- ! {feature_type} feature extracting ! --")
         print("-- 총 audio_paths 몇 개??? >> ", len(audio_paths))
 
-        # feature parameter info
-        feature_param = FEATURE_PARAM[method_type][feature_type]
-        hop_length = feature_param.get("hop_length")
-
         batch_size = 20
         for i in range(0, len(audio_paths), batch_size):
             print(f"-- ! feature extracting ... {i} to {i + batch_size}")
             batch_audio_paths = audio_paths[i : min(len(audio_paths), i + batch_size)]
             features_df_new = FeatureExtractor._feature_extractor(
-                batch_audio_paths, method_type, feature_type, hop_length
+                batch_audio_paths, method_type, feature_type
             )
             if features_df_new.empty:
                 continue
@@ -118,96 +107,188 @@ class FeatureExtractor:
 
     @staticmethod
     def _feature_extractor(
-        audio_paths: List[str],
-        method_type: str,
-        feature_type: str,
-        hop_length: int,
+        audio_paths: List[str], method_type: str, feature_type: str
     ) -> pd.DataFrame:
-        # feature에서 한 frame에 들어있는 sample 개수
-        n_feature = FeatureExtractor._get_n_feature(
-            feature_type, FEATURE_PARAM[method_type][feature_type]
-        )
         # dataframe 초기화
-        combined_df = FeatureExtractor._init_combine_df(
-            method_type, feature_type, n_feature
-        )
+        combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
+
         for path in audio_paths:
             if DataLabeling.validate_supported_data(path, method_type) == False:
                 continue
 
             print("-- current file: ", path)
-            audios = FeatureExtractor._get_chunk_audio(path, method_type)
-            for i, audio in enumerate(audios):
-                # audio to feature
-                feature = AudioToFeature.extract_feature(
-                    audio, method_type, feature_type
-                )
-                # get label
-                label = DataLabeling.data_labeling(
-                    audio, path, method_type, i, feature.shape[0], hop_length
-                )
-                if label == False:  # label 없음
-                    continue
 
-                # make dataframe
-                df = FeatureExtractor._make_dataframe(
-                    method_type, feature_type, feature, label
-                )
-                # combine dataframe
-                combined_df = pd.concat([combined_df, df], ignore_index=True)
+            # -- librosa feature load
+            audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
+            audio = librosa.effects.percussive(audio)
+
+            df = FeatureExtractor._get_one_path_feature_label(
+                audio, path, method_type, feature_type
+            )  # 메소드별로 피쳐 & 라벨 추출
+            combined_df = pd.concat([combined_df, df], ignore_index=True)
+
+        return combined_df
+
+    @staticmethod
+    def _get_one_path_feature_label(
+        audio: np.ndarray, path: str, method_type: str, feature_type: str
+    ):
+        """
+        하나의 path에 대한 feature와 label을 구하는 함수 (method type에 따라)
+        """
+        if method_type == METHOD_CLASSIFY:
+            return FeatureExtractor._extract_classify_feature(
+                audio, path, method_type, feature_type
+            )
+        if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
+            return FeatureExtractor._extract_non_classify_feature(
+                audio, path, method_type, feature_type
+            )
+
+    @staticmethod
+    def _extract_classify_feature(
+        audio: np.ndarray, path: str, method_type: str, feature_type: str
+    ):
+        # dataframe 초기화
+        combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
+
+        # feature parameter info
+        feature_param = FEATURE_PARAM[method_type][feature_type]
+        hop_length = feature_param.get("hop_length")
+
+        # audio 전체 길이에 대한 label 구하기
+        label = DataLabeling.data_labeling(
+            audio, path, method_type, hop_length=hop_length
+        )
+
+        onsets_frame = FeatureExtractor._label_to_onset_frame(label)
+        onsets_time = librosa.frames_to_time(
+            onsets_frame, sr=SAMPLE_RATE, hop_length=hop_length
+        )
+
+        audios = DataProcessing.trim_audio_per_onset(audio, onsets_time)
+        DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
+
+        for i, ao in enumerate(audios):
+            feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
+            l = {
+                "HH": [label["HH"][onsets_frame[i]]],
+                "ST": [label["ST"][onsets_frame[i]]],
+                "SD": [label["SD"][onsets_frame[i]]],
+                "KK": [label["KK"][onsets_frame[i]]],
+            }
+            print("------classify label------------", l)
+            # make dataframe
+            df = FeatureExtractor._make_dataframe(method_type, feature_type, feature, l)
+            # combine dataframe
+            combined_df = pd.concat([combined_df, df], ignore_index=True)
+
+        return combined_df
+
+    def _label_to_onset_frame(label: dict[str, List[int]]):
+        """
+        각 악기별 label 정보에서 onset frame 을 구하는 함수
+        """
+        onset_frame = []
+
+        for j in range(len(label["HH"])):  # frame number
+            is_onset = False  # 1 인 i가 하나라도 있다면 onset으로 판단
+            for i in range(len(CODE2DRUM)):  # instrument number
+                if label[CODE2DRUM[i]][j] == 1:
+                    is_onset = True
+                    break
+            if is_onset:
+                onset_frame.append(j)
+
+        return onset_frame
+
+    @staticmethod
+    def _extract_non_classify_feature(
+        audio: np.ndarray, path: str, method_type: str, feature_type: str
+    ):
+        """
+        detect, rhythm에서의 feature와 label 구하기 (하나의 path에서)
+        """
+        # dataframe 초기화
+        combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
+
+        # feature parameter info
+        feature_param = FEATURE_PARAM[method_type][feature_type]
+        hop_length = feature_param.get("hop_length")
+
+        # 오디오 자르기
+        audios = DataProcessing.cut_chunk_audio(audio)
+
+        for i, ao in enumerate(audios):
+            # audio to feature
+            feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
+            # get label
+            label = DataLabeling.data_labeling(
+                ao, path, method_type, i, feature.shape[0], hop_length
+            )
+            if label == False:  # label 없음
+                continue
+
+            # make dataframe
+            df = FeatureExtractor._make_dataframe(
+                method_type, feature_type, feature, label
+            )
+            # combine dataframe
+            combined_df = pd.concat([combined_df, df], ignore_index=True)
 
         return combined_df
 
     @staticmethod
     def _make_dataframe(
-        method_type: str, feature_type: str, feature: np.ndarray, label
+        method_type: str,
+        feature_type: str,
+        feature: np.ndarray,
+        label: dict[str, List[int]],
     ) -> pd.DataFrame:
-        if method_type == METHOD_CLASSIFY:
-            data_feature_label = [[feature.tolist(), label]]
-            df = pd.DataFrame(data_feature_label, columns=["feature", "label"])
-            return df
-
-        if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
-            # 추출할 feature 개수
-            n_features = FeatureExtractor._get_n_feature(
-                feature_type, FEATURE_PARAM[method_type][feature_type]
-            )
-            # detect | rhythm 에 따라 라벨링 다르니까
-            label_data = {}
-            if method_type == METHOD_DETECT:
-                label_data = {
-                    "HH": label["HH"],
-                    "ST": label["ST"],
-                    "SD": label["SD"],
-                    "KK": label["KK"],
-                }
-            elif method_type == METHOD_RHYTHM:
-                label_data = {
-                    "label": label,
-                }
-            df_meta = pd.DataFrame(
-                label_data,
-                dtype="float16",
-            )
-            df_feature = pd.DataFrame(
-                feature,
-                columns=[feature_type[:8] + str(i + 1) for i in range(n_features)],
-                dtype="float32",
-            )
-            df = pd.concat([df_meta, df_feature], axis=1)  # Concatenate along columns
-            return df
+        label_df = FeatureExtractor._make_label_dataframe(method_type, label)
+        feature_df = FeatureExtractor._make_feature_dataframe(
+            method_type, feature_type, feature
+        )
+        df = pd.concat([label_df, feature_df], axis=1)  # Concatenate along columns
+        return df
 
     @staticmethod
-    def _get_chunk_audio(path: str, method_type: str) -> List[np.ndarray]:
-        # -- librosa feature load
-        audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
-        audio = librosa.effects.percussive(audio)
+    def _make_label_dataframe(
+        method_type: str, label: dict[str, List[int]]
+    ) -> pd.DataFrame:
+        """
+        method type에 따라 dataframe의 label을 만드는 함수
+        """
+        label_data = {}
+        if method_type in [METHOD_CLASSIFY, METHOD_DETECT]:
+            label_data = label
+        if method_type == METHOD_RHYTHM:
+            label_data = {"label": label}
 
+        return pd.DataFrame(
+            label_data,
+            dtype="float16",
+        )
+
+    @staticmethod
+    def _make_feature_dataframe(
+        method_type: str, feature_type: str, feature: np.ndarray
+    ):
+        """
+        method type별로 feature의 dataframe을 만드는 함수
+        """
         if method_type == METHOD_CLASSIFY:
-            onsets_arr = DataLabeling.get_onsets_arr(audio, path)
-            return DataProcessing.trim_audio_per_onset(audio, onsets_arr)
-        if method_type == METHOD_RHYTHM or method_type == METHOD_DETECT:
-            return DataProcessing.cut_chunk_audio(audio)
+            return pd.DataFrame([[feature.tolist()]], columns=["feature"])
+        if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
+            # 추출할 feature 개수
+            n_feature = FeatureExtractor._get_n_feature(
+                feature_type, FEATURE_PARAM[method_type][feature_type]
+            )
+            return pd.DataFrame(
+                feature,
+                columns=[feature_type[:8] + str(i + 1) for i in range(n_feature)],
+                dtype="float32",
+            )
 
     @staticmethod
     def _save_feature_file(
@@ -262,14 +343,17 @@ class FeatureExtractor:
             return feature_param["n_mels"]
 
     @staticmethod
-    def _init_combine_df(
-        method_type: str, feature_type: str, n_feature: int
-    ) -> pd.DataFrame:
+    def _init_combine_df(method_type: str, feature_type: str) -> pd.DataFrame:
         """
         -- dataframe 헤더 초기화
         """
-        if method_type == METHOD_CLASSIFY:  # feature + label 형식
-            return pd.DataFrame(columns=["feature", "label"])
+        # feature에서 한 frame에 들어있는 sample 개수
+        n_feature = FeatureExtractor._get_n_feature(
+            feature_type, FEATURE_PARAM[method_type][feature_type]
+        )
+
+        if method_type == METHOD_CLASSIFY:  # label = ['HH', 'ST', 'SD', 'KK'] + feature
+            return pd.DataFrame(columns=[v for _, v in CODE2DRUM.items()] + ["feature"])
         if method_type == METHOD_DETECT:
             return pd.DataFrame(
                 columns=[v for _, v in CODE2DRUM.items()]  # ['HH', 'ST', 'SD', 'KK']

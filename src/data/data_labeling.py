@@ -49,16 +49,11 @@ class DataLabeling:
         """
         -- method type과 data origin에 따른 data labeling 메소드
         """
-        if method_type == METHOD_CLASSIFY:
-            if DDM_OWN in path:
-                return DataLabeling._get_ddm_single_label(idx, path)
-            return DataLabeling._get_label_classify(path)
-
         if frame_length == 0:
             frame_length = len(audio) // hop_length
 
         # -- [instrument] --
-        if method_type == METHOD_DETECT:
+        if method_type in [METHOD_CLASSIFY, METHOD_DETECT]:
             onsets_arr = DataLabeling.get_onsets_instrument_arr(audio, path, idx)
             if DataLabeling._is_dict_all_empty(onsets_arr):
                 return False
@@ -128,7 +123,7 @@ class DataLabeling:
             return OnsetDetect.get_onsets_from_mid(label_path, start, end)
 
         if DRUM_KIT in path:
-            pass
+            return OnsetDetect.onset_detection(audio)
 
     @staticmethod
     def get_onsets_instrument_arr(

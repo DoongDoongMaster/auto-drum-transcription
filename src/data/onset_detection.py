@@ -400,11 +400,19 @@ class OnsetDetect:
             y=audio, sr=SAMPLE_RATE, hop_length=hop_length, aggregate=np.median
         )
         peaks = librosa.util.peak_pick(
-            onset_env, pre_max=3, post_max=3, pre_avg=3, post_avg=3, delta=5, wait=wait
+            onset_env,
+            pre_max=3,
+            post_max=3,
+            pre_avg=3,
+            post_avg=3,
+            delta=0.1,
+            wait=wait,
         )
         onset_times = librosa.frames_to_time(
             peaks, sr=SAMPLE_RATE, hop_length=hop_length
         )
+
+        OnsetDetect._show_onset_plot(onset_env, peaks)
 
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_times, start, end)
         return onset_sec_list

@@ -82,7 +82,7 @@ class BaseModel:
     def _get_x_y(method_type: str, feature_df: pd.DataFrame):
         if method_type == METHOD_CLASSIFY:
             X = np.array(feature_df.feature.tolist())
-            y = np.array(feature_df.label.tolist())
+            y = feature_df[["HH", "ST", "SD", "KK"]].to_numpy()
             return X, y
         if method_type in METHOD_DETECT:
             # label(HH, ST, SD, KK onset 여부) | mel-1, mel-2, mel-3, ...

@@ -4,8 +4,11 @@ import tensorflow as tf
 from typing import List
 
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Bidirectional, SimpleRNN, Flatten, Dense
+from tensorflow.keras.layers import Dense, GRU
 from tensorflow.keras.optimizers import Adam
+from data.data_labeling import DataLabeling
+from sklearn.preprocessing import StandardScaler
+
 
 from model.base_model import BaseModel
 from data.rhythm_detection import RhythmDetection
@@ -13,11 +16,14 @@ from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 from constant import (
     METHOD_DETECT,
-    STFT,
+    MEL_SPECTROGRAM,
     MILLISECOND,
     CHUNK_LENGTH,
     SAMPLE_RATE,
-    FEATURE_PARAM,
+)
+from tensorflow.keras.layers import (
+    Dense,
+    GRU,
 )
 
 
@@ -30,10 +36,10 @@ class SeparateDetectModel(BaseModel):
             opt_learning_rate=opt_learning_rate,
             batch_size=batch_size,
             method_type=METHOD_DETECT,
-            feature_type=STFT,
+            feature_type=MEL_SPECTROGRAM,
         )
         self.unit_number = unit_number
-        self.predict_standard = 0.8
+        self.predict_standard = 0.5
         # STFT feature type
         self.n_rows = (CHUNK_LENGTH * SAMPLE_RATE) // self.feature_param["hop_length"]
         self.n_columns = self.feature_param["n_fft"] // 2 + 1
@@ -44,17 +50,13 @@ class SeparateDetectModel(BaseModel):
 
     def input_reshape(self, data):
         # Implement input reshaping logic
-        return tf.reshape(
-            data,
-            [
-                -1,
-                self.n_rows,
-                self.n_columns,
-            ],
-        )
+        scaler = StandardScaler()
+        data = scaler.fit_transform(data)
+
+        return data.reshape((data.shape[0], data.shape[1], 1))
 
     def input_label_reshape(self, data):
-        return tf.reshape(data, [-1, self.n_rows * self.n_classes])
+        return data
 
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
@@ -70,34 +72,10 @@ class SeparateDetectModel(BaseModel):
         # Implement model creation logic
         self.model = Sequential()
 
-        self.model.add(
-            Bidirectional(
-                SimpleRNN(
-                    self.unit_number,
-                    return_sequences=True,
-                    input_shape=(self.n_rows, self.n_columns),
-                    activation="tanh",
-                )
-            )
-        )
-        self.model.add(
-            Bidirectional(
-                SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
-            )
-        )
-        self.model.add(
-            Bidirectional(
-                SimpleRNN(self.unit_number, return_sequences=True, activation="tanh")
-            )
-        )
+        self.model.add(GRU(units=128, activation="tanh", input_shape=(128, 1)))
+        # self.model.add(GRU(64, activation="tanh"))
+        self.model.add(Dense(4, activation="sigmoid"))
 
-        # Flatten layer
-        self.model.add(Flatten())
-
-        # dense layer
-        self.model.add(Dense(self.n_rows * self.n_classes, activation="softmax"))
-
-        self.model.build((None, self.n_rows, self.n_columns))
         self.model.summary()
 
         # compile the self.model
@@ -127,21 +105,23 @@ class SeparateDetectModel(BaseModel):
         drum_instrument = []
 
         for i in range(len(predict_data)):
-            is_onset = False  # predict standard 이상 (1) 인 j가 하나라도 있다면 onset으로 판단
+            is_onset = (
+                False  # predict standard 이상 (1) 인 j가 하나라도 있다면 onset으로 판단
+            )
             drums = []
             for j in range(self.n_classes):
                 if predict_data[i][j] > self.predict_standard:
                     is_onset = True
                     drums.append(j)
             if is_onset:
-                onsets_arr.append(i / SAMPLE_RATE)
+                onsets_arr.append(i * self.hop_length / SAMPLE_RATE)
                 drum_instrument.append([len(onsets_arr), drums])
 
         return onsets_arr, drum_instrument
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
-        audio, _ = librosa.load(wav_path, sr=SAMPLE_RATE)
+        audio = SeparateDetectModel.load_audio(wav_path)
 
         # -- cut delay
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
@@ -157,8 +137,7 @@ class SeparateDetectModel(BaseModel):
         # -- predict
         predict_data = self.model.predict(audio_feature)
 
-        # -- output reshape
-        predict_data = self.output_reshape(predict_data)[0]
+        DataLabeling.show_label_plot(predict_data)
 
         # -- get onsets
         onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

@@ -4,7 +4,7 @@ import tensorflow as tf
 from typing import List
 
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Dense, GRU
+from tensorflow.keras.layers import Dense, GRU, BatchNormalization
 from tensorflow.keras.optimizers import Adam
 from data.data_labeling import DataLabeling
 from sklearn.preprocessing import StandardScaler
@@ -72,8 +72,16 @@ class SeparateDetectModel(BaseModel):
         # Implement model creation logic
         self.model = Sequential()
 
-        self.model.add(GRU(units=128, activation="tanh", input_shape=(128, 1)))
-        # self.model.add(GRU(64, activation="tanh"))
+        self.model.add(
+            GRU(
+                units=128,
+                activation="tanh",
+                input_shape=(128, 1),
+                # return_sequences=True,
+                # return_state=True,
+            )
+        )
+        self.model.add(BatchNormalization())
         self.model.add(Dense(4, activation="sigmoid"))
 
         self.model.summary()

@@ -91,7 +91,9 @@ class AudioToFeature:
         ax.set(title="feature spectrogram")
 
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/feature-{date_time}.png")
         plt.show()
 
@@ -115,7 +117,10 @@ class AudioToFeature:
         -- mfcc feature 추출
         """
         mfccs = librosa.feature.mfcc(
-            y=audio, sr=SAMPLE_RATE, n_mfcc=feature_param["n_mfcc"]
+            y=audio,
+            sr=SAMPLE_RATE,
+            n_mfcc=feature_param["n_mfcc"],
+            hop_length=feature_param["hop_length"],
         )
         return mfccs
 

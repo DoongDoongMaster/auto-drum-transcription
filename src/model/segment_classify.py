@@ -12,7 +12,14 @@ from data.data_processing import DataProcessing
 from data.rhythm_detection import RhythmDetection
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
-from constant import METHOD_CLASSIFY, MFCC, MILLISECOND, SAMPLE_RATE, CLASSIFY_DURATION
+from constant import (
+    METHOD_CLASSIFY,
+    MFCC,
+    MILLISECOND,
+    SAMPLE_RATE,
+    CLASSIFY_DURATION,
+    PKL,
+)
 
 
 class SegmentClassifyModel(BaseModel):
@@ -22,6 +29,7 @@ class SegmentClassifyModel(BaseModel):
         opt_learning_rate=0.001,
         batch_size=20,
         feature_type=MFCC,
+        feature_extension=PKL,
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -29,6 +37,7 @@ class SegmentClassifyModel(BaseModel):
             batch_size=batch_size,
             method_type=METHOD_CLASSIFY,
             feature_type=feature_type,
+            feature_extension=feature_extension,
         )
         self.predict_standard = 0.5
         self.n_row = self.feature_param["n_mfcc"]

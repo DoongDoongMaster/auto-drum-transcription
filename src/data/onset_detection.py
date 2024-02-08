@@ -90,7 +90,7 @@ class OnsetDetect:
         filter_onset = filter_onset[(filter_onset >= start) & (filter_onset < end)]
         result = filter_onset - start  # start 빼서 0초부터 시작으로 맞추기
 
-        np.set_printoptions(precision=2, threshold=5)
+        np.set_printoptions(precision=2)
         print(f"-- ! {start} sec ~ {end} sec 파생한 onsets: ", result)
         return result
 

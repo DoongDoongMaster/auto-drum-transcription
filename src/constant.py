@@ -44,7 +44,7 @@ METHOD_RHYTHM = "rhythm"
 SAMPLE_RATE = 44100
 
 # -- 오디오 자를 시, onset 기준 왼쪽, 오른쪽으로 몇 초 자를지 (단위: sec)
-ONSET_DURATION_LEFT = 0.01
+ONSET_DURATION_LEFT = 0.005
 ONSET_DURATION_RIGHT = 0.5
 
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
@@ -135,6 +135,7 @@ FEATURE_PARAM = {
             **FEATURE_PARAM_BASIC,
             "n_mfcc": 40,
             "n_channels": 1,
+            "hop_length": 882,
         },
         STFT: {**FEATURE_PARAM_BASIC},
         MEL_SPECTROGRAM: {

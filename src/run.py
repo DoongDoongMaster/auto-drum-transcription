@@ -74,6 +74,9 @@ separate_detect.train()
 separate_detect.evaluate()
 separate_detect.save()
 # print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
+# print(separate_detect.predict("../data/test/WaveDrum02_01#HH.wav", 100, 0))
+# print(separate_detect.predict("../data/test/WaveDrum02_01#SD.wav", 100, 0))
+# print(separate_detect.predict("../data/test/WaveDrum02_01#KD.wav", 100, 0))
 
 
 # ---------------------------------------------------------------------------------------

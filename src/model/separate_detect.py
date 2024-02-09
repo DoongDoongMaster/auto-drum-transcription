@@ -4,7 +4,14 @@ import tensorflow as tf
 from typing import List
 
 from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Dense, GRU, BatchNormalization
+from tensorflow.keras.layers import (
+    Dense,
+    GRU,
+    BatchNormalization,
+    LSTM,
+    InputLayer,
+    Dropout,
+)
 from tensorflow.keras.optimizers import Adam
 from data.data_labeling import DataLabeling
 from sklearn.preprocessing import StandardScaler
@@ -72,17 +79,37 @@ class SeparateDetectModel(BaseModel):
         # Implement model creation logic
         self.model = Sequential()
 
-        self.model.add(
-            GRU(
-                units=128,
-                activation="tanh",
-                input_shape=(128, 1),
-                # return_sequences=True,
-                # return_state=True,
-            )
-        )
-        self.model.add(BatchNormalization())
-        self.model.add(Dense(4, activation="sigmoid"))
+        # self.model.add(
+        #     GRU(
+        #         units=128,
+        #         activation="tanh",
+        #         input_shape=(128, 1),
+        #         # return_sequences=True,
+        #         # return_state=True,
+        #     )
+        # )
+        # self.model.add(BatchNormalization())
+        # self.model.add(Dense(1, activation="sigmoid"))
+
+        # mel_spec_shape는 mel spectrogram의 형태에 따라 정의
+        self.model.add(InputLayer(input_shape=(128, 1)))
+
+        # 첫 번째 LSTM 레이어
+        self.model.add(LSTM(64, return_sequences=True))
+        self.model.add(Dropout(0.2))  # Dropout 추가
+
+        # 두 번째 LSTM 레이어
+        self.model.add(LSTM(64))
+        self.model.add(Dropout(0.2))  # Dropout 추가
+
+        # Dense 레이어
+        self.model.add(Dense(64, activation="relu"))
+        self.model.add(Dropout(0.5))  # Dropout 추가
+
+        # 출력 레이어
+        self.model.add(Dense(4, activation="sigmoid"))  # 이진 분류를 위한 출력 레이어
+
+        # ---------------------------------------------
 
         self.model.summary()
 

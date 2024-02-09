@@ -11,6 +11,9 @@ from tensorflow.keras.layers import (
     LSTM,
     InputLayer,
     Dropout,
+    Flatten,
+    Bidirectional,
+    SimpleRNN,
 )
 from tensorflow.keras.optimizers import Adam
 from data.data_labeling import DataLabeling
@@ -91,25 +94,62 @@ class SeparateDetectModel(BaseModel):
         # self.model.add(BatchNormalization())
         # self.model.add(Dense(1, activation="sigmoid"))
 
-        # mel_spec_shape는 mel spectrogram의 형태에 따라 정의
-        self.model.add(InputLayer(input_shape=(128, 1)))
+        # -------------------------------------------------------------
 
-        # 첫 번째 LSTM 레이어
-        self.model.add(LSTM(64, return_sequences=True))
-        self.model.add(Dropout(0.2))  # Dropout 추가
+        # # 첫 번째 LSTM 레이어
+        # self.model.add(
+        #     LSTM(
+        #         128,
+        #         batch_input_shape=(30, 128, 4),
+        #         # input_shape=(128, 128),
+        #         return_sequences=True,
+        #         stateful=True,
+        #     )
+        # )
+        # self.model.add(Dropout(0.2))  # Dropout 추가
 
-        # 두 번째 LSTM 레이어
-        self.model.add(LSTM(64))
-        self.model.add(Dropout(0.2))  # Dropout 추가
+        # # 두 번째 LSTM 레이어
+        # self.model.add(
+        #     LSTM(
+        #         64,
+        #         return_sequences=True,
+        #     ),
+        # )
+        # self.model.add(Dropout(0.2))  # Dropout 추가
 
-        # Dense 레이어
-        self.model.add(Dense(64, activation="relu"))
-        self.model.add(Dropout(0.5))  # Dropout 추가
+        # # Dense 레이어
+        # self.model.add(Dense(64, activation="tanh"))
+        # self.model.add(Dropout(0.5))  # Dropout 추가
 
-        # 출력 레이어
-        self.model.add(Dense(4, activation="sigmoid"))  # 이진 분류를 위한 출력 레이어
+        # # 출력 레이어
+        # self.model.add(Dense(4, activation="sigmoid"))  # 이진 분류를 위한 출력 레이어
 
         # ---------------------------------------------
+
+        self.model.add(
+            Bidirectional(
+                SimpleRNN(
+                    128,
+                    return_sequences=True,
+                    input_shape=(self.n_rows, self.n_columns),
+                    activation="tanh",
+                )
+            )
+        )
+        self.model.add(
+            Bidirectional(SimpleRNN(128, return_sequences=True, activation="tanh"))
+        )
+        self.model.add(
+            Bidirectional(SimpleRNN(128, return_sequences=True, activation="tanh"))
+        )
+
+        # Flatten layer
+        self.model.add(Flatten())
+
+        # dense layer
+        self.model.add(Dense(self.n_rows * self.n_classes, activation="softmax"))
+
+        self.model.build((None, self.n_rows, self.n_columns))
 
         self.model.summary()
 

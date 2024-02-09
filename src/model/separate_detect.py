@@ -1,3 +1,4 @@
+from pyexpat import model
 import librosa
 import tensorflow as tf
 
@@ -14,6 +15,7 @@ from tensorflow.keras.layers import (
     Flatten,
     Bidirectional,
     SimpleRNN,
+    TimeDistributed,
 )
 from tensorflow.keras.optimizers import Adam
 from data.data_labeling import DataLabeling
@@ -62,10 +64,19 @@ class SeparateDetectModel(BaseModel):
         # Implement input reshaping logic
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
+        chunk_size = 1200
+        data = BaseModel.split_data(data, chunk_size)
 
-        return data.reshape((data.shape[0], data.shape[1], 1))
+        return data
+
+        # return data.reshape(data.shape[0], 1, data.shape[1])
 
     def input_label_reshape(self, data):
+        scaler = StandardScaler()
+        data = scaler.fit_transform(data)
+        chunk_size = 1200
+        data = BaseModel.split_data(data, chunk_size)
+
         return data
 
     def output_reshape(self, data):
@@ -79,84 +90,36 @@ class SeparateDetectModel(BaseModel):
         self.y_test = self.input_label_reshape(self.y_test)
 
     def create(self):
-        # Implement model creation logic
         self.model = Sequential()
+        # ------------------------------------------------------------
+        # self.model.add(InputLayer(input_shape=(128, 1)))
+        # self.model.add(LSTM(128))
 
-        # self.model.add(
-        #     GRU(
-        #         units=128,
-        #         activation="tanh",
-        #         input_shape=(128, 1),
-        #         # return_sequences=True,
-        #         # return_state=True,
-        #     )
-        # )
-        # self.model.add(BatchNormalization())
-        # self.model.add(Dense(1, activation="sigmoid"))
-
-        # -------------------------------------------------------------
-
-        # # 첫 번째 LSTM 레이어
         # self.model.add(
         #     LSTM(
         #         128,
-        #         batch_input_shape=(30, 128, 4),
-        #         # input_shape=(128, 128),
         #         return_sequences=True,
-        #         stateful=True,
+        #         input_shape=(self.x_train[1], self.x_train[2]),
         #     )
         # )
-        # self.model.add(Dropout(0.2))  # Dropout 추가
-
-        # # 두 번째 LSTM 레이어
-        # self.model.add(
-        #     LSTM(
-        #         64,
-        #         return_sequences=True,
-        #     ),
-        # )
-        # self.model.add(Dropout(0.2))  # Dropout 추가
-
-        # # Dense 레이어
-        # self.model.add(Dense(64, activation="tanh"))
-        # self.model.add(Dropout(0.5))  # Dropout 추가
-
-        # # 출력 레이어
-        # self.model.add(Dense(4, activation="sigmoid"))  # 이진 분류를 위한 출력 레이어
-
-        # ---------------------------------------------
+        # self.model.add(Dropout(0.25))
+        # self.model.add(Bidirectional(LSTM(128)))
+        # self.model.add(Dropout(0.25))
 
         self.model.add(
-            Bidirectional(
-                SimpleRNN(
-                    128,
-                    return_sequences=True,
-                    input_shape=(self.n_rows, self.n_columns),
-                    activation="tanh",
-                )
-            )
-        )
-        self.model.add(
-            Bidirectional(SimpleRNN(128, return_sequences=True, activation="tanh"))
-        )
-        self.model.add(
-            Bidirectional(SimpleRNN(128, return_sequences=True, activation="tanh"))
-        )
+            LSTM(64, input_shape=(1200, 128), return_sequences=True)
+        )  # 64는 LSTM 레이어의 유닛 수로 조절 가능
 
-        # Flatten layer
-        self.model.add(Flatten())
-
-        # dense layer
-        self.model.add(Dense(self.n_rows * self.n_classes, activation="softmax"))
-
-        self.model.build((None, self.n_rows, self.n_columns))
+        # ------------------------------------------------------------
+        self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+        # self.model.add(Dense(4, activation="softmax"))
 
         self.model.summary()
 
         # compile the self.model
         opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
-            loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
+            loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
         )
 
     """
@@ -208,6 +171,7 @@ class SeparateDetectModel(BaseModel):
 
         # -- input reshape
         audio_feature = self.input_reshape(audio_feature)
+        print("dㅇ러ㅏㅣㅇ리ㅓㅏㅣㅁ;ㅏ이11!<<<>>>>>>", audio_feature.shape)
 
         # -- predict
         predict_data = self.model.predict(audio_feature)

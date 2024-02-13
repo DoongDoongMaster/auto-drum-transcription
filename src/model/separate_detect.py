@@ -64,8 +64,8 @@ class SeparateDetectModel(BaseModel):
         # Implement input reshaping logic
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
-        chunk_size = 1200
-        data = BaseModel.split_data(data, chunk_size)
+        # chunk_size = 400
+        # data = BaseModel.split_data(data, chunk_size)
 
         return data
 
@@ -74,8 +74,8 @@ class SeparateDetectModel(BaseModel):
     def input_label_reshape(self, data):
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
-        chunk_size = 1200
-        data = BaseModel.split_data(data, chunk_size)
+        # chunk_size = 400
+        # data = BaseModel.split_data(data, chunk_size)
 
         return data
 
@@ -106,13 +106,17 @@ class SeparateDetectModel(BaseModel):
         # self.model.add(Bidirectional(LSTM(128)))
         # self.model.add(Dropout(0.25))
 
-        self.model.add(
-            LSTM(64, input_shape=(1200, 128), return_sequences=True)
-        )  # 64는 LSTM 레이어의 유닛 수로 조절 가능
+        # self.model.add(
+        #     LSTM(64, input_shape=(400, 128), return_sequences=True)
+        # )  # 64는 LSTM 레이어의 유닛 수로 조절 가능
+
+        # # ------------------------------------------------------------
+        # self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+        # # self.model.add(Dense(4, activation="softmax"))
 
         # ------------------------------------------------------------
-        self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
-        # self.model.add(Dense(4, activation="softmax"))
+        self.model.add(LSTM(units=128, input_shape=(128, 1)))
+        self.model.add(Dense(units=4, activation="softmax"))
 
         self.model.summary()
 
@@ -175,13 +179,15 @@ class SeparateDetectModel(BaseModel):
 
         # -- predict
         predict_data = self.model.predict(audio_feature)
+        print("아아아아아ㅏㅏ아아!!!!!!!!!!!!!!!>>>", predict_data.shape)
 
         DataLabeling.show_label_plot(predict_data)
 
-        # -- get onsets
-        onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)
+        # # -- get onsets
+        # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)
 
-        # -- rhythm
-        bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
+        # # -- rhythm
+        # bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
 
-        return {"instrument": drum_instrument, "rhythm": bar_rhythm}
+        # return {"instrument": drum_instrument, "rhythm": bar_rhythm}
+        # return NULL

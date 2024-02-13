@@ -89,38 +89,43 @@ class SeparateDetectModel(BaseModel):
 
     def create(self):
         self.model = Sequential()
-        # ------------------------------------------------------------
-        # self.model.add(InputLayer(input_shape=(128, 1)))
-        # self.model.add(LSTM(128))
+        self.model.add(
+            Bidirectional(
+                GRU(
+                    128,
+                    return_sequences=True,
+                    input_shape=(100, 128),
+                    activation="sigmoid",
+                    dropout=0.25,
+                )
+            )
+        )
+        self.model.add(
+            Bidirectional(
+                GRU(
+                    256,
+                    return_sequences=True,
+                    activation="sigmoid",
+                    dropout=0.25,
+                )
+            )
+        )
 
-        # self.model.add(
-        #     LSTM(
-        #         128,
-        #         return_sequences=True,
-        #         input_shape=(self.x_train[1], self.x_train[2]),
-        #     )
-        # )
-        # self.model.add(Dropout(0.25))
-        # self.model.add(Bidirectional(LSTM(128)))
-        # self.model.add(Dropout(0.25))
-
-        # self.model.add(
-        #     LSTM(64, input_shape=(400, 128), return_sequences=True)
-        # )  # 64는 LSTM 레이어의 유닛 수로 조절 가능
-
-        # # ------------------------------------------------------------
+        # dense layer
+        self.model.add(Dense(4, activation="sigmoid"))
         # self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
-        # # self.model.add(Dense(4, activation="softmax"))
+
+        self.model.build((None, 100, 128))
 
         # ------------------------------------------------------------
         # -- input_shape=(timesteps, input_features)
-        self.model.add(LSTM(256, input_shape=(100, 128), return_sequences=True))
-        self.model.add(Dropout(0.3))
-        self.model.add(LSTM(512, return_sequences=True))
-        self.model.add(Dropout(0.3))
-        self.model.add(Dense(256))
-        self.model.add(Dropout(0.3))
-        self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+        # self.model.add(LSTM(256, input_shape=(100, 128), return_sequences=True))
+        # self.model.add(Dropout(0.3))
+        # self.model.add(LSTM(512, return_sequences=True))
+        # self.model.add(Dropout(0.3))
+        # self.model.add(Dense(256))
+        # self.model.add(Dropout(0.3))
+        # self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
         # self.model.add(Dense(4, activation="sigmoid"))
 
         self.model.summary()

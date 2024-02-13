@@ -15,6 +15,7 @@ from feature.audio_to_feature import AudioToFeature
 
 from constant import (
     CODE2DRUM,
+    DRUM2CODE,
     SAMPLE_RATE,
     MFCC,
     STFT,
@@ -137,13 +138,106 @@ class FeatureExtractor:
         하나의 path에 대한 feature와 label을 구하는 함수 (method type에 따라)
         """
         if method_type == METHOD_CLASSIFY:
-            return FeatureExtractor._extract_classify_feature(
+            return FeatureExtractor._extract_classify_feature_per_onsets(
                 audio, path, method_type, feature_type
             )
         if method_type in [METHOD_DETECT, METHOD_RHYTHM]:
             return FeatureExtractor._extract_non_classify_feature(
                 audio, path, method_type, feature_type
             )
+
+    @staticmethod
+    def _extract_classify_feature_per_onsets(
+        audio: np.ndarray, path: str, method_type: str, feature_type: str
+    ):
+        # dataframe 초기화
+        combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
+
+        # onsets 구하기
+        onsets_instrument = DataLabeling.get_onsets_instrument_arr(audio, path)
+
+        # onsets 초 별로 악기 있는 형태로 바꾸기
+        onsets_arr = FeatureExtractor._onsets_instrument_to_onsets_arr(
+            onsets_instrument
+        )
+
+        # 동시에 친 데이터로 치는 오프셋만큼 묶으면서 데이터 라벨링
+        onsets, label = FeatureExtractor._get_onsets_label_from_onsets(onsets_arr)
+
+        audios = DataProcessing.trim_audio_per_onset(audio, onsets)
+        DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
+
+        for i, ao in enumerate(audios):
+            feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
+            l = {}
+            for j in range(0, len(CODE2DRUM)):
+                l[CODE2DRUM[j]] = [label[i][j]]
+
+            print("------classify label------------", l)
+            # make dataframe
+            df = FeatureExtractor._make_dataframe(method_type, feature_type, feature, l)
+            # combine dataframe
+            combined_df = pd.concat([combined_df, df], ignore_index=True)
+
+        return combined_df
+
+    @staticmethod
+    def _get_onsets_label_from_onsets(onsets):
+        OFFSET = 0.035  # 몇 초 차이까지 동시에 친 것으로 볼 것인지
+        idx = 0
+        result_onsets = []
+        result_label = []
+        while True:
+            if idx >= len(onsets):
+                break
+
+            data = onsets[idx]
+            result_onsets.append(data["onset"])
+            temp_label = [data["drum"]]
+            if (
+                idx + 1 < len(onsets)
+                and onsets[idx + 1]["onset"] - data["onset"] <= OFFSET
+            ):
+                idx = idx + 1
+                temp_label.append(onsets[idx]["drum"])
+            if (
+                idx + 1 < len(onsets)
+                and onsets[idx + 1]["onset"] - data["onset"] <= OFFSET
+            ):
+                idx = idx + 1
+                temp_label.append(onsets[idx]["drum"])
+            idx = idx + 1
+
+            label = [0] * len(DRUM2CODE)
+            for d in temp_label:
+                label[DRUM2CODE[d]] = 1
+
+            result_label.append(label)
+
+        print("result_onsets-------------")
+        print(result_onsets)
+        print("result_label-------------")
+        print(result_label)
+
+        return result_onsets, result_label
+
+    @staticmethod
+    def _onsets_instrument_to_onsets_arr(
+        onsets_instrument: dict[str, List[float]]
+    ) -> List[dict[float, str]]:
+        """
+        -- 악기 별 onsets 배열이 있는 dictionary를 받아서 onset 기준 오름차순으로 풀어서 리턴해주는 함수
+        """
+        result = []
+        for drum, onsets_arr in onsets_instrument.items():
+            for onset in onsets_arr:
+                data = {"onset": onset, "drum": drum}
+                result.append(data)
+
+        sorted_result = sorted(result, key=lambda data: (data["onset"], data["drum"]))
+        print("sorted_result-------------")
+        print(sorted_result)
+        return sorted_result
 
     @staticmethod
     def _extract_classify_feature(

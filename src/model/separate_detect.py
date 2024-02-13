@@ -62,20 +62,18 @@ class SeparateDetectModel(BaseModel):
 
     def input_reshape(self, data):
         # Implement input reshaping logic
-        scaler = StandardScaler()
-        data = scaler.fit_transform(data)
-        # chunk_size = 400
-        # data = BaseModel.split_data(data, chunk_size)
+        # scaler = StandardScaler()
+        # data = scaler.fit_transform(data)
+        chunk_size = 100
+        data = BaseModel.split_data(data, chunk_size)
 
         return data
-
-        # return data.reshape(data.shape[0], 1, data.shape[1])
 
     def input_label_reshape(self, data):
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
-        # chunk_size = 400
-        # data = BaseModel.split_data(data, chunk_size)
+        chunk_size = 100
+        data = BaseModel.split_data(data, chunk_size)
 
         return data
 
@@ -85,9 +83,9 @@ class SeparateDetectModel(BaseModel):
     def create_dataset(self):
         super().create_dataset()
 
-        self.y_train = self.input_label_reshape(self.y_train)
-        self.y_val = self.input_label_reshape(self.y_val)
-        self.y_test = self.input_label_reshape(self.y_test)
+        # self.y_train = self.input_label_reshape(self.y_train)
+        # self.y_val = self.input_label_reshape(self.y_val)
+        # self.y_test = self.input_label_reshape(self.y_test)
 
     def create(self):
         self.model = Sequential()
@@ -115,15 +113,22 @@ class SeparateDetectModel(BaseModel):
         # # self.model.add(Dense(4, activation="softmax"))
 
         # ------------------------------------------------------------
-        self.model.add(LSTM(units=128, input_shape=(128, 1)))
-        self.model.add(Dense(units=4, activation="softmax"))
+        # -- input_shape=(timesteps, input_features)
+        self.model.add(LSTM(256, input_shape=(100, 128), return_sequences=True))
+        self.model.add(Dropout(0.3))
+        self.model.add(LSTM(512, return_sequences=True))
+        self.model.add(Dropout(0.3))
+        self.model.add(Dense(256))
+        self.model.add(Dropout(0.3))
+        self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+        # self.model.add(Dense(4, activation="sigmoid"))
 
         self.model.summary()
 
         # compile the self.model
         opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
-            loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"]
+            loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
         )
 
     """

@@ -142,9 +142,12 @@ class BaseModel:
         self.x_train = self.input_reshape(x_train_final)
         self.x_val = self.input_reshape(x_val_final)
         self.x_test = self.input_reshape(x_test)
-        self.y_train = y_train_final
-        self.y_val = y_val_final
-        self.y_test = y_test
+        self.y_train = self.input_reshape(y_train_final)
+        self.y_val = self.input_reshape(y_val_final)
+        self.y_test = self.input_reshape(y_test)
+        # self.y_train = y_train_final
+        # self.y_val = y_val_final
+        # self.y_test = y_test
 
         # -- print shape
         self.print_dataset_shape()

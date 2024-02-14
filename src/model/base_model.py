@@ -78,6 +78,10 @@ class BaseModel:
         # Implement input reshaping logic
         pass
 
+    def input_label_reshape(self, data) -> np.ndarray:
+        # Implement input reshaping logic
+        pass
+
     @staticmethod
     def _get_x_y(method_type: str, feature_df: pd.DataFrame):
         if method_type == METHOD_CLASSIFY:
@@ -123,7 +127,11 @@ class BaseModel:
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+            X,
+            y,
+            test_size=0.2,
+            random_state=42,
+            # stratify=y
         )
         del X
         del y
@@ -133,7 +141,7 @@ class BaseModel:
             y_train_temp,
             test_size=0.2,
             random_state=42,
-            stratify=y_train_temp,
+            # stratify=y_train_temp,
         )
         del x_train_temp
         del y_train_temp
@@ -142,9 +150,9 @@ class BaseModel:
         self.x_train = self.input_reshape(x_train_final)
         self.x_val = self.input_reshape(x_val_final)
         self.x_test = self.input_reshape(x_test)
-        self.y_train = self.input_reshape(y_train_final)
-        self.y_val = self.input_reshape(y_val_final)
-        self.y_test = self.input_reshape(y_test)
+        self.y_train = self.input_label_reshape(y_train_final)
+        self.y_val = self.input_label_reshape(y_val_final)
+        self.y_test = self.input_label_reshape(y_test)
         # self.y_train = y_train_final
         # self.y_val = y_val_final
         # self.y_test = y_test

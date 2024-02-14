@@ -1,6 +1,7 @@
 from pyexpat import model
 import librosa
 import tensorflow as tf
+import numpy as np
 
 from typing import List
 
@@ -16,6 +17,13 @@ from tensorflow.keras.layers import (
     Bidirectional,
     SimpleRNN,
     TimeDistributed,
+    GlobalAveragePooling1D,
+    Conv2D,
+    MaxPooling2D,
+    Conv1D,
+    MaxPooling1D,
+    Reshape,
+    GlobalAveragePooling2D,
 )
 from tensorflow.keras.optimizers import Adam
 from data.data_labeling import DataLabeling
@@ -62,17 +70,17 @@ class SeparateDetectModel(BaseModel):
 
     def input_reshape(self, data):
         # Implement input reshaping logic
-        # scaler = StandardScaler()
-        # data = scaler.fit_transform(data)
-        chunk_size = 100
+        scaler = StandardScaler()
+        data = scaler.fit_transform(data)
+        chunk_size = 600
         data = BaseModel.split_data(data, chunk_size)
 
-        return data
+        return np.expand_dims(data, axis=-1)
 
     def input_label_reshape(self, data):
         scaler = StandardScaler()
         data = scaler.fit_transform(data)
-        chunk_size = 100
+        chunk_size = 600
         data = BaseModel.split_data(data, chunk_size)
 
         return data
@@ -89,44 +97,44 @@ class SeparateDetectModel(BaseModel):
 
     def create(self):
         self.model = Sequential()
+
+        # --------------------------------------------------
+        # Convolutional layers
         self.model.add(
-            Bidirectional(
-                GRU(
-                    128,
-                    return_sequences=True,
-                    input_shape=(100, 128),
-                    activation="sigmoid",
-                    dropout=0.25,
-                )
+            Conv2D(
+                32,
+                (3, 3),
+                padding="same",
+                activation="relu",
+                input_shape=(600, 128, 1),
             )
         )
-        self.model.add(
-            Bidirectional(
-                GRU(
-                    256,
-                    return_sequences=True,
-                    activation="sigmoid",
-                    dropout=0.25,
-                )
-            )
-        )
+        self.model.add(BatchNormalization())
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+        self.model.add(BatchNormalization())
+        self.model.add(MaxPooling2D(pool_size=(1, 3)))
 
-        # dense layer
-        self.model.add(Dense(4, activation="sigmoid"))
-        # self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+        self.model.add(BatchNormalization())
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+        self.model.add(BatchNormalization())
+        self.model.add(MaxPooling2D(pool_size=(1, 3)))
 
-        self.model.build((None, 100, 128))
+        # # Recurrent layers (BiGRU)
+        self.model.add(Reshape((-1, 448)))
+        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
 
-        # ------------------------------------------------------------
-        # -- input_shape=(timesteps, input_features)
-        # self.model.add(LSTM(256, input_shape=(100, 128), return_sequences=True))
-        # self.model.add(Dropout(0.3))
-        # self.model.add(LSTM(512, return_sequences=True))
-        # self.model.add(Dropout(0.3))
-        # self.model.add(Dense(256))
-        # self.model.add(Dropout(0.3))
-        # self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+        # # # Fully connected layer
+        # self.model.add(Flatten())
+        # # self.model.add(GlobalAveragePooling2D())
+        self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+
         # self.model.add(Dense(4, activation="sigmoid"))
+
+        # --------------------------------------------------
+        # self.model.add(LSTM(256, input_shape=(600, 128), return_sequences=True))
 
         self.model.summary()
 

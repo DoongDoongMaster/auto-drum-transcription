@@ -250,6 +250,7 @@ DRUM_TYPES = {
         "chh",
         "ohh",
         42,
+        46,
     ],
     "ST": [
         "mt",

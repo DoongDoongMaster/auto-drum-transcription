@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pretty_midi
 import matplotlib.pyplot as plt
 
 from typing import List
@@ -271,7 +272,7 @@ class DataLabeling:
             label_path = ""
             try:
                 label_path = DataLabeling._get_label_path(audio_path, 1, "mid")
-                midi_data = pretty_midi.PrettyMIDI(midi_path)
+                midi_data = pretty_midi.PrettyMIDI(label_path)
             except:
                 label_path = DataLabeling._get_label_path(audio_path, 1, "midi")
             return label_path

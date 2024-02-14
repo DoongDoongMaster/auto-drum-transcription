@@ -78,8 +78,6 @@ class SeparateDetectModel(BaseModel):
         return np.expand_dims(data, axis=-1)
 
     def input_label_reshape(self, data):
-        scaler = StandardScaler()
-        data = scaler.fit_transform(data)
         chunk_size = 600
         data = BaseModel.split_data(data, chunk_size)
 

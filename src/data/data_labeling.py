@@ -268,7 +268,13 @@ class DataLabeling:
             return DataLabeling._get_label_path(audio_path, 3, "txt", "annotation")
 
         if E_GMD in audio_path:
-            return DataLabeling._get_label_path(audio_path, 1, "mid")
+            label_path = ""
+            try:
+                label_path = DataLabeling._get_label_path(audio_path, 1, "mid")
+                midi_data = pretty_midi.PrettyMIDI(midi_path)
+            except:
+                label_path = DataLabeling._get_label_path(audio_path, 1, "midi")
+            return label_path
 
     @staticmethod
     def _get_label_path(

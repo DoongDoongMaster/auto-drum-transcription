@@ -227,9 +227,9 @@ class FeatureExtractor:
 
             result_label.append(label)
 
-        print("result_onsets-------------")
-        for idx, result in enumerate(result_onsets):
-            print(idx + 1, result["duration"])
+        # print("result_onsets-------------")
+        # for idx, result in enumerate(result_onsets):
+        #     print(idx + 1, result["duration"])
         # print("result_label-------------")
         # print(result_label)
 
@@ -257,7 +257,7 @@ class FeatureExtractor:
         )
 
         audios = DataProcessing.trim_audio_per_onset(audio, onsets_time)
-        DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
+        # DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
 
         for i, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)

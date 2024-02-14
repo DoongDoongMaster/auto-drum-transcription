@@ -66,7 +66,7 @@ from constant import (
 #     f"../data/raw/{ENST}/drummer_1/audio/hi-hat/003_hits_medium-tom_sticks_x5.wav"
 # )
 # predict_test_data = f"../data/raw/{DDM_OWN}/pattern/P2/16/P2_16_0001.m4a"
-feature_path = f"{ROOT_PATH}/{RAW_PATH}"
+feature_path = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}"
 # # midi_path = "../data/raw/e-gmd-v1.0.0/drummer1/session2/8_jazz-march_176_beat_4-4.mid"
 # # OnsetDetect.get_onsets_instrument_from_mid(midi_path, end=5)
 predict_test_data = "../data/raw/ddm-own/pattern/P1/08/P1_08_0001.m4a"

@@ -169,7 +169,7 @@ class DataLabeling:
 
         if E_GMD in path:
             label_path = DataLabeling._get_label_path(path, 1, "mid")
-            label = OnsetDetect.get_onsets_instrument_from_mid(label_path)
+            label = OnsetDetect.get_onsets_instrument_from_mid(label_path, start, end)
 
         if DRUM_KIT in path:
             label = OnsetDetect.get_onsets_instrument_from_wav(

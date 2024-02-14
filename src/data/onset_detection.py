@@ -17,7 +17,7 @@ from essentia.standard import (
     Onsets,
 )
 
-from constant import DRUM_KIT, DRUM_MAP, SAMPLE_RATE, IMAGE_PATH
+from constant import DRUM_KIT, DRUM_MAP, SAMPLE_RATE, IMAGE_PATH, DRUM2CODE
 
 
 class OnsetDetect:
@@ -279,6 +279,30 @@ class OnsetDetect:
         return onset_dict
 
     @staticmethod
+    def get_onsets_instrument_all_from_txt(txt_path: str) -> List[dict]:
+        """
+        -- txt file에서 {”onset”: onset, “drum”: 악기} 를 원소로 가진 List 형태로 반환하는 함수
+        """
+        # Open the text file
+        with open(txt_path, "r") as file:
+            lines = file.readlines()
+
+        # -- ex) 2.674 mt => 2.674 / mt->ST
+        result_onsets = []
+        for line in lines:
+            parts = line.strip().split()
+            if len(parts) == 2:
+                onset_sec = float(parts[0])
+                drum_type = parts[1]
+
+                data = {"onset": onset_sec, "drum": -1}
+                if drum_type in DRUM_MAP:
+                    data["drum"] = DRUM2CODE[DRUM_MAP[drum_type]]
+                result_onsets.append(data)
+
+        return result_onsets
+
+    @staticmethod
     def _get_drum_track_from_mid(midi_data):
         # Find the drum track
         drum_track = next(
@@ -308,7 +332,7 @@ class OnsetDetect:
 
     @staticmethod
     def get_onsets_instrument_from_mid(
-        midi_path: str, start: float = 0, end: float = None
+        midi_path: str, start: float = 0, end: float = None, onset_dict={}
     ) -> dict[str, List[float]]:
         """
         -- midi file에서 드럼 악기별로 onset을 구하는 함수
@@ -316,27 +340,38 @@ class OnsetDetect:
         midi_data = pretty_midi.PrettyMIDI(midi_path)
         drum_track = OnsetDetect._get_drum_track_from_mid(midi_data)
 
-        # Define selected drum instruments (hi-hat, small tom, snare, kick)
-        midi_drum = {
-            "HH": [42],
-            "ST": [48, 50],
-            "SD": [38, 40],
-            "KK": [35, 36],
-        }
-
         # Dictionary to store onsets for each selected drum instrument
-        drum_onsets = {instrument: [] for instrument in midi_drum}
+        drum_onsets = onset_dict
 
         # 악기의 노트를 순회하며 onset을 찾음
         for note in drum_track.notes:
-            for drum, numbers in midi_drum.items():
-                if note.pitch in numbers:
-                    drum_onsets[drum].append(note.start)
+            if note.pitch in DRUM_MAP:
+                drum_onsets[DRUM_MAP[note.pitch]].append(note.start)
 
         drum_onsets = OnsetDetect._get_filtering_onsets_instrument(
             drum_onsets, start, end
         )
         return drum_onsets
+
+    @staticmethod
+    def get_onsets_instrument_all_from_mid(midi_path: str) -> List[dict]:
+        """
+        -- midi file에서 {”onset”: onset, “drum”: 악기} 를 원소로 가진 List 형태로 반환하는 함수
+        """
+        midi_data = pretty_midi.PrettyMIDI(midi_path)
+        drum_track = OnsetDetect._get_drum_track_from_mid(midi_data)
+
+        result_onsets = []
+        # 악기의 노트를 순회하며 onset을 찾음
+        for note in drum_track.notes:
+            data = {"onset": note.start, "drum": -1}
+            if note.pitch in DRUM_MAP:
+                data["drum"] = DRUM2CODE[DRUM_MAP[note.pitch]]
+            result_onsets.append(data)
+
+        print("-- all instrument mid -- ", result_onsets)
+
+        return result_onsets
 
     @staticmethod
     def get_onsets_instrument_from_wav(
@@ -362,7 +397,7 @@ class OnsetDetect:
         for drum, words in wav_drum.items():
             if any((w in wav_path) for w in words):
                 if DRUM_KIT in wav_path:  # drum_kit
-                    onsets = onsets[0]
+                    onsets = [onsets[0]]
                 onset_dict[drum] = onsets
                 break
 
@@ -426,6 +461,7 @@ class OnsetDetect:
         audio: np.ndarray,
         start: float = 0,
         end: float = None,
+        hop_length: int = 441,
     ) -> List[float]:
         """
         -- librosa 라이브러리 사용해서 onset 구하기
@@ -433,19 +469,20 @@ class OnsetDetect:
         onset_env = librosa.onset.onset_strength(
             y=audio,
             sr=SAMPLE_RATE,
-            hop_length=441,
+            hop_length=hop_length,
             lag=1,
-            # aggregate=np.median,
-            # n_fft=2048,
-            # fmax=8000,
-            # n_mels=256,
+            aggregate=np.median,
+            n_fft=2048,
+            fmax=8000,
+            n_mels=256,
         )
         onset_frames = librosa.onset.onset_detect(
-            onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=441
+            onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=hop_length
         )
         onset_times = librosa.frames_to_time(
-            onset_frames, sr=SAMPLE_RATE, hop_length=441
+            onset_frames, sr=SAMPLE_RATE, hop_length=hop_length
         )
+        onset_times = onset_times - 0.01
 
         # OnsetDetect._show_onset_plot(onset_env, onset_frames)
 

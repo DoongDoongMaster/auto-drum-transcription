@@ -20,6 +20,7 @@ from constant import (
     METHOD_DETECT,
     MEL_SPECTROGRAM,
     CSV,
+    METHOD_RHYTHM,
 )
 
 # midi_path = (
@@ -65,21 +66,30 @@ from constant import (
 #     f"../data/raw/{ENST}/drummer_1/audio/hi-hat/003_hits_medium-tom_sticks_x5.wav"
 # )
 # predict_test_data = f"../data/raw/{DDM_OWN}/pattern/P2/16/P2_16_0001.m4a"
-feature_path = f"{ROOT_PATH}/{RAW_PATH}/{IDMT}"
-# midi_path = "../data/raw/e-gmd-v1.0.0/drummer1/session2/8_jazz-march_176_beat_4-4.mid"
-# OnsetDetect.get_onsets_instrument_from_mid(midi_path, end=5)
-predict_test_data = "../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
-segment_classify = SegmentClassifyModel(feature_extension=CSV)
-segment_classify.extract_feature(feature_path)
-segment_classify.run()
-print(segment_classify.predict(predict_test_data, 100, 0))
+# feature_path = f"{ROOT_PATH}/{RAW_PATH}/{IDMT}"
+# # midi_path = "../data/raw/e-gmd-v1.0.0/drummer1/session2/8_jazz-march_176_beat_4-4.mid"
+# # OnsetDetect.get_onsets_instrument_from_mid(midi_path, end=5)
+# predict_test_data = "../data/raw/ddm-own/pattern/P1/08/P1_08_0001.m4a"
+# segment_classify = SegmentClassifyModel(feature_extension=CSV)
+# # segment_classify.extract_feature(feature_path)
+# # segment_classify.run()
+# print(segment_classify.predict(predict_test_data, 100, 0))
 
 # -------------------
 # Feature Extract
 # data_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/")
-# data_paths = ["../data/raw/e-gmd-v1.0.0/drummer1/session2/5_jazz_200_beat_3-4.wav"]
-# FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MFCC, PKL)
-# FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MFCC, PKL)
+data_paths = [
+    # f"../data/raw/{DDM_OWN}/per-drum/HH/08/HH_08_0002.m4a",
+    f"../data/raw/{DDM_OWN}/per-drum/KK/08/KK_08_0002.m4a",
+    # "../data/raw/drum-kit-sound/overheads/Overhead Sample 1.wav",
+    # "../data/raw/e-gmd-v1.0.0/drummer1/session2/5_jazz_200_beat_3-4.wav",
+    # "../data/raw/e-gmd-v1.0.0/drummer1/session2/94_funk-rock_92_fill_4-4.wav",
+    # "../data/raw/ENST-drums-public/drummer_1/audio/hi-hat/001_hits_snare-drum_sticks_x6.wav",
+    # "../data/raw/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_01#MIX.wav",
+    # "../data/raw/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_57#KD.wav",
+]
+FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MFCC, PKL)
+FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MFCC, PKL)
 
 # data = FeatureExtractor._load_feature_one_file(
 #     "../data/processed-feature/classify/mfcc/mfcc-2024-02-08_11-15-29-0000.csv", CSV

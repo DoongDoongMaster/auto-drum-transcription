@@ -44,7 +44,7 @@ METHOD_RHYTHM = "rhythm"
 SAMPLE_RATE = 44100
 
 # -- 오디오 자를 시, onset 기준 왼쪽, 오른쪽으로 몇 초 자를지 (단위: sec)
-ONSET_DURATION_LEFT = 0
+ONSET_DURATION_LEFT = 0.03
 ONSET_DURATION_RIGHT = 0.5
 
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
@@ -246,18 +246,25 @@ DRUM_TYPES에 추가하기
 => DRUM_MAP을 접근해서 사용 {"sd": "SD", "mt": "ST", "bd": "KK", "chh": "HH", "ohh": "HH"}
 """
 DRUM_TYPES = {
-    "SD": [
-        "sd",
-    ],
-    "ST": [
-        "mt",
-    ],
-    "KK": [
-        "bd",
-    ],
     "HH": [
         "chh",
         "ohh",
+        42,
+    ],
+    "ST": [
+        "mt",
+        48,
+        50,
+    ],
+    "SD": [
+        "sd",
+        38,
+        40,
+    ],
+    "KK": [
+        "bd",
+        35,
+        36,
     ],
 }
 DRUM_MAP = {}

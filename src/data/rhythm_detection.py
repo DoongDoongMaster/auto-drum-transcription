@@ -76,7 +76,7 @@ class RhythmDetection:
         onset_full_audio = (
             onsets_arr
             if onsets_arr is not None
-            else OnsetDetect.onset_detection(audio_wav)
+            else OnsetDetect.get_onsets_using_librosa(audio_wav)
         )  # 전체 wav에 대한 onset time
 
         if onset_full_audio is None:

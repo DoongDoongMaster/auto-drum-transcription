@@ -70,12 +70,12 @@ class SeparateDetectModel(BaseModel):
 
     def input_reshape(self, data):
         # Implement input reshaping logic
-        scaler = StandardScaler()
-        data = scaler.fit_transform(data)
+        # scaler = StandardScaler()
+        # data = scaler.fit_transform(data)
         chunk_size = 600
         data = BaseModel.split_data(data, chunk_size)
-
-        return np.expand_dims(data, axis=-1)
+        return data
+        # return np.expand_dims(data, axis=-1)
 
     def input_label_reshape(self, data):
         chunk_size = 600
@@ -121,8 +121,8 @@ class SeparateDetectModel(BaseModel):
         # # Recurrent layers (BiGRU)
         self.model.add(Reshape((-1, 448)))
         self.model.add(Bidirectional(GRU(50, return_sequences=True)))
-        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
-        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
 
         # # # Fully connected layer
         # self.model.add(Flatten())

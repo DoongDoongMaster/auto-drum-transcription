@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from typing import List
 from datetime import datetime
 
+from sklearn.preprocessing import MinMaxScaler
+
 from data.onset_detection import OnsetDetect
 
 from constant import (
@@ -183,20 +185,62 @@ class DataLabeling:
         """
         -- label 그래프
         """
-        data = np.array(label)
-        data = data.reshape(data.shape[0], -1)
+        # print("label>>>ㅇㅁㄴ러ㅣㅏㄴ머리먼;!!!", label.shape)
+        # data = np.array(label)
+        # num_steps = data.shape[1]
+        # num_classes = data.shape[2]
 
-        for i in range(data.shape[1]):
-            plt.subplot(data.shape[1], 1, i + 1)
-            plt.plot(data[:, i])
+        # fig, axes = plt.subplots(num_classes, 1, figsize=(6, 2 * num_classes))
 
-        plt.title("Model Label")
-        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
+        # for class_idx in range(num_classes):
+        #     axes[class_idx].plot(
+        #         data[0, :, class_idx], label=f"{class_labels[class_idx]} Probability"
+        #     )
+
+        #     axes[class_idx].set_xlabel("Time Step")
+        #     axes[class_idx].set_ylabel("Probability")
+        #     axes[class_idx].legend()
+        # ------------------------------------------------------------
+        class_labels = ["HH", "ST", "SD", "KK"]
+
+        # 데이터를 (1700, 4)로 reshape
+        label = label.reshape(-1, 4)
+
+        scaler = MinMaxScaler()
+        label = scaler.fit_transform(label)
+
+        # 그래프 그리기
+        fig, axs = plt.subplots(4, 1, figsize=(15, 15), sharex=True, sharey=True)
+
+        for class_index in range(label.shape[1]):
+            axs[class_index].plot(
+                label[:, class_index], label=class_labels[class_index], linewidth=2
+            )
+            axs[class_index].set_title(f"Class: {class_labels[class_index]}")
+
+        plt.xlabel("Time")
+        plt.ylabel("Normalized Class Value")
+        plt.tight_layout()
         date_time = datetime.now().strftime(
             "%Y-%m-%d_%H-%M-%S"
         )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
         plt.show()
+
+        # data = np.array(label)
+        # data = data.reshape(data.shape[0], -1)
+
+        # for i in range(data.shape[1]):
+        #     plt.subplot(data.shape[1], 1, i + 1)
+        #     plt.plot(data[:, i])
+
+        # plt.title("Model Label")
+        # os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
+        # date_time = datetime.now().strftime(
+        #     "%Y-%m-%d_%H-%M-%S"
+        # )  # 현재 날짜와 시간 가져오기
+        # plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
+        # plt.show()
 
     @staticmethod
     def show_label_onset_plot(label: List[float], onset: List[int]):
@@ -353,9 +397,10 @@ class DataLabeling:
             if onset_position >= frame_length:
                 break
 
-            soft_start_position = max(  # -- onset - offset
-                (onset_position - ONSET_OFFSET), 0
-            )
+            # soft_start_position = max(  # -- onset - offset
+            #     (onset_position - ONSET_OFFSET), 0
+            # )
+            soft_start_position = max((onset_position - 0), 0)  # -- onset - offset
             soft_end_position = min(  # -- onset + offset
                 onset_position + ONSET_OFFSET + 1, frame_length
             )

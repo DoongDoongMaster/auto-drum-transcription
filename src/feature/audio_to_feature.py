@@ -35,11 +35,10 @@ class AudioToFeature:
         -- feature type에 따라 feature 추출
         """
         feature_param = FEATURE_PARAM[method_type][feature_type]
-        frame_length = (CHUNK_LENGTH * SAMPLE_RATE) // feature_param["hop_length"]
-        if method_type == METHOD_CLASSIFY:
-            frame_length = (
-                int(CLASSIFY_DURATION * SAMPLE_RATE) // feature_param["hop_length"]
-            )
+        audio_length = (
+            CLASSIFY_DURATION if method_type == METHOD_CLASSIFY else CHUNK_LENGTH
+        )
+        frame_length = int(audio_length * SAMPLE_RATE) // feature_param["hop_length"]
 
         feature_extraction_functions = {
             MFCC: AudioToFeature._audio_to_mfcc,
@@ -91,7 +90,9 @@ class AudioToFeature:
         ax.set(title="feature spectrogram")
 
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 현재 날짜와 시간 가져오기
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/feature-{date_time}.png")
         plt.show()
 
@@ -115,7 +116,12 @@ class AudioToFeature:
         -- mfcc feature 추출
         """
         mfccs = librosa.feature.mfcc(
-            y=audio, sr=SAMPLE_RATE, n_mfcc=feature_param["n_mfcc"]
+            y=audio,
+            sr=SAMPLE_RATE,
+            n_mfcc=feature_param["n_mfcc"],
+            n_fft=feature_param["n_fft"],
+            win_length=feature_param["win_length"],
+            hop_length=feature_param["hop_length"],
         )
         return mfccs
 
@@ -126,10 +132,10 @@ class AudioToFeature:
         """
         stft = librosa.stft(
             y=audio,
-            n_fft=feature_param["n_fft"],
-            hop_length=feature_param["hop_length"],
-            win_length=feature_param["win_length"],
             window="hann",
+            n_fft=feature_param["n_fft"],
+            win_length=feature_param["win_length"],
+            hop_length=feature_param["hop_length"],
         )
         stft = np.abs(stft)
         return stft
@@ -142,13 +148,13 @@ class AudioToFeature:
         mel_spectrogram = librosa.feature.melspectrogram(
             y=audio,
             sr=SAMPLE_RATE,
-            n_fft=feature_param["n_fft"],
-            hop_length=feature_param["hop_length"],
-            win_length=feature_param["win_length"],
-            window="hann",
             n_mels=feature_param["n_mels"],
             fmin=feature_param["fmin"],
             fmax=feature_param["fmax"],
+            window="hann",
+            n_fft=feature_param["n_fft"],
+            win_length=feature_param["win_length"],
+            hop_length=feature_param["hop_length"],
         )
         return mel_spectrogram
 

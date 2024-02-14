@@ -2,6 +2,7 @@ import librosa
 import numpy as np
 import tensorflow as tf
 
+from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers, Sequential
 from tensorflow.keras.optimizers import Adam
 
@@ -10,7 +11,15 @@ from data.onset_detection import OnsetDetect
 from data.data_processing import DataProcessing
 from data.rhythm_detection import RhythmDetection
 from feature.audio_to_feature import AudioToFeature
-from constant import METHOD_CLASSIFY, MFCC, MILLISECOND, SAMPLE_RATE, CLASSIFY_DURATION
+from feature.feature_extractor import FeatureExtractor
+from constant import (
+    METHOD_CLASSIFY,
+    MFCC,
+    MILLISECOND,
+    SAMPLE_RATE,
+    CLASSIFY_DURATION,
+    PKL,
+)
 
 
 class SegmentClassifyModel(BaseModel):
@@ -20,6 +29,7 @@ class SegmentClassifyModel(BaseModel):
         opt_learning_rate=0.001,
         batch_size=20,
         feature_type=MFCC,
+        feature_extension=PKL,
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -27,6 +37,7 @@ class SegmentClassifyModel(BaseModel):
             batch_size=batch_size,
             method_type=METHOD_CLASSIFY,
             feature_type=feature_type,
+            feature_extension=feature_extension,
         )
         self.predict_standard = 0.5
         self.n_row = self.feature_param["n_mfcc"]
@@ -50,7 +61,45 @@ class SegmentClassifyModel(BaseModel):
         )
 
     def create_dataset(self):
-        return super().create_dataset()
+        """
+        -- load data from data file
+        -- Implement dataset split feature & label logic
+        """
+        # Implement dataset split feature & label logic
+        feature_df = FeatureExtractor.load_feature_file(
+            self.method_type, self.feature_type, self.feature_extension
+        )
+
+        # -- get X, y
+        X, y = BaseModel._get_x_y(self.method_type, feature_df)
+        del feature_df
+
+        # -- split train, val, test
+        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+        del X
+        del y
+
+        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
+            x_train_temp,
+            y_train_temp,
+            test_size=0.2,
+            random_state=42,
+        )
+        del x_train_temp
+        del y_train_temp
+
+        # input shape 조정
+        self.x_train = self.input_reshape(x_train_final)
+        self.x_val = self.input_reshape(x_val_final)
+        self.x_test = self.input_reshape(x_test)
+        self.y_train = y_train_final
+        self.y_val = y_val_final
+        self.y_test = y_test
+
+        # -- print shape
+        self.print_dataset_shape()
 
     def create(self):
         # Implement model creation logic
@@ -151,6 +200,7 @@ class SegmentClassifyModel(BaseModel):
         predict_data = self.model.predict(predict_data)
 
         print("-- ! classify 방법 예측 결과 ! --")
+        np.set_printoptions(precision=2, suppress=True)
         print(predict_data)
 
         return self.get_predict_result(predict_data)

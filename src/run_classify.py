@@ -3,6 +3,8 @@ from model.segment_classify import SegmentClassifyModel
 from data.onset_detection import OnsetDetect
 from data.data_processing import DataProcessing
 from data.data_labeling import DataLabeling
+from feature.audio_to_feature import AudioToFeature
+from feature.feature_extractor import FeatureExtractor
 from constant import (
     ROOT_PATH,
     RAW_PATH,
@@ -12,6 +14,12 @@ from constant import (
     SAMPLE_RATE,
     DDM_OWN,
     DRUM_KIT,
+    METHOD_CLASSIFY,
+    MFCC,
+    PKL,
+    METHOD_DETECT,
+    MEL_SPECTROGRAM,
+    CSV,
 )
 
 # midi_path = (
@@ -22,9 +30,10 @@ from constant import (
 # midi_path = f"../data/raw/{IDMT}/annotation_xml/RealDrum01_00#MIX.xml"
 # OnsetDetect.get_onsets_from_xml(midi_path)
 
-path = f"../data/raw/{DRUM_KIT}/kick/Bass Sample 1.wav"
-audio, _ = librosa.load(path, sr=SAMPLE_RATE)
-print(DataLabeling.get_onsets_instrument_arr(audio, path))
+# path = f"../data/raw/{DRUM_KIT}/kick/Bass Sample 1.wav"
+# audio, _ = librosa.load(path, sr=SAMPLE_RATE)
+# OnsetDetect.get_peak_using_librosa(audio, 441)
+# print(DataLabeling.get_onsets_instrument_arr(audio, path))
 
 # midi_path = "../data/raw/drum-kit-sound/kick/Bass Sample 1.wav"
 # # midi_path = "../data/raw/drum-kit-sound/snare/Snare Sample 10.wav"
@@ -55,7 +64,24 @@ print(DataLabeling.get_onsets_instrument_arr(audio, path))
 # predict_test_data = (
 #     f"../data/raw/{ENST}/drummer_1/audio/hi-hat/003_hits_medium-tom_sticks_x5.wav"
 # )
-# segment_classify = SegmentClassifyModel()
-# # segment_classify.extract_feature(f"{ROOT_PATH}/{RAW_PATH}/{IDMT}")
-# # segment_classify.run()
-# print(segment_classify.predict(predict_test_data, 100, 0))
+# predict_test_data = f"../data/raw/{DDM_OWN}/pattern/P2/16/P2_16_0001.m4a"
+feature_path = f"{ROOT_PATH}/{RAW_PATH}/{IDMT}"
+# midi_path = "../data/raw/e-gmd-v1.0.0/drummer1/session2/8_jazz-march_176_beat_4-4.mid"
+# OnsetDetect.get_onsets_instrument_from_mid(midi_path, end=5)
+predict_test_data = "../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
+segment_classify = SegmentClassifyModel(feature_extension=CSV)
+segment_classify.extract_feature(feature_path)
+segment_classify.run()
+print(segment_classify.predict(predict_test_data, 100, 0))
+
+# -------------------
+# Feature Extract
+# data_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/")
+# data_paths = ["../data/raw/e-gmd-v1.0.0/drummer1/session2/5_jazz_200_beat_3-4.wav"]
+# FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MFCC, PKL)
+# FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MFCC, PKL)
+
+# data = FeatureExtractor._load_feature_one_file(
+#     "../data/processed-feature/classify/mfcc/mfcc-2024-02-08_11-15-29-0000.csv", CSV
+# )
+# AudioToFeature.show_feature_plot(data["feature"][1], METHOD_CLASSIFY, MFCC)

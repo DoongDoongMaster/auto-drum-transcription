@@ -82,15 +82,15 @@ class OnsetDetect:
         """
         start ~ end 초 까지의 onsets 배열 구하는 함수
         """
-        if len(onsets) == 0:
-            return onsets
-
         filter_onset = np.array(onsets)
+        if filter_onset.size == 0:
+            return filter_onset
+
         end = filter_onset[-1] + 1 if end == None else end
         filter_onset = filter_onset[(filter_onset >= start) & (filter_onset < end)]
         result = filter_onset - start  # start 빼서 0초부터 시작으로 맞추기
 
-        np.set_printoptions(precision=2, threshold=5)
+        np.set_printoptions(precision=2)
         print(f"-- ! {start} sec ~ {end} sec 파생한 onsets: ", result)
         return result
 
@@ -392,11 +392,19 @@ class OnsetDetect:
             y=audio, sr=SAMPLE_RATE, hop_length=hop_length, aggregate=np.median
         )
         peaks = librosa.util.peak_pick(
-            onset_env, pre_max=3, post_max=3, pre_avg=3, post_avg=3, delta=5, wait=wait
+            onset_env,
+            pre_max=3,
+            post_max=3,
+            pre_avg=3,
+            post_avg=3,
+            delta=0.1,
+            wait=wait,
         )
         onset_times = librosa.frames_to_time(
             peaks, sr=SAMPLE_RATE, hop_length=hop_length
         )
+
+        # OnsetDetect._show_onset_plot(onset_env, peaks)
 
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_times, start, end)
         return onset_sec_list
@@ -439,7 +447,7 @@ class OnsetDetect:
             onset_frames, sr=SAMPLE_RATE, hop_length=441
         )
 
-        OnsetDetect._show_onset_plot(onset_env, onset_frames)
+        # OnsetDetect._show_onset_plot(onset_env, onset_frames)
 
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_times, start, end)
         return onset_sec_list

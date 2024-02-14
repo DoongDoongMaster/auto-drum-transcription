@@ -44,7 +44,7 @@ METHOD_RHYTHM = "rhythm"
 SAMPLE_RATE = 44100
 
 # -- 오디오 자를 시, onset 기준 왼쪽, 오른쪽으로 몇 초 자를지 (단위: sec)
-ONSET_DURATION_LEFT = 0.01
+ONSET_DURATION_LEFT = 0
 ONSET_DURATION_RIGHT = 0.5
 
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
@@ -219,7 +219,7 @@ DATA_DDM_OWN = (
     "pattern/P2",
 )
 
-DATA_ALL = DATA_IDMT + DATA_ENST + DATA_DDM_OWN
+DATA_ALL = DATA_IDMT + DATA_ENST + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,)
 
 CLASSIFY_DRUM = {
     0: (

@@ -206,8 +206,8 @@ class DataLabeling:
         # 데이터를 (1700, 4)로 reshape
         label = label.reshape(-1, 4)
 
-        scaler = MinMaxScaler()
-        label = scaler.fit_transform(label)
+        # scaler = MinMaxScaler()
+        # label = scaler.fit_transform(label)
 
         # 그래프 그리기
         fig, axs = plt.subplots(4, 1, figsize=(15, 15), sharex=True, sharey=True)
@@ -397,10 +397,9 @@ class DataLabeling:
             if onset_position >= frame_length:
                 break
 
-            # soft_start_position = max(  # -- onset - offset
-            #     (onset_position - ONSET_OFFSET), 0
-            # )
-            soft_start_position = max((onset_position - 0), 0)  # -- onset - offset
+            soft_start_position = max(  # -- onset - offset
+                (onset_position - ONSET_OFFSET), 0
+            )
             soft_end_position = min(  # -- onset + offset
                 onset_position + ONSET_OFFSET + 1, frame_length
             )

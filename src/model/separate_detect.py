@@ -27,7 +27,7 @@ from tensorflow.keras.layers import (
 )
 from tensorflow.keras.optimizers import Adam
 from data.data_labeling import DataLabeling
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 
 from model.base_model import BaseModel
@@ -72,6 +72,8 @@ class SeparateDetectModel(BaseModel):
         # Implement input reshaping logic
         # scaler = StandardScaler()
         # data = scaler.fit_transform(data)
+        scaler = MinMaxScaler()
+        data = scaler.fit_transform(data)
         chunk_size = 600
         data = BaseModel.split_data(data, chunk_size)
         return data

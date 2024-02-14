@@ -72,8 +72,6 @@ class SeparateDetectModel(BaseModel):
         # Implement input reshaping logic
         # scaler = StandardScaler()
         # data = scaler.fit_transform(data)
-        scaler = MinMaxScaler()
-        data = scaler.fit_transform(data)
         chunk_size = 600
         data = BaseModel.split_data(data, chunk_size)
         return data

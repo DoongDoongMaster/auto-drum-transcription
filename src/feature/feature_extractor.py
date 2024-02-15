@@ -161,7 +161,7 @@ class FeatureExtractor:
         onsets, label = FeatureExtractor._get_onsets_label_from_onsets(onsets_arr)
 
         audios = DataProcessing.trim_audio_per_onset_with_duration(audio, onsets)
-        DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
+        # DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
 
         for i, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)

@@ -28,6 +28,7 @@ from tensorflow.keras.layers import (
 from tensorflow.keras.optimizers import Adam
 from data.data_labeling import DataLabeling
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from feature.feature_extractor import FeatureExtractor
 
 
 from model.base_model import BaseModel
@@ -68,21 +69,17 @@ class SeparateDetectModel(BaseModel):
         self.load_model()
 
     def input_reshape(self, data):
-        return data
         # Implement input reshaping logic
         # scaler = StandardScaler()
         # data = scaler.fit_transform(data)
-        chunk_size = 600
-        data = BaseModel.split_data(data, chunk_size)
-        return data
-        # return np.expand_dims(data, axis=-1)
+        # data = BaseModel.split_data(data, chunk_size)
+
+        chunk_size = 60
+        return data.reshape(int(len(data) / chunk_size), chunk_size, 128)
 
     def input_label_reshape(self, data):
-        return data
-        chunk_size = 600
-        data = BaseModel.split_data(data, chunk_size)
-
-        return data
+        chunk_size = 60
+        return data.reshape(int(len(data) / chunk_size), chunk_size, 4)
 
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
@@ -131,7 +128,7 @@ class SeparateDetectModel(BaseModel):
         #     Conv1D(32, 3, padding="same", activation="relu", input_shape=(128, 1))
         # )
         self.model.add(
-            LSTM(128, dropout=0.2, recurrent_dropout=0.2, input_shape=(128, 1))
+            LSTM(128, dropout=0.2, recurrent_dropout=0.2, input_shape=(60, 128))
         )
         self.model.add(Dense(4, activation="sigmoid"))
         # --------------------------------------------------
@@ -181,7 +178,7 @@ class SeparateDetectModel(BaseModel):
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
-        audio = SeparateDetectModel.load_audio(wav_path)
+        audio = FeatureExtractor.load_audio(wav_path)
 
         # -- cut delay
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)

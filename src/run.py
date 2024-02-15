@@ -9,6 +9,7 @@ from model.separate_detect import SeparateDetectModel
 from model.rhythm_detect_model import RhythmDetectModel
 
 from constant import (
+    CSV,
     SAMPLE_RATE,
     MFCC,
     STFT,
@@ -63,22 +64,29 @@ from constant import (
 # rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
 
 
-# audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
-# FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
+audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
+FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
 
-separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
+# separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
 
-separate_detect.create_dataset()
-separate_detect.create()
-separate_detect.train()
-separate_detect.evaluate()
-separate_detect.save()
+# separate_detect.create_dataset()
+# separate_detect.create()
+# separate_detect.train()
+# separate_detect.evaluate()
+# separate_detect.save()
+
 # print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
-# print(separate_detect.predict("../data/test/WaveDrum02_01#HH.wav", 100, 0))
-# print(separate_detect.predict("../data/test/WaveDrum02_01#SD.wav", 100, 0))
-# print(separate_detect.predict("../data/test/WaveDrum02_01#KD.wav", 100, 0))
-
-
+# print(separate_detect.predict("../data/test/RealDrum01_03#HH#train.wav", 100, 0))
+# print(separate_detect.predict("../data/test/WaveDrum02_31#SD#train.wav", 100, 0))
+# print(separate_detect.predict("../data/test/RealDrum01_02#KD#train.wav", 100, 0))
+# print(
+#     separate_detect.predict("../data/test/3_soul-groove3_86_beat_4-4_out.wav", 100, 0)
+# )
+# print(
+#     separate_detect.predict(
+#         "../data/test/141_MIDI-minus-one_soul-98_sticks.wav", 100, 0
+#     )
+# )
 # ---------------------------------------------------------------------------------------
 # import librosa
 # import numpy as np

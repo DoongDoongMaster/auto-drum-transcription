@@ -7,6 +7,10 @@ from glob import glob
 from datetime import datetime
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping
+from sklearn.metrics import (
+    multilabel_confusion_matrix,
+    classification_report,
+)
 
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
@@ -178,6 +182,17 @@ class BaseModel:
         )
         print("test loss:", results[0])
         print("test accuracy:", results[1])
+
+        # -- predict
+        y_pred = self.model.predict(self.x_test)
+        y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
+
+        # confusion matrix & precision & recall
+        print("-- ! confusion matrix ! --")
+        print(multilabel_confusion_matrix(self.y_test, y_pred))
+
+        print("-- ! classification report ! --")
+        print(classification_report(self.y_test, y_pred))
 
     def extract_feature(self, data_path: str = f"{ROOT_PATH}/{RAW_PATH}"):
         """

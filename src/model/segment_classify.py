@@ -65,41 +65,7 @@ class SegmentClassifyModel(BaseModel):
         -- load data from data file
         -- Implement dataset split feature & label logic
         """
-        # Implement dataset split feature & label logic
-        feature_df = FeatureExtractor.load_feature_file(
-            self.method_type, self.feature_type, self.feature_extension
-        )
-
-        # -- get X, y
-        X, y = BaseModel._get_x_y(self.method_type, feature_df)
-        del feature_df
-
-        # -- split train, val, test
-        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-        del X
-        del y
-
-        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
-            x_train_temp,
-            y_train_temp,
-            test_size=0.2,
-            random_state=42,
-        )
-        del x_train_temp
-        del y_train_temp
-
-        # input shape 조정
-        self.x_train = self.input_reshape(x_train_final)
-        self.x_val = self.input_reshape(x_val_final)
-        self.x_test = self.input_reshape(x_test)
-        self.y_train = y_train_final
-        self.y_val = y_val_final
-        self.y_test = y_test
-
-        # -- print shape
-        self.print_dataset_shape()
+        super().create_dataset()
 
     def create(self):
         # Implement model creation logic

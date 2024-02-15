@@ -199,8 +199,11 @@ PER_DRUM_DIR = "per-drum"
 """
 -- classify 방법에서 사용하는 data path와 관련된 상수
 """
-DATA_IDMT = ("WaveDrum02", "MIX")
-DATA_IDMT_NOT = ("train",)
+DATA_IDMT = ("MIX",)
+DATA_IDMT_NOT = (
+    "train",
+    "TechnoDrum",
+)
 DATA_ENST = (
     "hits_snare-drum_sticks",
     "hits_snare-drum_mallets",

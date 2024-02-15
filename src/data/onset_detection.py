@@ -369,8 +369,6 @@ class OnsetDetect:
                 data["drum"] = DRUM2CODE[DRUM_MAP[note.pitch]]
             result_onsets.append(data)
 
-        print("-- all instrument mid -- ", result_onsets)
-
         return result_onsets
 
     @staticmethod

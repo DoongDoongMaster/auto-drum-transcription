@@ -59,9 +59,7 @@ class DataLabeling:
             onsets_arr = DataLabeling.get_onsets_instrument_arr(audio, path, idx)
             if DataLabeling._is_dict_all_empty(onsets_arr):
                 return False
-            return DataLabeling._get_label_detect(
-                onsets_arr, path, frame_length, hop_length
-            )
+            return DataLabeling._get_label_detect(onsets_arr, frame_length, hop_length)
 
         # -- [only onset] --
         if method_type == METHOD_RHYTHM:
@@ -191,9 +189,13 @@ class DataLabeling:
         return sorted_result
 
     @staticmethod
-    def show_label_plot(label):
+    def show_label_plot(label: List[List[float]]):
         """
         -- label 그래프
+        [[1, 0, 0, 0],
+         [0, 0, 0, 0],
+         [0, 0, 0, 0],
+         ...]
         """
         data = np.array(label)
         data = data.reshape(data.shape[0], -1)
@@ -201,6 +203,59 @@ class DataLabeling:
         for i in range(data.shape[1]):
             plt.subplot(data.shape[1], 1, i + 1)
             plt.plot(data[:, i])
+
+        plt.title("Model Label")
+        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
+        plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
+        plt.show()
+
+    @staticmethod
+    def show_label_dict_plot(label: dict[str, List[float]]):
+        """
+        -- label 그래프
+        {
+            "HH": [1, 0, 0, ...],
+            "ST": [0, 0, 0, ...],
+            ...
+        }
+        """
+        leng = len(label.keys())
+        for key, label_arr in label.items():
+            data = np.array(label_arr)
+            plt.subplot(leng, 1, DRUM2CODE[key] + 1)
+            plt.plot(data)
+
+        plt.title("Model Label")
+        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
+        date_time = datetime.now().strftime(
+            "%Y-%m-%d_%H-%M-%S"
+        )  # 현재 날짜와 시간 가져오기
+        plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
+        plt.show()
+
+    @staticmethod
+    def show_label_dict_compare_plot(
+        y_true: dict[str, List[float]], y_pred: dict[str, List[float]]
+    ):
+        """
+        -- label 그래프
+        {
+            "HH": [1, 0, 0, ...],
+            "ST": [0, 0, 0, ...],
+            ...
+        }
+        """
+        leng = len(y_true.keys()) * 2
+        for key, label_arr in y_true.items():
+            true_data = np.array(label_arr)
+            plt.subplot(leng, 1, 2 * DRUM2CODE[key] + 1)
+            plt.plot(true_data, color="b")
+            pred_data = np.array(y_pred[key])
+            plt.subplot(leng, 1, 2 * DRUM2CODE[key] + 2)
+            plt.plot(pred_data, color="r")
 
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
@@ -382,7 +437,7 @@ class DataLabeling:
 
     @staticmethod
     def _get_label_detect(
-        onsets_arr: List[float], path: str, frame_length: int, hop_length: int
+        onsets_arr: dict, frame_length: int, hop_length: int
     ) -> List[List[int]]:
         label = {v: [] for _, v in CODE2DRUM.items()}
 

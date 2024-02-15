@@ -199,10 +199,15 @@ PER_DRUM_DIR = "per-drum"
 """
 -- classify 방법에서 사용하는 data path와 관련된 상수
 """
-DATA_IDMT = ("MIX",)
+DATA_IDMT = (
+    "MIX",
+    "RealDrum",
+    "WaveDrum",
+)
 DATA_IDMT_NOT = (
     "train",
     "TechnoDrum",
+    "RealDrum",
 )
 DATA_ENST = (
     "hits_snare-drum_sticks",
@@ -211,13 +216,14 @@ DATA_ENST = (
     "hits_bass-drum_pedal",
     "hits_pedal-hi-hat-close_pedal",
     "hits_pedal-hi-hat-open_pedal",
+    "sticks",
 )
 DATA_ENST_NOT = ("accompaniment",)  # ENST dataset에서 제외할 데이터
 DATA_DDM_OWN = (
-    "per-drum/HH",
-    "per-drum/MT",
-    "per-drum/SD",
-    "per-drum/KK",
+    # "per-drum/HH",
+    # "per-drum/MT",
+    # "per-drum/SD",
+    # "per-drum/KK",
     "pattern/P1",
     "pattern/P2",
 )

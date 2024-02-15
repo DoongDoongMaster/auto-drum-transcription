@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers, Sequential
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD, RMSprop
 
 from model.base_model import BaseModel
 from data.onset_detection import OnsetDetect
@@ -104,13 +104,19 @@ class SegmentClassifyModel(BaseModel):
 
         self.model.add(layers.GlobalAveragePooling2D())
 
-        self.model.add()
-
+        self.model.add(layers.Reshape((64, 1), input_shape=(None, 64, 1)))
+        self.model.add(
+            layers.Bidirectional(
+                layers.LSTM(8, input_shape=(None, 64, 1), return_sequences=True)
+            )
+        )
+        self.model.add(layers.Bidirectional(layers.LSTM(10)))
+        self.model.add(layers.Dropout(0.2))
         self.model.add(layers.Dense(units=self.n_classes, activation="sigmoid"))
 
         self.model.summary()
 
-        opt = Adam(learning_rate=self.opt_learning_rate)
+        opt = RMSprop(learning_rate=self.opt_learning_rate)
         self.model.compile(
             loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
         )

@@ -397,7 +397,7 @@ class OnsetDetect:
         for drum, words in wav_drum.items():
             if any((w in wav_path) for w in words):
                 if DRUM_KIT in wav_path:  # drum_kit
-                    onsets = [onsets[0]]
+                    onsets = [0.02]
                 onset_dict[drum] = onsets
                 break
 

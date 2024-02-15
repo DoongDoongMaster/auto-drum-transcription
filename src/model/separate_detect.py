@@ -60,7 +60,6 @@ class SeparateDetectModel(BaseModel):
         )
         self.unit_number = unit_number
         self.predict_standard = 0.5
-        # STFT feature type
         self.n_rows = (CHUNK_LENGTH * SAMPLE_RATE) // self.feature_param["hop_length"]
         self.n_columns = self.feature_param["n_fft"] // 2 + 1
         self.n_classes = self.feature_param["n_classes"]
@@ -69,6 +68,7 @@ class SeparateDetectModel(BaseModel):
         self.load_model()
 
     def input_reshape(self, data):
+        return data
         # Implement input reshaping logic
         # scaler = StandardScaler()
         # data = scaler.fit_transform(data)
@@ -78,6 +78,7 @@ class SeparateDetectModel(BaseModel):
         # return np.expand_dims(data, axis=-1)
 
     def input_label_reshape(self, data):
+        return data
         chunk_size = 600
         data = BaseModel.split_data(data, chunk_size)
 
@@ -89,50 +90,51 @@ class SeparateDetectModel(BaseModel):
     def create_dataset(self):
         super().create_dataset()
 
-        # self.y_train = self.input_label_reshape(self.y_train)
-        # self.y_val = self.input_label_reshape(self.y_val)
-        # self.y_test = self.input_label_reshape(self.y_test)
+        self.y_train = self.input_label_reshape(self.y_train)
+        self.y_val = self.input_label_reshape(self.y_val)
+        self.y_test = self.input_label_reshape(self.y_test)
 
     def create(self):
         self.model = Sequential()
 
         # --------------------------------------------------
-        # Convolutional layers
-        self.model.add(
-            Conv2D(
-                32,
-                (3, 3),
-                padding="same",
-                activation="relu",
-                input_shape=(600, 128, 1),
-            )
-        )
-        self.model.add(BatchNormalization())
-        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
-        self.model.add(BatchNormalization())
-        self.model.add(MaxPooling2D(pool_size=(1, 3)))
+        # self.model.add(
+        #     Conv2D(
+        #         32,
+        #         (3, 3),
+        #         padding="same",
+        #         activation="relu",
+        #         input_shape=(600, 128, 1),
+        #     )
+        # )
+        # self.model.add(BatchNormalization())
+        # self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+        # self.model.add(BatchNormalization())
+        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
 
-        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
-        self.model.add(BatchNormalization())
-        self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
-        self.model.add(BatchNormalization())
-        self.model.add(MaxPooling2D(pool_size=(1, 3)))
+        # self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+        # self.model.add(BatchNormalization())
+        # self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
+        # self.model.add(BatchNormalization())
+        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
 
-        # # Recurrent layers (BiGRU)
-        self.model.add(Reshape((-1, 448)))
-        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
-        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
-        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        # # # Recurrent layers (BiGRU)
+        # self.model.add(Reshape((-1, 448)))
+        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
 
-        # # # Fully connected layer
-        # self.model.add(Flatten())
-        # # self.model.add(GlobalAveragePooling2D())
-        self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
-
-        # self.model.add(Dense(4, activation="sigmoid"))
+        # self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
 
         # --------------------------------------------------
-        # self.model.add(LSTM(256, input_shape=(600, 128), return_sequences=True))
+        # self.model.add(
+        #     Conv1D(32, 3, padding="same", activation="relu", input_shape=(128, 1))
+        # )
+        self.model.add(
+            LSTM(128, dropout=0.2, recurrent_dropout=0.2, input_shape=(128, 1))
+        )
+        self.model.add(Dense(4, activation="sigmoid"))
+        # --------------------------------------------------
 
         self.model.summary()
 

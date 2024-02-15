@@ -78,10 +78,6 @@ class BaseModel:
         # Implement input reshaping logic
         pass
 
-    def input_label_reshape(self, data) -> np.ndarray:
-        # Implement input reshaping logic
-        pass
-
     @staticmethod
     def _get_x_y(method_type: str, feature_df: pd.DataFrame):
         if method_type == METHOD_CLASSIFY:
@@ -150,12 +146,9 @@ class BaseModel:
         self.x_train = self.input_reshape(x_train_final)
         self.x_val = self.input_reshape(x_val_final)
         self.x_test = self.input_reshape(x_test)
-        self.y_train = self.input_label_reshape(y_train_final)
-        self.y_val = self.input_label_reshape(y_val_final)
-        self.y_test = self.input_label_reshape(y_test)
-        # self.y_train = y_train_final
-        # self.y_val = y_val_final
-        # self.y_test = y_test
+        self.y_train = y_train_final
+        self.y_val = y_val_final
+        self.y_test = y_test
 
         # -- print shape
         self.print_dataset_shape()
@@ -163,6 +156,8 @@ class BaseModel:
     def print_dataset_shape(self):
         print("x_train : ", self.x_train.shape)
         print("y_train : ", self.y_train.shape)
+        print("x_train으아아아ㅏㅣㅓㄹㅇ;ㅣㄴㅁ!!!! : ", self.x_train)
+        print("y_train으아아아ㅏㅣㅓㄹㅇ;ㅣㄴㅁ!!!! : ", self.y_train)
         print("x_val : ", self.x_val.shape)
         print("y_val : ", self.y_val.shape)
         print("x_test : ", self.x_test.shape)

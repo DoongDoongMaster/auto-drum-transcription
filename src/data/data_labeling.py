@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pretty_midi
 import matplotlib.pyplot as plt
 
 from typing import List
@@ -14,6 +15,7 @@ from constant import (
     PATTERN2CODE,
     ONEHOT_DRUM2CODE,
     SAMPLE_RATE,
+    DRUM2CODE,
     CODE2DRUM,
     ONSET_OFFSET,
     DDM_OWN,
@@ -73,7 +75,7 @@ class DataLabeling:
         raise Exception(f"지원하지 않는 모델 방식 {method_type} !!!")
 
     @staticmethod
-    def validate_supported_data(path: str, method_type: str):
+    def validate_supported_data(path: str):
         # 우리가 사용할 데이터 형태 아닌 경우
         if not any(p in path for p in DATA_ALL):
             return False
@@ -87,49 +89,40 @@ class DataLabeling:
 
     @staticmethod
     def get_onsets_arr(audio: np.ndarray, path: str, idx: int = None) -> List[float]:
-        if idx is None:  # idx 없다면 처음부터 끝까지의 onset을 구함
-            start = 0
-            end = None
-        else:
-            start = idx * CHUNK_LENGTH  # onset 자르는 시작 초
-            end = (idx + 1) * CHUNK_LENGTH  # onset 자르는 끝 초
+        start, end = DataLabeling._calculate_start_end(idx)
 
         if DDM_OWN in path:
-            return OnsetDetect.onset_detection(audio)
-
-        if IDMT in path:
-            if "MIX" in path:
-                label_path = DataLabeling._get_label_path(
-                    path, 2, "xml", "annotation_xml"
-                )
-                return OnsetDetect.get_onsets_from_xml(label_path, start, end)
-            else:
-                label_path = DataLabeling._get_label_path(
-                    path, 2, "svl", "annotation_svl"
-                )
-                return OnsetDetect.get_onsets_from_svl(label_path, start, end)
-
-        if ENST in path:
-            label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
-            return OnsetDetect.get_onsets_from_txt(label_path, start, end)
-
-        if E_GMD in path:
-            label_path = DataLabeling._get_label_path(path, 1, "mid")
-            return OnsetDetect.get_onsets_from_mid(label_path, start, end)
+            return OnsetDetect.get_onsets_using_librosa(audio, start, end)
 
         if DRUM_KIT in path:
-            return OnsetDetect.onset_detection(audio)
+            onsets = OnsetDetect.get_onsets_using_librosa(audio, start, end)
+            return [onsets[0]]
+
+        # label path 구하기
+        label_path = DataLabeling._get_label_path_by_audio_path(path)
+
+        onset_detection_methods = {
+            IDMT: (
+                OnsetDetect.get_onsets_from_xml
+                if "MIX" in path
+                else OnsetDetect.get_onsets_from_svl
+            ),
+            ENST: OnsetDetect.get_onsets_from_txt,
+            E_GMD: OnsetDetect.get_onsets_from_mid,
+        }
+
+        data_own = path.split("/")[3]
+        if data_own in onset_detection_methods:
+            print("[", data_own, "] onset method: ", onset_detection_methods[data_own])
+            return onset_detection_methods[data_own](label_path, start, end)
+
+        raise Exception(f"지원하지 않는 데이터 {path} !!!")
 
     @staticmethod
     def get_onsets_instrument_arr(
         audio: np.ndarray, path: str, idx: int = None
     ) -> List[float]:
-        if idx is None:  # idx 없다면 처음부터 끝까지의 onset을 구함
-            start = 0
-            end = None
-        else:
-            start = idx * CHUNK_LENGTH  # onset 자르는 시작 초
-            end = (idx + 1) * CHUNK_LENGTH  # onset 자르는 끝 초
+        start, end = DataLabeling._calculate_start_end(idx)
 
         # {'HH':[], 'ST':[], 'SD':[], 'HH':[]}
         label_init = {v: [] for _, v in CODE2DRUM.items()}
@@ -145,38 +138,57 @@ class DataLabeling:
             #         path, 3, "txt", "annotation"
             #     )
 
-        if IDMT in path:
-            if "MIX" in path:
-                label_path = DataLabeling._get_label_path(
-                    path, 2, "xml", "annotation_xml"
-                )
-                label = OnsetDetect.get_onsets_instrument_from_xml(
-                    label_path, start, end, label_init
-                )
-            else:
-                label_path = DataLabeling._get_label_path(
-                    path, 2, "svl", "annotation_svl"
-                )
-                label = OnsetDetect.get_onsets_instrument_from_svl(
-                    label_path, start, end, label_init
-                )
-
-        if ENST in path:
-            label_path = DataLabeling._get_label_path(path, 3, "txt", "annotation")
-            label = OnsetDetect.get_onsets_instrument_from_txt(
-                label_path, start, end, label_init
-            )
-
-        if E_GMD in path:
-            label_path = DataLabeling._get_label_path(path, 1, "mid")
-            label = OnsetDetect.get_onsets_instrument_from_mid(label_path, start, end)
-
         if DRUM_KIT in path:
             label = OnsetDetect.get_onsets_instrument_from_wav(
                 audio, path, start, end, label_init
             )
 
+        # label path 구하기
+        label_path = DataLabeling._get_label_path_by_audio_path(path)
+
+        onset_detection_methods = {
+            IDMT: (
+                OnsetDetect.get_onsets_instrument_from_xml
+                if "MIX" in path
+                else OnsetDetect.get_onsets_instrument_from_svl
+            ),
+            ENST: OnsetDetect.get_onsets_instrument_from_txt,
+            E_GMD: OnsetDetect.get_onsets_instrument_from_mid,
+        }
+
+        data_own = path.split("/")[3]
+        if data_own in onset_detection_methods:
+            print("[", data_own, "] onset method: ", onset_detection_methods[data_own])
+            label = onset_detection_methods[data_own](
+                label_path, start, end, label_init
+            )
+
         return label
+
+    @staticmethod
+    def get_onsets_instrument_all_arr(audio: np.ndarray, path: str) -> List[float]:
+        result = []
+        if DDM_OWN in path or DRUM_KIT in path or IDMT in path:
+            label_dict = DataLabeling.get_onsets_instrument_arr(audio, path)
+            result = DataLabeling._onsets_instrument_to_onsets_arr(label_dict)
+
+        # label path 구하기
+        label_path = DataLabeling._get_label_path_by_audio_path(path)
+
+        onset_detection_methods = {
+            ENST: OnsetDetect.get_onsets_instrument_all_from_txt,
+            E_GMD: OnsetDetect.get_onsets_instrument_all_from_mid,
+        }
+
+        data_own = path.split("/")[3]
+        if data_own in onset_detection_methods:
+            print("[", data_own, "] onset method: ", onset_detection_methods[data_own])
+            result = onset_detection_methods[data_own](label_path)
+
+        sorted_result = sorted(result, key=lambda data: (data["onset"], data["drum"]))
+        # print("-- ! {onset, drum} data ! --")
+        # print(sorted_result)
+        return sorted_result
 
     @staticmethod
     def show_label_plot(label):
@@ -220,6 +232,52 @@ class DataLabeling:
         plt.show()
 
     @staticmethod
+    def _onsets_instrument_to_onsets_arr(
+        onsets_instrument: dict[str, List[float]]
+    ) -> List[dict[float, str]]:
+        """
+        -- 악기 별 onsets 배열이 있는 dictionary를 받아서 {"onset": onset, "drum": 드럼 번호} list 배열로 반환하는 함수
+        """
+        result = []
+        for drum, onsets_arr in onsets_instrument.items():
+            for onset in onsets_arr:
+                data = {"onset": onset, "drum": DRUM2CODE[drum]}
+                result.append(data)
+        return result
+
+    @staticmethod
+    def _calculate_start_end(idx: int = None):
+        start, end = 0, None  # idx 없다면 처음부터 끝까지의 onset을 구함
+        if idx is not None:
+            start = idx * CHUNK_LENGTH  # onset 자르는 시작 초
+            end = (idx + 1) * CHUNK_LENGTH  # onset 자르는 끝 초
+        return start, end
+
+    @staticmethod
+    def _get_label_path_by_audio_path(audio_path: str) -> str:
+        """
+        -- audio path 별로 label path를 구하는 함수
+        """
+        if IDMT in audio_path:
+            if "MIX" in audio_path:
+                return DataLabeling._get_label_path(
+                    audio_path, 2, "xml", "annotation_xml"
+                )
+            return DataLabeling._get_label_path(audio_path, 2, "svl", "annotation_svl")
+
+        if ENST in audio_path:
+            return DataLabeling._get_label_path(audio_path, 3, "txt", "annotation")
+
+        if E_GMD in audio_path:
+            label_path = ""
+            try:
+                label_path = DataLabeling._get_label_path(audio_path, 1, "mid")
+                midi_data = pretty_midi.PrettyMIDI(label_path)
+            except:
+                label_path = DataLabeling._get_label_path(audio_path, 1, "midi")
+            return label_path
+
+    @staticmethod
     def _get_label_path(
         audio_path: str, back_move_num: int, extension: str, folder_name: str = ""
     ) -> str:
@@ -253,7 +311,7 @@ class DataLabeling:
 
     @staticmethod
     def _get_label_file(
-        file_name: str, file_paths: [], extension: str, folder_name: str = ""
+        file_name: str, file_paths: List[str], extension: str, folder_name: str = ""
     ) -> str:
         """
         label file 구하는 함수

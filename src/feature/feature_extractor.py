@@ -28,6 +28,8 @@ from constant import (
     CSV,
     PKL,
     FEATURE_PARAM,
+    CLASSIFY_DURATION,
+    ONSET_DURATION_LEFT,
 )
 
 
@@ -114,7 +116,7 @@ class FeatureExtractor:
         combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
 
         for path in audio_paths:
-            if DataLabeling.validate_supported_data(path, method_type) == False:
+            if DataLabeling.validate_supported_data(path) == False:
                 continue
 
             print("-- current file: ", path)
@@ -153,29 +155,21 @@ class FeatureExtractor:
         # dataframe 초기화
         combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
 
-        # onsets 구하기
-        onsets_instrument = DataLabeling.get_onsets_instrument_arr(audio, path)
-
-        # onsets 초 별로 악기 있는 형태로 바꾸기
-        onsets_arr = FeatureExtractor._onsets_instrument_to_onsets_arr(
-            onsets_instrument
-        )
+        # onsets 초 별로 악기 있는 형태로 구하기
+        onsets_arr = DataLabeling.get_onsets_instrument_all_arr(audio, path)
 
         # 동시에 친 데이터로 치는 오프셋만큼 묶으면서 데이터 라벨링
         onsets, label = FeatureExtractor._get_onsets_label_from_onsets(onsets_arr)
 
-        audios = DataProcessing.trim_audio_per_onset(audio, onsets)
+        audios = DataProcessing.trim_audio_per_onset_with_duration(audio, onsets)
         DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
 
         for i, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
-            l = {}
-            for j in range(0, len(CODE2DRUM)):
-                l[CODE2DRUM[j]] = [label[i][j]]
-
-            print("------classify label------------", l)
             # make dataframe
-            df = FeatureExtractor._make_dataframe(method_type, feature_type, feature, l)
+            df = FeatureExtractor._make_dataframe(
+                method_type, feature_type, feature, label[i]
+            )
             # combine dataframe
             combined_df = pd.concat([combined_df, df], ignore_index=True)
 
@@ -185,62 +179,64 @@ class FeatureExtractor:
     def _get_onsets_label_from_onsets(onsets):
         OFFSET = 0.035  # 몇 초 차이까지 동시에 친 것으로 볼 것인지
         idx = 0
-        result_onsets = []
-        result_label = []
+        result_onsets = []  # [{"onset": onset, "duration": 다음 온셋 사이의 시간}, ...]
+        result_label = []  # [{'HH':[], 'ST':[], 'SD':[], 'HH':[]}, ...]
         while True:
             if idx >= len(onsets):
                 break
 
-            data = onsets[idx]
-            result_onsets.append(data["onset"])
-            temp_label = [data["drum"]]
+            is_available = True  # 우리가 다루는 악기인지 여부
+            curr_onset, curr_drum = onsets[idx].values()
+            if not curr_drum in CODE2DRUM:
+                is_available = False
+            temp_label = [curr_drum]
             if (
                 idx + 1 < len(onsets)
-                and onsets[idx + 1]["onset"] - data["onset"] <= OFFSET
+                and onsets[idx + 1]["onset"] - curr_onset <= OFFSET
             ):
                 idx = idx + 1
+                if not onsets[idx]["drum"] in CODE2DRUM:
+                    is_available = False
                 temp_label.append(onsets[idx]["drum"])
-            if (
-                idx + 1 < len(onsets)
-                and onsets[idx + 1]["onset"] - data["onset"] <= OFFSET
-            ):
-                idx = idx + 1
-                temp_label.append(onsets[idx]["drum"])
+                if (
+                    idx + 1 < len(onsets)
+                    and onsets[idx + 1]["onset"] - curr_onset <= OFFSET
+                ):
+                    idx = idx + 1
+                    if not onsets[idx]["drum"] in CODE2DRUM:
+                        is_available = False
+                    temp_label.append(onsets[idx]["drum"])
+
             idx = idx + 1
 
-            label = [0] * len(DRUM2CODE)
-            for d in temp_label:
-                label[DRUM2CODE[d]] = 1
+            if not is_available:
+                continue
+
+            duration = CLASSIFY_DURATION
+            if idx < len(onsets):
+                duration = onsets[idx]["onset"] - curr_onset
+
+            if duration < 0.16:  # 너무 짧게 잘린 데이터 버리기
+                continue
+
+            result_onsets.append({"onset": curr_onset, "duration": duration})
+
+            label = {v: [0] for _, v in CODE2DRUM.items()}
+            for code in temp_label:
+                label[CODE2DRUM[code]] = [1]
 
             result_label.append(label)
 
-        print("result_onsets-------------")
-        print(result_onsets)
-        print("result_label-------------")
-        print(result_label)
+        # print("result_onsets-------------")
+        # for idx, result in enumerate(result_onsets):
+        #     print(idx + 1, result["duration"])
+        # print("result_label-------------")
+        # print(result_label)
 
         return result_onsets, result_label
 
     @staticmethod
-    def _onsets_instrument_to_onsets_arr(
-        onsets_instrument: dict[str, List[float]]
-    ) -> List[dict[float, str]]:
-        """
-        -- 악기 별 onsets 배열이 있는 dictionary를 받아서 onset 기준 오름차순으로 풀어서 리턴해주는 함수
-        """
-        result = []
-        for drum, onsets_arr in onsets_instrument.items():
-            for onset in onsets_arr:
-                data = {"onset": onset, "drum": drum}
-                result.append(data)
-
-        sorted_result = sorted(result, key=lambda data: (data["onset"], data["drum"]))
-        print("sorted_result-------------")
-        print(sorted_result)
-        return sorted_result
-
-    @staticmethod
-    def _extract_classify_feature(
+    def _extract_classify_feature_per_frame(
         audio: np.ndarray, path: str, method_type: str, feature_type: str
     ):
         # dataframe 초기화
@@ -261,7 +257,7 @@ class FeatureExtractor:
         )
 
         audios = DataProcessing.trim_audio_per_onset(audio, onsets_time)
-        DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
+        # DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
 
         for i, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)

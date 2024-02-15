@@ -88,7 +88,9 @@ class DataProcessing:
         """
         trim audio per onset
         """
-        onsets = OnsetDetect.onset_detection(audio) if onsets is None else onsets
+        onsets = (
+            OnsetDetect.get_onsets_using_librosa(audio) if onsets is None else onsets
+        )
 
         trimmed_audios = []
         for i in range(0, len(onsets)):
@@ -105,12 +107,34 @@ class DataProcessing:
         return trimmed_audios
 
     @staticmethod
+    def trim_audio_per_onset_with_duration(
+        audio: np.ndarray, onsets: List[dict]
+    ) -> List[np.ndarray]:
+        """
+        trim audio per onset (duration이 지정된 경우)
+        """
+        trimmed_audios = []
+        for i in range(0, len(onsets)):
+            start = max(
+                int((onsets[i]["onset"] - ONSET_DURATION_LEFT) * SAMPLE_RATE), 0
+            )
+            end_duration = min(
+                onsets[i]["duration"] + ONSET_DURATION_LEFT, ONSET_DURATION_RIGHT
+            )
+            end = int((onsets[i]["onset"] + end_duration) * SAMPLE_RATE)
+
+            trimmed = audio[start:end]
+            trimmed_audios.append(trimmed)
+
+        return trimmed_audios
+
+    @staticmethod
     def trim_audio_first_onset(audio: np.ndarray, first_onset: float = None):
         """
         trim audio from first onset to last audio
         """
         if first_onset == None:
-            onsets = OnsetDetect.onset_detection(audio)
+            onsets = OnsetDetect.get_onsets_using_librosa(audio)
             first_onset = onsets[0] if len(onsets) > 0 else 0
 
         start = max(int((first_onset - ONSET_DURATION_LEFT) * SAMPLE_RATE), 0)

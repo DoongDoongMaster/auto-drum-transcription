@@ -4,11 +4,12 @@ import tensorflow as tf
 
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers, Sequential
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD, RMSprop
 
 from model.base_model import BaseModel
 from data.onset_detection import OnsetDetect
 from data.data_processing import DataProcessing
+from data.data_labeling import DataLabeling
 from data.rhythm_detection import RhythmDetection
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
@@ -19,6 +20,7 @@ from constant import (
     SAMPLE_RATE,
     CLASSIFY_DURATION,
     PKL,
+    CODE2DRUM,
 )
 
 
@@ -46,6 +48,7 @@ class SegmentClassifyModel(BaseModel):
         )
         self.n_channels = self.feature_param["n_channels"]
         self.n_classes = self.feature_param["n_classes"]
+        self.hop_length = self.feature_param["hop_length"]
         self.load_model()
 
     def input_reshape(self, data):
@@ -65,41 +68,7 @@ class SegmentClassifyModel(BaseModel):
         -- load data from data file
         -- Implement dataset split feature & label logic
         """
-        # Implement dataset split feature & label logic
-        feature_df = FeatureExtractor.load_feature_file(
-            self.method_type, self.feature_type, self.feature_extension
-        )
-
-        # -- get X, y
-        X, y = BaseModel._get_x_y(self.method_type, feature_df)
-        del feature_df
-
-        # -- split train, val, test
-        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-        del X
-        del y
-
-        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
-            x_train_temp,
-            y_train_temp,
-            test_size=0.2,
-            random_state=42,
-        )
-        del x_train_temp
-        del y_train_temp
-
-        # input shape 조정
-        self.x_train = self.input_reshape(x_train_final)
-        self.x_val = self.input_reshape(x_val_final)
-        self.x_test = self.input_reshape(x_test)
-        self.y_train = y_train_final
-        self.y_val = y_val_final
-        self.y_test = y_test
-
-        # -- print shape
-        self.print_dataset_shape()
+        super().create_dataset()
 
     def create(self):
         # Implement model creation logic
@@ -108,37 +77,46 @@ class SegmentClassifyModel(BaseModel):
         self.model.add(
             layers.Conv2D(
                 input_shape=(self.n_row, self.n_columns, self.n_channels),
-                filters=16,
-                kernel_size=(4, 4),
-                activation="relu",
+                filters=64,
+                kernel_size=(3, 3),
+                activation="tanh",
                 padding="same",
             )
         )
         self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-        self.model.add(layers.Dropout(0.2))
+        # self.model.add(layers.Dropout(0.2))
 
         self.model.add(
             layers.Conv2D(
-                filters=16 * 2, kernel_size=(4, 4), activation="relu", padding="same"
+                filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
             )
         )
         self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-        self.model.add(layers.Dropout(0.2))
+        # self.model.add(layers.Dropout(0.2))
 
         self.model.add(
             layers.Conv2D(
-                filters=16 * 3, kernel_size=(4, 4), activation="relu", padding="same"
+                filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
             )
         )
         self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-        self.model.add(layers.Dropout(0.2))
+        # self.model.add(layers.Dropout(0.2))
 
         self.model.add(layers.GlobalAveragePooling2D())
+
+        self.model.add(layers.Reshape((64, 1), input_shape=(None, 64, 1)))
+        self.model.add(
+            layers.Bidirectional(
+                layers.LSTM(8, input_shape=(None, 64, 1), return_sequences=True)
+            )
+        )
+        self.model.add(layers.Bidirectional(layers.LSTM(10)))
+        self.model.add(layers.Dropout(0.2))
         self.model.add(layers.Dense(units=self.n_classes, activation="sigmoid"))
 
         self.model.summary()
 
-        opt = Adam(learning_rate=self.opt_learning_rate)
+        opt = RMSprop(learning_rate=self.opt_learning_rate)
         self.model.compile(
             loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
         )
@@ -213,6 +191,27 @@ class SegmentClassifyModel(BaseModel):
         drum_instrument = self.get_drum_instrument(audio)
         # -- rhythm
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+
+        # -- 원래 정답 라벨
+        true_label = DataLabeling.data_labeling(
+            audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
+        )
+        # DataLabeling.show_label_dict_plot(true_label)
+
+        # -- transport frame
+        onset_dict = {v: [] for _, v in CODE2DRUM.items()}
+        for data in drum_instrument:
+            idx = data[0]
+            instrument = data[1]
+            for inst in instrument:
+                onset_dict[CODE2DRUM[inst]].append(onsets_arr[idx])
+        frame_length = len(audio) // self.hop_length
+        frame_onset = DataLabeling._get_label_detect(
+            onset_dict, frame_length, self.hop_length
+        )
+        DataLabeling.show_label_dict_compare_plot(true_label, frame_onset)
+
+        # delay 제거
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
         bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
 

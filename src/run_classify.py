@@ -66,24 +66,28 @@ from constant import (
 #     f"../data/raw/{ENST}/drummer_1/audio/hi-hat/003_hits_medium-tom_sticks_x5.wav"
 # )
 # predict_test_data = f"../data/raw/{DDM_OWN}/pattern/P2/16/P2_16_0001.m4a"
-# feature_path = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}"
+feature_path = f"{ROOT_PATH}/{RAW_PATH}"
 # # midi_path = "../data/raw/e-gmd-v1.0.0/drummer1/session2/8_jazz-march_176_beat_4-4.mid"
 # # OnsetDetect.get_onsets_instrument_from_mid(midi_path, end=5)
 # predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
-# segment_classify = SegmentClassifyModel()
+# predict_test_data = f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}/per-drum/HH/16/HH_16_0001.m4a"
+predict_test_data = (
+    "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4_44.wav"
+)
+segment_classify = SegmentClassifyModel()
 # segment_classify.extract_feature(feature_path)
 # segment_classify.run()
-# print(segment_classify.predict(predict_test_data, 100, 0))
+print(segment_classify.predict(predict_test_data, 100, 0))
 
 # -------------------
 # Feature Extract
 # data_paths_ddm = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}")
 # data_paths_kit = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DRUM_KIT}")
-data_paths_egmd=[]
-for i in range(3, 11):
-    data_paths_temp = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/drummer{i}")
-    data_paths_egmd = data_paths_egmd + data_paths_temp
-data_paths = data_paths_egmd
+# data_paths_egmd=[]
+# for i in range(3, 11):
+#     data_paths_temp = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/drummer{i}")
+#     data_paths_egmd = data_paths_egmd + data_paths_temp
+# data_paths = data_paths_egmd
 # data_paths = [
 #     # f"../data/raw/{DDM_OWN}/per-drum/HH/08/HH_08_0002.m4a",
 #     f"../data/raw/{DDM_OWN}/per-drum/KK/08/KK_08_0002.m4a",
@@ -94,8 +98,8 @@ data_paths = data_paths_egmd
 #     # "../data/raw/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_01#MIX.wav",
 #     # "../data/raw/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_57#KD.wav",
 # ]
-FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MFCC, PKL)
-FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MFCC, PKL)
+# FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MFCC, PKL)
+# FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MFCC, PKL)
 
 # data = FeatureExtractor._load_feature_one_file(
 #     "../data/processed-feature/classify/mfcc/mfcc-2024-02-08_11-15-29-0000.csv", CSV

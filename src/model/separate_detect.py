@@ -184,8 +184,8 @@ class SeparateDetectModel(BaseModel):
             new_audio, self.method_type, self.feature_type
         )
 
-        # scaler = StandardScaler()
-        scaler = MinMaxScaler()
+        scaler = StandardScaler()
+        # scaler = MinMaxScaler()
         audio_feature = scaler.fit_transform(audio_feature)
 
         chunk_size = 60

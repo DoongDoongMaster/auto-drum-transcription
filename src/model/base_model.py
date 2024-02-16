@@ -128,8 +128,8 @@ class BaseModel:
         del feature_df
 
         # --------------------------------------------
-        # scaler = StandardScaler()
-        scaler = MinMaxScaler()
+        scaler = StandardScaler()
+        # scaler = MinMaxScaler()
         X = scaler.fit_transform(X)
 
         if self.method_type in METHOD_DETECT:

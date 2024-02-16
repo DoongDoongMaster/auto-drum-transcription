@@ -125,6 +125,13 @@ class BaseModel:
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
+        # --------------------------------------------
+        if self.method_type in METHOD_DETECT:
+            chunk_size = 60
+            X = BaseModel.split_data(X, chunk_size)
+            y = BaseModel.split_data(y, chunk_size)
+        # --------------------------------------------
+
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
             X,
@@ -160,8 +167,6 @@ class BaseModel:
     def print_dataset_shape(self):
         print("x_train : ", self.x_train.shape)
         print("y_train : ", self.y_train.shape)
-        print("x_train으아아아ㅏㅣㅓㄹㅇ;ㅣㄴㅁ!!!! : ", self.x_train)
-        print("y_train으아아아ㅏㅣㅓㄹㅇ;ㅣㄴㅁ!!!! : ", self.y_train)
         print("x_val : ", self.x_val.shape)
         print("y_val : ", self.y_val.shape)
         print("x_test : ", self.x_test.shape)

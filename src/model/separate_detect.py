@@ -69,17 +69,14 @@ class SeparateDetectModel(BaseModel):
         self.load_model()
 
     def input_reshape(self, data):
+        return data
         # Implement input reshaping logic
         # scaler = StandardScaler()
         # data = scaler.fit_transform(data)
         # data = BaseModel.split_data(data, chunk_size)
 
-        chunk_size = 60
-        return data.reshape(int(len(data) / chunk_size), chunk_size, 128)
-
     def input_label_reshape(self, data):
-        chunk_size = 60
-        return data.reshape(int(len(data) / chunk_size), chunk_size, 4)
+        return data
 
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
@@ -87,50 +84,50 @@ class SeparateDetectModel(BaseModel):
     def create_dataset(self):
         super().create_dataset()
 
-        self.y_train = self.input_label_reshape(self.y_train)
-        self.y_val = self.input_label_reshape(self.y_val)
-        self.y_test = self.input_label_reshape(self.y_test)
+        # self.y_train = self.input_label_reshape(self.y_train)
+        # self.y_val = self.input_label_reshape(self.y_val)
+        # self.y_test = self.input_label_reshape(self.y_test)
 
     def create(self):
         self.model = Sequential()
 
         # --------------------------------------------------
-        # self.model.add(
-        #     Conv2D(
-        #         32,
-        #         (3, 3),
-        #         padding="same",
-        #         activation="relu",
-        #         input_shape=(600, 128, 1),
-        #     )
-        # )
-        # self.model.add(BatchNormalization())
-        # self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
-        # self.model.add(BatchNormalization())
-        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
+        self.model.add(
+            Conv2D(
+                32,
+                (3, 3),
+                padding="same",
+                activation="tanh",
+                input_shape=(60, 128, 1),
+            )
+        )
+        self.model.add(BatchNormalization())
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="tanh"))
+        self.model.add(BatchNormalization())
+        self.model.add(MaxPooling2D(pool_size=(1, 3)))
 
-        # self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
-        # self.model.add(BatchNormalization())
-        # self.model.add(Conv2D(32, (3, 3), padding="same", activation="relu"))
-        # self.model.add(BatchNormalization())
-        # self.model.add(MaxPooling2D(pool_size=(1, 3)))
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="tanh"))
+        self.model.add(BatchNormalization())
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation="tanh"))
+        self.model.add(BatchNormalization())
+        self.model.add(MaxPooling2D(pool_size=(1, 3)))
 
-        # # # Recurrent layers (BiGRU)
-        # self.model.add(Reshape((-1, 448)))
-        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
-        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
-        # self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        # # Recurrent layers (BiGRU)
+        self.model.add(Reshape((-1, 448)))
+        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
+        self.model.add(Bidirectional(GRU(50, return_sequences=True)))
 
-        # self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+        self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
 
         # --------------------------------------------------
+        # # self.model.add(
+        # #     Conv1D(32, 3, padding="same", activation="relu", input_shape=(128, 1))
+        # # )
         # self.model.add(
-        #     Conv1D(32, 3, padding="same", activation="relu", input_shape=(128, 1))
+        #     LSTM(128, dropout=0.2, recurrent_dropout=0.2, input_shape=(60, 128))
         # )
-        self.model.add(
-            LSTM(128, dropout=0.2, recurrent_dropout=0.2, input_shape=(60, 128))
-        )
-        self.model.add(Dense(4, activation="sigmoid"))
+        # self.model.add(Dense(4, activation="sigmoid"))
         # --------------------------------------------------
 
         self.model.summary()
@@ -196,7 +193,41 @@ class SeparateDetectModel(BaseModel):
         predict_data = self.model.predict(audio_feature)
         print("아아아아아ㅏㅏ아아!!!!!!!!!!!!!!!>>>", predict_data.shape)
 
-        DataLabeling.show_label_plot(predict_data)
+        # DataLabeling.show_label_plot(predict_data)
+
+        # --------------------------------------------------------
+        #         # -- instrument
+        # drum_instrument = self.get_drum_instrument(audio)
+        # # -- rhythm
+        # onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+        predict_data = predict_data[:2000]
+
+        # -- 원래 정답 라벨
+        true_label = DataLabeling.data_labeling(
+            audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
+        )
+
+        y_pred_cut = {key: value[:2000] for key, value in true_label.items()}
+
+        label_dict = {
+            "HH": [row[0] for row in predict_data],
+            "ST": [row[1] for row in predict_data],
+            "SD": [row[2] for row in predict_data],
+            "KK": [row[3] for row in predict_data],
+        }
+
+        # # -- transport frame
+        # onset_dict = {v: [] for _, v in CODE2DRUM.items()}
+        # for data in drum_instrument:
+        #     idx = data[0]
+        #     instrument = data[1]
+        #     for inst in instrument:
+        #         onset_dict[CODE2DRUM[inst]].append(onsets_arr[idx])
+        # frame_length = len(audio) // self.hop_length
+        # frame_onset = DataLabeling._get_label_detect(
+        #     onset_dict, frame_length, self.hop_length
+        # )
+        DataLabeling.show_label_dict_compare_plot(y_pred_cut, label_dict)
 
         # # -- get onsets
         # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

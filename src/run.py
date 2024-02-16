@@ -64,17 +64,18 @@ from constant import (
 # rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
 
 
-audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
-FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
+# audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
+# FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
 
-# separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
+separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
 
-# separate_detect.create_dataset()
-# separate_detect.create()
-# separate_detect.train()
-# separate_detect.evaluate()
-# separate_detect.save()
-
+separate_detect.create_dataset()
+separate_detect.create()
+separate_detect.train()
+separate_detect.evaluate()
+separate_detect.save()
+# predict_test_data = "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4.wav"
+# print(separate_detect.predict(predict_test_data, 100, 0))
 # print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
 # print(separate_detect.predict("../data/test/RealDrum01_03#HH#train.wav", 100, 0))
 # print(separate_detect.predict("../data/test/WaveDrum02_31#SD#train.wav", 100, 0))

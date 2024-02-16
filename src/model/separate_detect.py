@@ -36,6 +36,7 @@ from data.rhythm_detection import RhythmDetection
 from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 from constant import (
+    CHUNK_DATA_LENGTH,
     CODE2DRUM,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
@@ -188,9 +189,8 @@ class SeparateDetectModel(BaseModel):
         # scaler = MinMaxScaler()
         audio_feature = scaler.fit_transform(audio_feature)
 
-        chunk_size = 60
         # -- (#, 60 time, 128 feature)
-        audio_feature = BaseModel.split_data(audio_feature, chunk_size)
+        audio_feature = BaseModel.split_data(audio_feature, CHUNK_DATA_LENGTH)
         # -- predict -- (#, 60 time, 4 feature)
         predict_data = self.model.predict(audio_feature)
         # print("아아아아아ㅏㅏ아아!!!!!!!!!!!!!!!>>>", predict_data)

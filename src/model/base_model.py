@@ -17,6 +17,7 @@ from sklearn.metrics import (
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from constant import (
+    CHUNK_DATA_LENGTH,
     SAMPLE_RATE,
     PKL,
     METHOD_CLASSIFY,
@@ -128,14 +129,11 @@ class BaseModel:
         del feature_df
 
         # --------------------------------------------
-        scaler = StandardScaler()
-        # scaler = MinMaxScaler()
-        X = scaler.fit_transform(X)
-
         if self.method_type in METHOD_DETECT:
-            chunk_size = 60
-            X = BaseModel.split_data(X, chunk_size)
-            y = BaseModel.split_data(y, chunk_size)
+            scaler = StandardScaler()
+            X = scaler.fit_transform(X)
+            X = BaseModel.split_data(X, CHUNK_DATA_LENGTH)
+            y = BaseModel.split_data(y, CHUNK_DATA_LENGTH)
         # --------------------------------------------
 
         # -- split train, val, test

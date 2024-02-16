@@ -50,8 +50,11 @@ ONSET_DURATION_RIGHT = 0.5
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
 ONSET_OFFSET = 1
 
-# -- chunk time
+# -- chunk time - feature 추출 시
 CHUNK_LENGTH = 12
+
+# -- chunk length - model에 넣기 전 dataset 가공 시
+CHUNK_DATA_LENGTH = 600
 
 # -- unit (1 sec)
 MILLISECOND = 1000000

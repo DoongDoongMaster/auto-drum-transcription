@@ -36,6 +36,7 @@ from data.rhythm_detection import RhythmDetection
 from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 from constant import (
+    CODE2DRUM,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
     MILLISECOND,
@@ -69,11 +70,9 @@ class SeparateDetectModel(BaseModel):
         self.load_model()
 
     def input_reshape(self, data):
-        return data
-        # Implement input reshaping logic
         # scaler = StandardScaler()
         # data = scaler.fit_transform(data)
-        # data = BaseModel.split_data(data, chunk_size)
+        return data
 
     def input_label_reshape(self, data):
         return data
@@ -185,49 +184,27 @@ class SeparateDetectModel(BaseModel):
             new_audio, self.method_type, self.feature_type
         )
 
-        # -- input reshape
-        audio_feature = self.input_reshape(audio_feature)
-        print("dㅇ러ㅏㅣㅇ리ㅓㅏㅣㅁ;ㅏ이11!<<<>>>>>>", audio_feature.shape)
-
-        # -- predict
+        chunk_size = 60
+        # -- (#, 60 time, 128 feature)
+        audio_feature = BaseModel.split_data(audio_feature, chunk_size)
+        # -- predict -- (#, 60 time, 4 feature)
         predict_data = self.model.predict(audio_feature)
-        print("아아아아아ㅏㅏ아아!!!!!!!!!!!!!!!>>>", predict_data.shape)
-
-        # DataLabeling.show_label_plot(predict_data)
-
-        # --------------------------------------------------------
-        #         # -- instrument
-        # drum_instrument = self.get_drum_instrument(audio)
-        # # -- rhythm
-        # onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
-        predict_data = predict_data[:2000]
+        # print("아아아아아ㅏㅏ아아!!!!!!!!!!!!!!!>>>", predict_data)
+        predict_data = predict_data.reshape((-1, 4))
+        # print("아아아아아ㅏㅏ아아!!!!!!!!!!!!!!!>>>", predict_data)
 
         # -- 원래 정답 라벨
         true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
-
-        y_pred_cut = {key: value[:2000] for key, value in true_label.items()}
-
-        label_dict = {
+        result_dict = {
             "HH": [row[0] for row in predict_data],
             "ST": [row[1] for row in predict_data],
             "SD": [row[2] for row in predict_data],
             "KK": [row[3] for row in predict_data],
         }
 
-        # # -- transport frame
-        # onset_dict = {v: [] for _, v in CODE2DRUM.items()}
-        # for data in drum_instrument:
-        #     idx = data[0]
-        #     instrument = data[1]
-        #     for inst in instrument:
-        #         onset_dict[CODE2DRUM[inst]].append(onsets_arr[idx])
-        # frame_length = len(audio) // self.hop_length
-        # frame_onset = DataLabeling._get_label_detect(
-        #     onset_dict, frame_length, self.hop_length
-        # )
-        DataLabeling.show_label_dict_compare_plot(y_pred_cut, label_dict)
+        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 500, 2000)
 
         # # -- get onsets
         # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

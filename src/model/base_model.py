@@ -1,5 +1,6 @@
 import librosa
 import numpy as np
+from sklearn.discriminant_analysis import StandardScaler
 import tensorflow as tf
 import pandas as pd
 
@@ -126,6 +127,9 @@ class BaseModel:
         del feature_df
 
         # --------------------------------------------
+        scaler = StandardScaler()
+        X = scaler.fit_transform(X)
+
         if self.method_type in METHOD_DETECT:
             chunk_size = 60
             X = BaseModel.split_data(X, chunk_size)
@@ -209,6 +213,9 @@ class BaseModel:
         # -- predict
         y_pred = self.model.predict(self.x_test)
         y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
+
+        if self.method_type == METHOD_DETECT:
+            return
 
         # confusion matrix & precision & recall
         print("-- ! confusion matrix ! --")

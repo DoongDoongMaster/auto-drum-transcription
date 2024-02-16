@@ -74,7 +74,9 @@ separate_detect.create()
 separate_detect.train()
 separate_detect.evaluate()
 separate_detect.save()
-# predict_test_data = "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4.wav"
+# predict_test_data = (
+#     "../data/raw/e-gmd-v1.0.0/drummer1/session1/4_jazz-funk_116_beat_4-4.wav"
+# )
 # print(separate_detect.predict(predict_test_data, 100, 0))
 # print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
 # print(separate_detect.predict("../data/test/RealDrum01_03#HH#train.wav", 100, 0))

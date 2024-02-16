@@ -1,6 +1,7 @@
 import librosa
 import numpy as np
 from sklearn.discriminant_analysis import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 import pandas as pd
 
@@ -127,7 +128,8 @@ class BaseModel:
         del feature_df
 
         # --------------------------------------------
-        scaler = StandardScaler()
+        # scaler = StandardScaler()
+        scaler = MinMaxScaler()
         X = scaler.fit_transform(X)
 
         if self.method_type in METHOD_DETECT:

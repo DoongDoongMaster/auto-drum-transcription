@@ -48,7 +48,7 @@ ONSET_DURATION_LEFT = 0.03
 ONSET_DURATION_RIGHT = 0.5
 
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
-ONSET_OFFSET = 0
+ONSET_OFFSET = 1
 
 # -- chunk time
 CHUNK_LENGTH = 12

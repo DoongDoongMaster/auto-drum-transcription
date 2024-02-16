@@ -64,16 +64,16 @@ from constant import (
 # rhythm_detect = RhythmDetectModel(40, 0.01, 32, 16)
 
 
-# audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
-# FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
+audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
+FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
 
-separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
+# separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
 
-separate_detect.create_dataset()
-separate_detect.create()
-separate_detect.train()
-separate_detect.evaluate()
-separate_detect.save()
+# separate_detect.create_dataset()
+# separate_detect.create()
+# separate_detect.train()
+# separate_detect.evaluate()
+# separate_detect.save()
 # predict_test_data = (
 #     "../data/raw/e-gmd-v1.0.0/drummer1/session1/4_jazz-funk_116_beat_4-4.wav"
 # )

@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from typing import List
 from datetime import datetime
 
-from sklearn.preprocessing import MinMaxScaler
 
 from data.onset_detection import OnsetDetect
 
@@ -282,7 +281,10 @@ class DataLabeling:
 
     @staticmethod
     def show_label_dict_compare_plot(
-        y_true: dict[str, List[float]], y_pred: dict[str, List[float]]
+        y_true: dict[str, List[float]],
+        y_pred: dict[str, List[float]],
+        start=0,
+        end=1200,
     ):
         """
         -- label 그래프
@@ -297,9 +299,13 @@ class DataLabeling:
             true_data = np.array(label_arr)
             plt.subplot(leng, 1, 2 * DRUM2CODE[key] + 1)
             plt.plot(true_data, color="b")
+            plt.axis([start, end, 0, 1])
+
             pred_data = np.array(y_pred[key])
             plt.subplot(leng, 1, 2 * DRUM2CODE[key] + 2)
             plt.plot(pred_data, color="r")
+
+            plt.axis([start, end, 0, 1])
 
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
@@ -510,9 +516,7 @@ class DataLabeling:
             if onset_position >= frame_length:
                 break
 
-            soft_start_position = max(  # -- onset - offset
-                (onset_position - ONSET_OFFSET), 0
-            )
+            soft_start_position = max((onset_position - 0), 0)  # -- onset - offset
             soft_end_position = min(  # -- onset + offset
                 onset_position + ONSET_OFFSET + 1, frame_length
             )

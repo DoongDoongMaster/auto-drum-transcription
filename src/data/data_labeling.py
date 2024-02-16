@@ -516,7 +516,9 @@ class DataLabeling:
             if onset_position >= frame_length:
                 break
 
-            soft_start_position = max((onset_position - 0), 0)  # -- onset - offset
+            soft_start_position = max(  # -- onset - offset
+                (onset_position - ONSET_OFFSET), 0
+            )
             soft_end_position = min(  # -- onset + offset
                 onset_position + ONSET_OFFSET + 1, frame_length
             )

@@ -51,8 +51,8 @@ class AudioToFeature:
 
         result = feature_extraction_functions[feature_type](audio, feature_param)
 
-        # classify 방식에서만 pad 채우기
-        if method_type == METHOD_CLASSIFY:
+        # classify, detect 방식에서 pad 채우기
+        if method_type in [METHOD_DETECT, METHOD_CLASSIFY]:
             result = AudioToFeature._pad_feature(result, frame_length)
 
         if method_type in [METHOD_DETECT, METHOD_RHYTHM]:  # separate & detect방식 확인

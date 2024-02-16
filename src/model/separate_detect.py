@@ -2,6 +2,7 @@ from pyexpat import model
 import librosa
 import tensorflow as tf
 import numpy as np
+import pandas as pd
 
 from typing import List
 
@@ -91,14 +92,20 @@ class SeparateDetectModel(BaseModel):
     def create(self):
         self.model = Sequential()
 
-        # --------------------------------------------------
+        # self.model.add(
+        #     LSTM(64, input_shape=(CHUNK_DATA_LENGTH, 128), return_sequences=True)
+        # )
+        # self.model.add(LSTM(32, return_sequences=True))
+        # self.model.add(LSTM(16, return_sequences=True))
+        # # TimeDistributed를 쓸 땐 return_sequnces = True 로 받음
+
         self.model.add(
             Conv2D(
                 32,
                 (3, 3),
                 padding="same",
                 activation="tanh",
-                input_shape=(60, 128, 1),
+                input_shape=(CHUNK_DATA_LENGTH, 128, 1),
             )
         )
         self.model.add(BatchNormalization())
@@ -118,6 +125,7 @@ class SeparateDetectModel(BaseModel):
         self.model.add(Bidirectional(GRU(50, return_sequences=True)))
         self.model.add(Bidirectional(GRU(50, return_sequences=True)))
 
+        # --------------------------------------------------------
         self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
 
         # --------------------------------------------------
@@ -177,13 +185,28 @@ class SeparateDetectModel(BaseModel):
         # Implement model predict logic
         audio = FeatureExtractor.load_audio(wav_path)
 
-        # -- cut delay
-        new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
+        # # # -- cut delay
+        # # new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
+        # new_audio = audio
 
-        # -- wav to feature
-        audio_feature = AudioToFeature.extract_feature(
-            new_audio, self.method_type, self.feature_type
-        )
+        true_label = {v: [] for _, v in CODE2DRUM.items()}
+        audio_feature = np.zeros((0, 128))
+
+        # 오디오 자르기
+        audios = DataProcessing.cut_chunk_audio(audio)
+        for i, ao in enumerate(audios):
+            # audio to feature
+            feature = AudioToFeature.extract_feature(
+                ao, self.method_type, self.feature_type
+            )
+            audio_feature = np.vstack([audio_feature, feature])
+
+            # get label
+            label = DataLabeling.data_labeling(
+                ao, wav_path, self.method_type, i, feature.shape[0], self.hop_length
+            )
+            for key in label.keys():
+                true_label[key] = true_label[key] + label[key]
 
         scaler = StandardScaler()
         # scaler = MinMaxScaler()
@@ -193,9 +216,7 @@ class SeparateDetectModel(BaseModel):
         audio_feature = BaseModel.split_data(audio_feature, CHUNK_DATA_LENGTH)
         # -- predict -- (#, 60 time, 4 feature)
         predict_data = self.model.predict(audio_feature)
-        # print("아아아아아ㅏㅏ아아!!!!!!!!!!!!!!!>>>", predict_data)
         predict_data = predict_data.reshape((-1, 4))
-        # print("아아아아아ㅏㅏ아아!!!!!!!!!!!!!!!>>>", predict_data)
 
         # -- 원래 정답 라벨
         true_label = DataLabeling.data_labeling(

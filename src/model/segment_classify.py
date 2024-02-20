@@ -52,8 +52,8 @@ class SegmentClassifyModel(BaseModel):
         self.n_channels = self.feature_param["n_channels"]
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
-        # self.load_model("../models/classify_mfcc_2024-02-19_15-29-29_smote.h5")
-        self.load_model()
+        self.load_model("../models/classify_mfcc_2024-02-19_15-29-29_smote.h5")
+        # self.load_model()
 
     def input_reshape(self, data):
         # Implement input reshaping logic
@@ -300,9 +300,9 @@ class SegmentClassifyModel(BaseModel):
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
 
         # -- 원래 정답 라벨
-        true_label = DataLabeling.data_labeling(
-            audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
-        )
+        # true_label = DataLabeling.data_labeling(
+        #     audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
+        # )
         # DataLabeling.show_label_dict_plot(true_label)
 
         # -- transport frame
@@ -316,7 +316,8 @@ class SegmentClassifyModel(BaseModel):
         frame_onset = DataLabeling._get_label_detect(
             onset_dict, frame_length, self.hop_length
         )
-        DataLabeling.show_label_dict_compare_plot(true_label, frame_onset)
+        # DataLabeling.show_label_dict_compare_plot(true_label, frame_onset)
+        DataLabeling.show_label_dict_plot(frame_onset, 3200, 5000)
 
         # delay 제거
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)

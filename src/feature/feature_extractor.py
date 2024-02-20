@@ -122,8 +122,7 @@ class FeatureExtractor:
             print("-- current file: ", path)
 
             # -- librosa feature load
-            audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
-            audio = librosa.effects.percussive(audio)
+            audio = FeatureExtractor.load_audio(path)
 
             df = FeatureExtractor._get_one_path_feature_label(
                 audio, path, method_type, feature_type
@@ -458,3 +457,9 @@ class FeatureExtractor:
     @staticmethod
     def _get_save_folder_path(method_type, feature_type) -> str:
         return f"{ROOT_PATH}/{PROCESSED_FEATURE}/{method_type}/{feature_type}"
+
+    @staticmethod
+    def load_audio(path):
+        audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
+        audio = librosa.effects.percussive(audio)
+        return audio

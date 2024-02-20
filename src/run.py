@@ -9,6 +9,7 @@ from model.separate_detect import SeparateDetectModel
 from model.rhythm_detect_model import RhythmDetectModel
 
 from constant import (
+    CSV,
     SAMPLE_RATE,
     MFCC,
     STFT,
@@ -73,9 +74,22 @@ separate_detect.create()
 separate_detect.train()
 separate_detect.evaluate()
 separate_detect.save()
+# predict_test_data = (
+#     "../data/raw/e-gmd-v1.0.0/drummer1/session1/4_jazz-funk_116_beat_4-4.wav"
+# )
+# print(separate_detect.predict(predict_test_data, 100, 0))
 # print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
-
-
+# print(separate_detect.predict("../data/test/RealDrum01_03#HH#train.wav", 100, 0))
+# print(separate_detect.predict("../data/test/WaveDrum02_31#SD#train.wav", 100, 0))
+# print(separate_detect.predict("../data/test/RealDrum01_02#KD#train.wav", 100, 0))
+# print(
+#     separate_detect.predict("../data/test/3_soul-groove3_86_beat_4-4_out.wav", 100, 0)
+# )
+# print(
+#     separate_detect.predict(
+#         "../data/test/141_MIDI-minus-one_soul-98_sticks.wav", 100, 0
+#     )
+# )
 # ---------------------------------------------------------------------------------------
 # import librosa
 # import numpy as np

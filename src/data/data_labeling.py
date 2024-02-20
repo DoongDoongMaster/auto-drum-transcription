@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from typing import List
 from datetime import datetime
 
+
 from data.onset_detection import OnsetDetect
 
 from constant import (
@@ -238,7 +239,10 @@ class DataLabeling:
 
     @staticmethod
     def show_label_dict_compare_plot(
-        y_true: dict[str, List[float]], y_pred: dict[str, List[float]]
+        y_true: dict[str, List[float]],
+        y_pred: dict[str, List[float]],
+        start=0,
+        end=None,
     ):
         """
         -- label 그래프
@@ -248,14 +252,20 @@ class DataLabeling:
             ...
         }
         """
+        if end is None:  # end가 none이라면 y_true 끝까지
+            end = len(y_true[CODE2DRUM[0]])
         leng = len(y_true.keys()) * 2
         for key, label_arr in y_true.items():
             true_data = np.array(label_arr)
             plt.subplot(leng, 1, 2 * DRUM2CODE[key] + 1)
             plt.plot(true_data, color="b")
+            plt.axis([start, end, 0, 1])
+
             pred_data = np.array(y_pred[key])
             plt.subplot(leng, 1, 2 * DRUM2CODE[key] + 2)
             plt.plot(pred_data, color="r")
+
+            plt.axis([start, end, 0, 1])
 
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성

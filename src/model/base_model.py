@@ -1,5 +1,7 @@
 import librosa
 import numpy as np
+from sklearn.discriminant_analysis import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 import pandas as pd
 
@@ -15,6 +17,7 @@ from sklearn.metrics import (
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from constant import (
+    CHUNK_TIME_LENGTH,
     SAMPLE_RATE,
     PKL,
     METHOD_CLASSIFY,
@@ -99,47 +102,21 @@ class BaseModel:
             y = feature_df["label"].to_numpy()
             return X, y
 
+    # 데이터 분할을 위한 함수 정의
+    @staticmethod
+    def split_data(data, chunk_size):
+        num_samples, num_features = data.shape
+        num_chunks = num_samples // chunk_size
+
+        # 나머지 부분을 제외한 데이터만 사용
+        data = data[: num_chunks * chunk_size, :]
+
+        # reshape을 통해 3D 배열로 변환
+        return data.reshape((num_chunks, chunk_size, num_features))
+
     def create_dataset(self):
-        """
-        -- load data from data file
-        -- Implement dataset split feature & label logic
-        """
-        # Implement dataset split feature & label logic
-        feature_df = FeatureExtractor.load_feature_file(
-            self.method_type, self.feature_type, self.feature_extension
-        )
-
-        # -- get X, y
-        X, y = BaseModel._get_x_y(self.method_type, feature_df)
-        del feature_df
-
-        # -- split train, val, test
-        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
-        del X
-        del y
-
-        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
-            x_train_temp,
-            y_train_temp,
-            test_size=0.2,
-            random_state=42,
-            stratify=y_train_temp,
-        )
-        del x_train_temp
-        del y_train_temp
-
-        # input shape 조정
-        self.x_train = self.input_reshape(x_train_final)
-        self.x_val = self.input_reshape(x_val_final)
-        self.x_test = self.input_reshape(x_test)
-        self.y_train = y_train_final
-        self.y_val = y_val_final
-        self.y_test = y_test
-
-        # -- print shape
-        self.print_dataset_shape()
+        # Implement model
+        pass
 
     def print_dataset_shape(self):
         print("x_train : ", self.x_train.shape)
@@ -187,6 +164,9 @@ class BaseModel:
         y_pred = self.model.predict(self.x_test)
         y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
 
+        if self.method_type == METHOD_DETECT:
+            return
+
         # confusion matrix & precision & recall
         print("-- ! confusion matrix ! --")
         print(multilabel_confusion_matrix(self.y_test, y_pred))
@@ -216,9 +196,3 @@ class BaseModel:
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
         pass
-
-    @staticmethod
-    def load_audio(path):
-        audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
-        audio = librosa.effects.percussive(audio)
-        return audio

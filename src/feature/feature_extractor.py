@@ -461,6 +461,5 @@ class FeatureExtractor:
     @staticmethod
     def load_audio(path):
         audio, _ = librosa.load(path, sr=SAMPLE_RATE, res_type="kaiser_fast")
-        # yt, _ = librosa.effects.trim(audio)
         audio = librosa.effects.percussive(audio)
         return audio

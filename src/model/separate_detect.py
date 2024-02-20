@@ -7,7 +7,9 @@ import pandas as pd
 
 from typing import List
 
-from tensorflow.keras import Sequential
+from tensorflow.keras import Sequential, layers
+from keras.layers import Input
+from keras.models import Model
 from tensorflow.keras.layers import (
     Dense,
     GRU,
@@ -99,7 +101,7 @@ class SeparateDetectModel(BaseModel):
 
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
-        X = BaseModel.split_data(X, CHUNK_TIME_LENGTH)
+        X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
         y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
 
         # -- split train, val, test
@@ -132,16 +134,66 @@ class SeparateDetectModel(BaseModel):
         self.print_dataset_shape()
 
     def create(self):
-        self.model = Sequential()
+        # # ----------------------------------------------------------------------------------------
+        # input_data = Input(
+        #     shape=(self.x_train.shape[0], CHUNK_TIME_LENGTH, 128, 1)
+        # )  # frame, height, width, channels
 
-        self.model.add(
-            LSTM(64, input_shape=(CHUNK_TIME_LENGTH, 128), return_sequences=True)
-        )
-        self.model.add(LSTM(32, return_sequences=True))
-        self.model.add(LSTM(16, return_sequences=True))
-        # TimeDistributed를 쓸 땐 return_sequnces = True 로 받음
-        self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+        # convolution1 = TimeDistributed(
+        #     Conv2D(filters=64, kernel_size=(1, 1), activation="tanh")
+        # )(input_data)
+        # bn = TimeDistributed(BatchNormalization())(convolution1)
+        # convolution1 = TimeDistributed(
+        #     Conv2D(filters=64, kernel_size=(1, 1), activation="tanh")
+        # )(bn)
+        # bn = TimeDistributed(BatchNormalization())(convolution1)
+        # pooling1 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(convolution1)
 
+        # convolution2 = TimeDistributed(
+        #     Conv2D(filters=128, kernel_size=(1, 1), activation="tanh")
+        # )(pooling1)
+        # bn = TimeDistributed(BatchNormalization())(convolution2)
+        # convolution2 = TimeDistributed(
+        #     Conv2D(filters=128, kernel_size=(1, 1), activation="tanh")
+        # )(convolution2)
+        # bn = TimeDistributed(BatchNormalization())(convolution1)
+        # pooling2 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(bn)
+
+        # convolution3 = TimeDistributed(
+        #     Conv2D(filters=256, kernel_size=(1, 1), activation="tanh")
+        # )(pooling2)
+        # bn = TimeDistributed(BatchNormalization())(convolution3)
+        # convolution3 = TimeDistributed(
+        #     Conv2D(filters=256, kernel_size=(1, 1), activation="tanh")
+        # )(convolution3)
+        # bn = TimeDistributed(BatchNormalization())(convolution3)
+        # pooling3 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(bn)
+
+        # flatten = TimeDistributed(Flatten())(pooling3)
+
+        # dense = TimeDistributed(Dense(24))(flatten)
+
+        # blstm = Bidirectional(LSTM(128, return_sequences=True, dropout=0.1))(dense)
+        # blstm = Bidirectional(LSTM(128, return_sequences=True, dropout=0.1))(blstm)
+        # y_pred = Bidirectional(LSTM(128, return_sequences=True, dropout=0.1))(blstm)
+
+        # dense = TimeDistributed(Dense(4, name="dense"))(y_pred)
+        # # ----------------------------------------------------------------------------------------
+        input_layer = Input(shape=(CHUNK_TIME_LENGTH, 128))
+        conv1 = Conv1D(
+            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
+        )(input_layer)
+        conv2 = Conv1D(
+            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
+        )(conv1)
+        conv3 = Conv1D(
+            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
+        )(conv2)
+        lstm1 = LSTM(32, return_sequences=True)(conv3)
+        lstm2 = LSTM(32, return_sequences=True)(lstm1)
+        lstm3 = LSTM(32, return_sequences=True)(lstm2)
+        output_layer = Dense(4, activation="sigmoid")(lstm3)
+        self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
 
         # compile the self.model
@@ -227,7 +279,7 @@ class SeparateDetectModel(BaseModel):
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
 
-        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 500, 2000)
+        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 
         # # -- get onsets
         # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

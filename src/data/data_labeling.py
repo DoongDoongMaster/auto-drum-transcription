@@ -198,62 +198,20 @@ class DataLabeling:
          [0, 0, 0, 0],
          ...]
         """
-        # print("label>>>ㅇㅁㄴ러ㅣㅏㄴ머리먼;!!!", label.shape)
-        # data = np.array(label)
-        # num_steps = data.shape[1]
-        # num_classes = data.shape[2]
+        data = np.array(label)
+        data = data.reshape(data.shape[0], -1)
 
-        # fig, axes = plt.subplots(num_classes, 1, figsize=(6, 2 * num_classes))
+        for i in range(data.shape[1]):
+            plt.subplot(data.shape[1], 1, i + 1)
+            plt.plot(data[:, i])
 
-        # for class_idx in range(num_classes):
-        #     axes[class_idx].plot(
-        #         data[0, :, class_idx], label=f"{class_labels[class_idx]} Probability"
-        #     )
-
-        #     axes[class_idx].set_xlabel("Time Step")
-        #     axes[class_idx].set_ylabel("Probability")
-        #     axes[class_idx].legend()
-        # ------------------------------------------------------------
-        class_labels = ["HH", "ST", "SD", "KK"]
-
-        # 데이터를 (1700, 4)로 reshape
-        label = label.reshape(-1, 4)
-
-        # scaler = MinMaxScaler()
-        # label = scaler.fit_transform(label)
-
-        # 그래프 그리기
-        fig, axs = plt.subplots(4, 1, figsize=(15, 15), sharex=True, sharey=True)
-
-        for class_index in range(label.shape[1]):
-            axs[class_index].plot(
-                label[:, class_index], label=class_labels[class_index], linewidth=2
-            )
-            axs[class_index].set_title(f"Class: {class_labels[class_index]}")
-
-        plt.xlabel("Time")
-        plt.ylabel("Normalized Class Value")
-        plt.tight_layout()
+        plt.title("Model Label")
+        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
         date_time = datetime.now().strftime(
             "%Y-%m-%d_%H-%M-%S"
         )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
         plt.show()
-
-        # data = np.array(label)
-        # data = data.reshape(data.shape[0], -1)
-
-        # for i in range(data.shape[1]):
-        #     plt.subplot(data.shape[1], 1, i + 1)
-        #     plt.plot(data[:, i])
-
-        # plt.title("Model Label")
-        # os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        # date_time = datetime.now().strftime(
-        #     "%Y-%m-%d_%H-%M-%S"
-        # )  # 현재 날짜와 시간 가져오기
-        # plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
-        # plt.show()
 
     @staticmethod
     def show_label_dict_plot(label: dict[str, List[float]]):

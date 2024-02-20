@@ -65,7 +65,7 @@ class BaseModel:
         self.model.save(model_path)
         print("--! save model: ", model_path)
 
-    def load_model(self):
+    def load_model(self, model_file=None):
         """
         -- method_type과 feature type에 맞는 가장 최근 모델 불러오기
         """
@@ -75,8 +75,13 @@ class BaseModel:
             return
 
         model_files.sort(reverse=True)  # 최신 순으로 정렬
-        print("-- ! load model: ", model_files[0])
-        self.model = tf.keras.models.load_model(model_files[0])
+        load_model_file = model_files[0]  # 가장 최근 모델
+
+        if model_file is not None:  # 불러오고자 하는 특정 모델 파일이 있다면
+            load_model_file = model_file
+
+        print("-- ! load model: ", load_model_file)
+        self.model = tf.keras.models.load_model(load_model_file)
 
     def input_reshape(self, data) -> np.ndarray:
         # Implement input reshaping logic

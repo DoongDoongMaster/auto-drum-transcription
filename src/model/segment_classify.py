@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 from collections import Counter
 from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import NearMiss
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers, Sequential
 from tensorflow.keras.optimizers import Adam, SGD, RMSprop
@@ -51,6 +52,7 @@ class SegmentClassifyModel(BaseModel):
         self.n_channels = self.feature_param["n_channels"]
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
+        # self.load_model("../models/classify_mfcc_2024-02-19_15-29-29_smote.h5")
         self.load_model()
 
     def input_reshape(self, data):
@@ -128,13 +130,15 @@ class SegmentClassifyModel(BaseModel):
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
         # print(y)
         number_y = SegmentClassifyModel.one_hot_label_to_number(y)
-        # print(number_y)
+        # # print(number_y)
         counter = Counter(number_y)
         print("변경 전", counter)
 
-        smt = SMOTE()
+        # smt = SMOTE()
         X = self.x_data_1d_reshape(X)
-        X, number_y = smt.fit_resample(X, number_y)
+        # X, number_y = smt.fit_resample(X, number_y)
+        nm_model = NearMiss(version=3)
+        X, number_y = nm_model.fit_resample(X, number_y)
 
         # 비율 확인
         counter = Counter(number_y)
@@ -238,6 +242,9 @@ class SegmentClassifyModel(BaseModel):
     def get_predict_result(self, predict):
         # 각 행에서 threshold를 넘는 값의 인덱스 찾기
         indices_above_threshold = np.argwhere(predict > self.predict_standard)
+
+        if indices_above_threshold.size == 0:
+            raise Exception("no predict data")
 
         current_row = indices_above_threshold[0, 0]
         result = []

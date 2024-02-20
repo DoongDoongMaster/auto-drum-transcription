@@ -7,7 +7,6 @@ import pandas as pd
 
 from glob import glob
 from datetime import datetime
-from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import (
     multilabel_confusion_matrix,
@@ -17,7 +16,6 @@ from sklearn.metrics import (
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from constant import (
-    CHUNK_TIME_LENGTH,
     SAMPLE_RATE,
     PKL,
     METHOD_CLASSIFY,
@@ -155,6 +153,9 @@ class BaseModel:
 
         return history
 
+    def data_2d_reshape(self, data):
+        return tf.reshape(data, [-1, self.n_classes])
+
     def evaluate(self):
         # Implement model evaluation logic
         print("\n# Evaluate on test data")
@@ -167,17 +168,18 @@ class BaseModel:
 
         # -- predict
         y_pred = self.model.predict(self.x_test)
-        y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
 
-        if self.method_type == METHOD_DETECT:
-            return
+        # -- reshape
+        y_test_data = self.data_2d_reshape(self.y_test)
+        y_pred = self.data_2d_reshape(y_pred)
+        y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
 
         # confusion matrix & precision & recall
         print("-- ! confusion matrix ! --")
-        print(multilabel_confusion_matrix(self.y_test, y_pred))
+        print(multilabel_confusion_matrix(y_test_data, y_pred))
 
         print("-- ! classification report ! --")
-        print(classification_report(self.y_test, y_pred))
+        print(classification_report(y_test_data, y_pred))
 
     def extract_feature(self, data_path: str = f"{ROOT_PATH}/{RAW_PATH}"):
         """

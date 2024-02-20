@@ -129,22 +129,22 @@ class SegmentClassifyModel(BaseModel):
 
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
         # print(y)
-        number_y = SegmentClassifyModel.one_hot_label_to_number(y)
-        # # print(number_y)
-        counter = Counter(number_y)
-        print("변경 전", counter)
+        # number_y = SegmentClassifyModel.one_hot_label_to_number(y)
+        # # # print(number_y)
+        # counter = Counter(number_y)
+        # print("변경 전", counter)
 
-        # smt = SMOTE()
-        X = self.x_data_1d_reshape(X)
-        # X, number_y = smt.fit_resample(X, number_y)
-        nm_model = NearMiss(version=3)
-        X, number_y = nm_model.fit_resample(X, number_y)
+        # # smt = SMOTE()
+        # X = self.x_data_1d_reshape(X)
+        # # X, number_y = smt.fit_resample(X, number_y)
+        # nm_model = NearMiss(version=3)
+        # X, number_y = nm_model.fit_resample(X, number_y)
 
-        # 비율 확인
-        counter = Counter(number_y)
-        print("변경 후", counter)
+        # # 비율 확인
+        # counter = Counter(number_y)
+        # print("변경 후", counter)
 
-        y = SegmentClassifyModel.number_to_one_hot_label(number_y)
+        # y = SegmentClassifyModel.number_to_one_hot_label(number_y)
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
@@ -300,10 +300,10 @@ class SegmentClassifyModel(BaseModel):
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
 
         # -- 원래 정답 라벨
-        # true_label = DataLabeling.data_labeling(
-        #     audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
-        # )
-        # DataLabeling.show_label_dict_plot(true_label)
+        true_label = DataLabeling.data_labeling(
+            audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
+        )
+        DataLabeling.show_label_dict_plot(true_label)
 
         # -- transport frame
         onset_dict = {v: [] for _, v in CODE2DRUM.items()}

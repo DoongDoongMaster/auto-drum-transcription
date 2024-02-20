@@ -43,7 +43,7 @@ class SegmentClassifyModel(BaseModel):
             feature_type=feature_type,
             feature_extension=feature_extension,
         )
-        self.predict_standard = 0.5
+        self.predict_standard = 0.8
         self.n_row = self.feature_param["n_mfcc"]
         self.n_columns = (
             int(CLASSIFY_DURATION * SAMPLE_RATE) // self.feature_param["hop_length"]

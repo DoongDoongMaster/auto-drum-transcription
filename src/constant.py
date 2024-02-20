@@ -258,23 +258,29 @@ DRUM_TYPES = {
     "HH": [
         "chh",
         "ohh",
-        42,
-        46,
+        42,  # hi-hat cloased
+        46,  # hi-hat open
+        49,  # crash cymbal 1
+        57,  # crash cymbal 2
+        52,  # china cymbal
+        55,  # splash cymbal
+        51,  # ride cymbal
+        59,  # ride cymbal 2
     ],
     "ST": [
         "mt",
-        48,
-        50,
+        48,  # high-mid tom
+        50,  # high tom
     ],
     "SD": [
         "sd",
-        38,
-        40,
+        38,  # snare drum
+        40,  # electric snare drum
     ],
     "KK": [
         "bd",
-        35,
-        36,
+        35,  # bass drum
+        36,  # kick drum
     ],
 }
 DRUM_MAP = {}

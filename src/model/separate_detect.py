@@ -121,10 +121,9 @@ class SeparateDetectModel(BaseModel):
         del x_train_temp
         del y_train_temp
 
-        # input shape 조정
-        self.x_train = self.input_reshape(x_train_final)
-        self.x_val = self.input_reshape(x_val_final)
-        self.x_test = self.input_reshape(x_test)
+        self.x_train = x_train_final
+        self.x_val = x_val_final
+        self.x_test = x_test
         self.y_train = y_train_final
         self.y_val = y_val_final
         self.y_test = y_test
@@ -190,14 +189,14 @@ class SeparateDetectModel(BaseModel):
         # Implement model predict logic
         audio = FeatureExtractor.load_audio(wav_path)
 
-        # # # -- cut delay
-        # # new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
-        # new_audio = audio
+        # -- cut delay
+        new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)
+        audio = new_audio
 
-        true_label = {v: [] for _, v in CODE2DRUM.items()}
+        # ------------------- compare predict with true label --------------------------
         audio_feature = np.zeros((0, 128))
 
-        # 오디오 자르기
+        # 12s chunk하면서 audio feature추출 후 이어붙이기 -> 함수로 뽑을 예정
         audios = DataProcessing.cut_chunk_audio(audio)
         for i, ao in enumerate(audios):
             # audio to feature
@@ -206,33 +205,27 @@ class SeparateDetectModel(BaseModel):
             )
             audio_feature = np.vstack([audio_feature, feature])
 
-            # get label
-            label = DataLabeling.data_labeling(
-                ao, wav_path, self.method_type, i, feature.shape[0], self.hop_length
-            )
-            for key in label.keys():
-                true_label[key] = true_label[key] + label[key]
-
         scaler = StandardScaler()
-        # scaler = MinMaxScaler()
         audio_feature = scaler.fit_transform(audio_feature)
 
-        # -- (#, 60 time, 128 feature)
+        # -- input (#, time, 128 feature)
         audio_feature = BaseModel.split_data(audio_feature, CHUNK_TIME_LENGTH)
-        # -- predict -- (#, 60 time, 4 feature)
+
+        # -- predict 결과 -- (#, time, 4 feature)
         predict_data = self.model.predict(audio_feature)
         predict_data = predict_data.reshape((-1, 4))
-
-        # -- 원래 정답 라벨
-        true_label = DataLabeling.data_labeling(
-            audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
-        )
+        # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
         result_dict = {
             "HH": [row[0] for row in predict_data],
             "ST": [row[1] for row in predict_data],
             "SD": [row[2] for row in predict_data],
             "KK": [row[3] for row in predict_data],
         }
+
+        # -- 실제 label
+        true_label = DataLabeling.data_labeling(
+            audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
+        )
 
         DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 500, 2000)
 

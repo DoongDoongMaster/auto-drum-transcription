@@ -7,7 +7,6 @@ import pandas as pd
 
 from glob import glob
 from datetime import datetime
-from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import (
     multilabel_confusion_matrix,
@@ -17,7 +16,6 @@ from sklearn.metrics import (
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from constant import (
-    CHUNK_TIME_LENGTH,
     SAMPLE_RATE,
     PKL,
     METHOD_CLASSIFY,
@@ -68,7 +66,7 @@ class BaseModel:
         self.model.save(model_path)
         print("--! save model: ", model_path)
 
-    def load_model(self):
+    def load_model(self, model_file=None):
         """
         -- method_type과 feature type에 맞는 가장 최근 모델 불러오기
         """
@@ -78,8 +76,13 @@ class BaseModel:
             return
 
         model_files.sort(reverse=True)  # 최신 순으로 정렬
-        print("-- ! load model: ", model_files[0])
-        self.model = tf.keras.models.load_model(model_files[0])
+        load_model_file = model_files[0]  # 가장 최근 모델
+
+        if model_file is not None:  # 불러오고자 하는 특정 모델 파일이 있다면
+            load_model_file = model_file
+
+        print("-- ! load model: ", load_model_file)
+        self.model = tf.keras.models.load_model(load_model_file)
 
     def input_reshape(self, data) -> np.ndarray:
         # Implement input reshaping logic
@@ -162,6 +165,9 @@ class BaseModel:
 
         return history
 
+    def data_2d_reshape(self, data):
+        return tf.reshape(data, [-1, self.n_classes])
+
     def evaluate(self):
         # Implement model evaluation logic
         print("\n# Evaluate on test data")
@@ -174,17 +180,18 @@ class BaseModel:
 
         # -- predict
         y_pred = self.model.predict(self.x_test)
-        y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
 
-        if self.method_type == METHOD_DETECT:
-            return
+        # -- reshape
+        y_test_data = self.data_2d_reshape(self.y_test)
+        y_pred = self.data_2d_reshape(y_pred)
+        y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
 
         # confusion matrix & precision & recall
         print("-- ! confusion matrix ! --")
-        print(multilabel_confusion_matrix(self.y_test, y_pred))
+        print(multilabel_confusion_matrix(y_test_data, y_pred))
 
         print("-- ! classification report ! --")
-        print(classification_report(self.y_test, y_pred))
+        print(classification_report(y_test_data, y_pred))
 
     def extract_feature(self, data_path: str = f"{ROOT_PATH}/{RAW_PATH}"):
         """

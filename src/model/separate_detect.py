@@ -37,7 +37,7 @@ from data.rhythm_detection import RhythmDetection
 from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 from constant import (
-    CHUNK_DATA_LENGTH,
+    CHUNK_TIME_LENGTH,
     CODE2DRUM,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
@@ -93,7 +93,7 @@ class SeparateDetectModel(BaseModel):
         self.model = Sequential()
 
         # self.model.add(
-        #     LSTM(64, input_shape=(CHUNK_DATA_LENGTH, 128), return_sequences=True)
+        #     LSTM(64, input_shape=(CHUNK_TIME_LENGTH, 128), return_sequences=True)
         # )
         # self.model.add(LSTM(32, return_sequences=True))
         # self.model.add(LSTM(16, return_sequences=True))
@@ -105,7 +105,7 @@ class SeparateDetectModel(BaseModel):
                 (3, 3),
                 padding="same",
                 activation="tanh",
-                input_shape=(CHUNK_DATA_LENGTH, 128, 1),
+                input_shape=(CHUNK_TIME_LENGTH, 128, 1),
             )
         )
         self.model.add(BatchNormalization())
@@ -213,7 +213,7 @@ class SeparateDetectModel(BaseModel):
         audio_feature = scaler.fit_transform(audio_feature)
 
         # -- (#, 60 time, 128 feature)
-        audio_feature = BaseModel.split_data(audio_feature, CHUNK_DATA_LENGTH)
+        audio_feature = BaseModel.split_data(audio_feature, CHUNK_TIME_LENGTH)
         # -- predict -- (#, 60 time, 4 feature)
         predict_data = self.model.predict(audio_feature)
         predict_data = predict_data.reshape((-1, 4))

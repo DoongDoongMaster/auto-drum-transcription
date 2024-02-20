@@ -54,7 +54,8 @@ ONSET_OFFSET = 1
 CHUNK_LENGTH = 12
 
 # -- chunk length - model에 넣기 전 dataset 가공 시
-CHUNK_DATA_LENGTH = 1200
+# CHUNK_DATA_LENGTH = 30
+CHUNK_TIME_LENGTH = 30
 
 # -- unit (1 sec)
 MILLISECOND = 1000000

@@ -17,7 +17,7 @@ from sklearn.metrics import (
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from constant import (
-    CHUNK_DATA_LENGTH,
+    CHUNK_TIME_LENGTH,
     SAMPLE_RATE,
     PKL,
     METHOD_CLASSIFY,
@@ -128,13 +128,13 @@ class BaseModel:
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
-        # --------------------------------------------
+        # -------------------------------------------------------
         if self.method_type in METHOD_DETECT:
             scaler = StandardScaler()
             X = scaler.fit_transform(X)
-            X = BaseModel.split_data(X, CHUNK_DATA_LENGTH)
-            y = BaseModel.split_data(y, CHUNK_DATA_LENGTH)
-        # --------------------------------------------
+            X = BaseModel.split_data(X, CHUNK_TIME_LENGTH)
+            y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
+        # -------------------------------------------------------
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(

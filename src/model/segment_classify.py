@@ -292,7 +292,7 @@ class SegmentClassifyModel(BaseModel):
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
-        audio = SegmentClassifyModel.load_audio(wav_path)
+        audio = FeatureExtractor.load_audio(wav_path)
 
         # -- instrument
         drum_instrument = self.get_drum_instrument(audio)

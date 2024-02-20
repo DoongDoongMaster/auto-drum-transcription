@@ -1,7 +1,10 @@
-import librosa
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
+from collections import Counter
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import NearMiss
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import layers, Sequential
 from tensorflow.keras.optimizers import Adam, SGD, RMSprop
@@ -41,7 +44,7 @@ class SegmentClassifyModel(BaseModel):
             feature_type=feature_type,
             feature_extension=feature_extension,
         )
-        self.predict_standard = 0.5
+        self.predict_standard = 0.8
         self.n_row = self.feature_param["n_mfcc"]
         self.n_columns = (
             int(CLASSIFY_DURATION * SAMPLE_RATE) // self.feature_param["hop_length"]
@@ -49,7 +52,8 @@ class SegmentClassifyModel(BaseModel):
         self.n_channels = self.feature_param["n_channels"]
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
-        self.load_model()
+        self.load_model("../models/classify_mfcc_2024-02-19_15-29-29_smote.h5")
+        # self.load_model()
 
     def input_reshape(self, data):
         # Implement input reshaping logic
@@ -63,12 +67,112 @@ class SegmentClassifyModel(BaseModel):
             ],
         )
 
+    @staticmethod
+    def binary_to_string(binary_list):
+        # 이진수를 문자열로 변환하는 함수 정의
+        binary_list = list(map(int, binary_list))  # 정수로 변환
+        return "".join(map(str, binary_list))
+
+    @staticmethod
+    def binary_to_decimal(binary_string):
+        # 이진수를 10진수로 변환하는 함수 정의
+        return int(binary_string, 2)
+
+    @staticmethod
+    def decimal_to_binary(decimal_number):
+        # 10진수를 이진수로 변환하는 함수 정의
+        binary_string = bin(decimal_number)[2:]
+        # 2진수를 4자리로 맞추기 위해 앞에 0을 채움
+        binary_string = "0" * (4 - len(binary_string)) + binary_string
+        return [*map(int, binary_string)]
+
+    @staticmethod
+    def one_hot_label_to_number(labels: np.array):
+        # 각 리스트를 이진수로 변환한 뒤 10진수로 변환하여 저장
+        return np.apply_along_axis(
+            lambda x: SegmentClassifyModel.binary_to_decimal(
+                SegmentClassifyModel.binary_to_string(x)
+            ),
+            axis=1,
+            arr=labels,
+        )
+
+    @staticmethod
+    def number_to_one_hot_label(labels: np.array):
+        # 10진수를 다시 이진수로 변환하여 배열에 저장
+        return np.array(
+            [SegmentClassifyModel.decimal_to_binary(decimal) for decimal in labels]
+        )
+
+    def x_data_1d_reshape(self, data):
+        return tf.reshape(
+            data,
+            [
+                -1,
+                self.n_row * self.n_columns * self.n_channels,
+            ],
+        )
+
     def create_dataset(self):
         """
         -- load data from data file
         -- Implement dataset split feature & label logic
         """
-        super().create_dataset()
+        # Implement dataset split feature & label logic
+        feature_df = FeatureExtractor.load_feature_file(
+            self.method_type, self.feature_type, self.feature_extension
+        )
+
+        # -- get X, y
+        X, y = BaseModel._get_x_y(self.method_type, feature_df)
+        del feature_df
+
+        # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
+        # print(y)
+        # number_y = SegmentClassifyModel.one_hot_label_to_number(y)
+        # # # print(number_y)
+        # counter = Counter(number_y)
+        # print("변경 전", counter)
+
+        # # smt = SMOTE()
+        # X = self.x_data_1d_reshape(X)
+        # # X, number_y = smt.fit_resample(X, number_y)
+        # nm_model = NearMiss(version=3)
+        # X, number_y = nm_model.fit_resample(X, number_y)
+
+        # # 비율 확인
+        # counter = Counter(number_y)
+        # print("변경 후", counter)
+
+        # y = SegmentClassifyModel.number_to_one_hot_label(number_y)
+
+        # -- split train, val, test
+        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y
+        )
+        del X
+        del y
+
+        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
+            x_train_temp,
+            y_train_temp,
+            test_size=0.2,
+            random_state=42,
+            stratify=y_train_temp,
+        )
+        del x_train_temp
+        del y_train_temp
+
+        # input shape 조정
+        self.x_train = self.input_reshape(x_train_final)
+        self.x_val = self.input_reshape(x_val_final)
+        self.x_test = self.input_reshape(x_test)
+        self.y_train = y_train_final
+        self.y_val = y_val_final
+        self.y_test = y_test
+
+        # -- print shape
+        self.print_dataset_shape()
 
     def create(self):
         # Implement model creation logic
@@ -139,6 +243,9 @@ class SegmentClassifyModel(BaseModel):
         # 각 행에서 threshold를 넘는 값의 인덱스 찾기
         indices_above_threshold = np.argwhere(predict > self.predict_standard)
 
+        if indices_above_threshold.size == 0:
+            raise Exception("no predict data")
+
         current_row = indices_above_threshold[0, 0]
         result = []
         cols = []
@@ -196,7 +303,7 @@ class SegmentClassifyModel(BaseModel):
         true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
         )
-        # DataLabeling.show_label_dict_plot(true_label)
+        DataLabeling.show_label_dict_plot(true_label)
 
         # -- transport frame
         onset_dict = {v: [] for _, v in CODE2DRUM.items()}
@@ -209,7 +316,8 @@ class SegmentClassifyModel(BaseModel):
         frame_onset = DataLabeling._get_label_detect(
             onset_dict, frame_length, self.hop_length
         )
-        DataLabeling.show_label_dict_compare_plot(true_label, frame_onset)
+        # DataLabeling.show_label_dict_compare_plot(true_label, frame_onset)
+        DataLabeling.show_label_dict_plot(frame_onset, 3200, 5000)
 
         # delay 제거
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)

@@ -214,7 +214,7 @@ class DataLabeling:
         plt.show()
 
     @staticmethod
-    def show_label_dict_plot(label: dict[str, List[float]]):
+    def show_label_dict_plot(label: dict[str, List[float]], start=0, end=None):
         """
         -- label 그래프
         {
@@ -223,11 +223,15 @@ class DataLabeling:
             ...
         }
         """
+        if end is None:  # end가 none이라면 y_true 끝까지
+            end = len(label[CODE2DRUM[0]])
+
         leng = len(label.keys())
         for key, label_arr in label.items():
             data = np.array(label_arr)
             plt.subplot(leng, 1, DRUM2CODE[key] + 1)
             plt.plot(data)
+            plt.axis([start, end, 0, 1])
 
         plt.title("Model Label")
         os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성

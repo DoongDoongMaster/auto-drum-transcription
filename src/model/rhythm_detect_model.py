@@ -23,6 +23,7 @@ from data.rhythm_detection import RhythmDetection
 from data.data_processing import DataProcessing
 from data.data_labeling import DataLabeling
 from feature.audio_to_feature import AudioToFeature
+from feature.feature_extractor import FeatureExtractor
 from model.base_model import BaseModel
 from constant import (
     METHOD_RHYTHM,
@@ -144,7 +145,7 @@ class RhythmDetectModel(BaseModel):
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
-        audio = RhythmDetectModel.load_audio(wav_path)
+        audio = FeatureExtractor.load_audio(wav_path)
 
         # -- cut delay
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)

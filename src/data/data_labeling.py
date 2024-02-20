@@ -284,7 +284,7 @@ class DataLabeling:
         y_true: dict[str, List[float]],
         y_pred: dict[str, List[float]],
         start=0,
-        end=1200,
+        end=None,
     ):
         """
         -- label 그래프
@@ -294,6 +294,8 @@ class DataLabeling:
             ...
         }
         """
+        if end is None:  # end가 none이라면 y_true 끝까지
+            end = len(y_true[CODE2DRUM[0]])
         leng = len(y_true.keys()) * 2
         for key, label_arr in y_true.items():
             true_data = np.array(label_arr)

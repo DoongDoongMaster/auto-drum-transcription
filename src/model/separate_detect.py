@@ -1,39 +1,14 @@
-from pyexpat import model
-import librosa
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
 import numpy as np
-import pandas as pd
-
 from typing import List
 
-from tensorflow.keras import Sequential, layers
-from keras.layers import Input
 from keras.models import Model
-from tensorflow.keras.layers import (
-    Dense,
-    GRU,
-    BatchNormalization,
-    LSTM,
-    InputLayer,
-    Dropout,
-    Flatten,
-    Bidirectional,
-    SimpleRNN,
-    TimeDistributed,
-    GlobalAveragePooling1D,
-    Conv2D,
-    MaxPooling2D,
-    Conv1D,
-    MaxPooling1D,
-    Reshape,
-    GlobalAveragePooling2D,
-)
+from tensorflow.keras.layers import Dense, LSTM, Conv1D, Input
 from tensorflow.keras.optimizers import Adam
 from data.data_labeling import DataLabeling
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import StandardScaler
 from feature.feature_extractor import FeatureExtractor
-
 
 from model.base_model import BaseModel
 from data.rhythm_detection import RhythmDetection
@@ -41,16 +16,10 @@ from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 from constant import (
     CHUNK_TIME_LENGTH,
-    CODE2DRUM,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
     MILLISECOND,
-    CHUNK_LENGTH,
     SAMPLE_RATE,
-)
-from tensorflow.keras.layers import (
-    Dense,
-    GRU,
 )
 
 
@@ -67,16 +36,14 @@ class SeparateDetectModel(BaseModel):
         )
         self.unit_number = unit_number
         self.predict_standard = 0.5
-        self.n_rows = (CHUNK_LENGTH * SAMPLE_RATE) // self.feature_param["hop_length"]
-        self.n_columns = self.feature_param["n_fft"] // 2 + 1
+        self.n_rows = CHUNK_TIME_LENGTH
+        self.n_columns = self.feature_param["n_mels"]
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
         self.win_length = self.feature_param["win_length"]
         self.load_model()
 
     def input_reshape(self, data):
-        # scaler = StandardScaler()
-        # data = scaler.fit_transform(data)
         return data
 
     def input_label_reshape(self, data):
@@ -134,52 +101,7 @@ class SeparateDetectModel(BaseModel):
         self.print_dataset_shape()
 
     def create(self):
-        # # ----------------------------------------------------------------------------------------
-        # input_data = Input(
-        #     shape=(self.x_train.shape[0], CHUNK_TIME_LENGTH, 128, 1)
-        # )  # frame, height, width, channels
-
-        # convolution1 = TimeDistributed(
-        #     Conv2D(filters=64, kernel_size=(1, 1), activation="tanh")
-        # )(input_data)
-        # bn = TimeDistributed(BatchNormalization())(convolution1)
-        # convolution1 = TimeDistributed(
-        #     Conv2D(filters=64, kernel_size=(1, 1), activation="tanh")
-        # )(bn)
-        # bn = TimeDistributed(BatchNormalization())(convolution1)
-        # pooling1 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(convolution1)
-
-        # convolution2 = TimeDistributed(
-        #     Conv2D(filters=128, kernel_size=(1, 1), activation="tanh")
-        # )(pooling1)
-        # bn = TimeDistributed(BatchNormalization())(convolution2)
-        # convolution2 = TimeDistributed(
-        #     Conv2D(filters=128, kernel_size=(1, 1), activation="tanh")
-        # )(convolution2)
-        # bn = TimeDistributed(BatchNormalization())(convolution1)
-        # pooling2 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(bn)
-
-        # convolution3 = TimeDistributed(
-        #     Conv2D(filters=256, kernel_size=(1, 1), activation="tanh")
-        # )(pooling2)
-        # bn = TimeDistributed(BatchNormalization())(convolution3)
-        # convolution3 = TimeDistributed(
-        #     Conv2D(filters=256, kernel_size=(1, 1), activation="tanh")
-        # )(convolution3)
-        # bn = TimeDistributed(BatchNormalization())(convolution3)
-        # pooling3 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(bn)
-
-        # flatten = TimeDistributed(Flatten())(pooling3)
-
-        # dense = TimeDistributed(Dense(24))(flatten)
-
-        # blstm = Bidirectional(LSTM(128, return_sequences=True, dropout=0.1))(dense)
-        # blstm = Bidirectional(LSTM(128, return_sequences=True, dropout=0.1))(blstm)
-        # y_pred = Bidirectional(LSTM(128, return_sequences=True, dropout=0.1))(blstm)
-
-        # dense = TimeDistributed(Dense(4, name="dense"))(y_pred)
-        # # ----------------------------------------------------------------------------------------
-        input_layer = Input(shape=(CHUNK_TIME_LENGTH, 128))
+        input_layer = Input(shape=(self.n_rows, self.n_columns))
         conv1 = Conv1D(
             filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
         )(input_layer)
@@ -192,7 +114,8 @@ class SeparateDetectModel(BaseModel):
         lstm1 = LSTM(32, return_sequences=True)(conv3)
         lstm2 = LSTM(32, return_sequences=True)(lstm1)
         lstm3 = LSTM(32, return_sequences=True)(lstm2)
-        output_layer = Dense(4, activation="sigmoid")(lstm3)
+
+        output_layer = Dense(self.n_classes, activation="sigmoid")(lstm3)
         self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
 

@@ -116,6 +116,18 @@ class BaseModel:
 
         # reshape을 통해 3D 배열로 변환
         return data.reshape((num_chunks, chunk_size, num_features))
+        # 데이터 분할을 위한 함수 정의
+
+    @staticmethod
+    def split_x_data(data, chunk_size):
+        num_samples, num_features = data.shape
+        num_chunks = num_samples // chunk_size
+
+        # 나머지 부분을 제외한 데이터만 사용
+        data = data[: num_chunks * chunk_size, :]
+
+        # reshape을 통해 3D 배열로 변환
+        return data.reshape((num_chunks, chunk_size, num_features, 1))
 
     def create_dataset(self):
         # Implement model

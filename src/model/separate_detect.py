@@ -1,37 +1,16 @@
-from pyexpat import model
-import librosa
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
 import numpy as np
-import pandas as pd
-
 from typing import List
 
-from tensorflow.keras import Sequential
-from tensorflow.keras.layers import (
-    Dense,
-    GRU,
-    BatchNormalization,
-    LSTM,
-    InputLayer,
-    Dropout,
-    Flatten,
-    Bidirectional,
-    SimpleRNN,
-    TimeDistributed,
-    GlobalAveragePooling1D,
-    Conv2D,
-    MaxPooling2D,
-    Conv1D,
-    MaxPooling1D,
-    Reshape,
-    GlobalAveragePooling2D,
-)
+from keras.models import Model
+from keras.activations import relu
+from tensorflow.keras.layers import Dense, LSTM, Conv1D, Input, Lambda, Activation
 from tensorflow.keras.optimizers import Adam
+import keras.backend as K
 from data.data_labeling import DataLabeling
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import StandardScaler
 from feature.feature_extractor import FeatureExtractor
-
 
 from model.base_model import BaseModel
 from data.rhythm_detection import RhythmDetection
@@ -39,16 +18,10 @@ from data.data_processing import DataProcessing
 from feature.audio_to_feature import AudioToFeature
 from constant import (
     CHUNK_TIME_LENGTH,
-    CODE2DRUM,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
     MILLISECOND,
-    CHUNK_LENGTH,
     SAMPLE_RATE,
-)
-from tensorflow.keras.layers import (
-    Dense,
-    GRU,
 )
 
 
@@ -65,16 +38,14 @@ class SeparateDetectModel(BaseModel):
         )
         self.unit_number = unit_number
         self.predict_standard = 0.5
-        self.n_rows = (CHUNK_LENGTH * SAMPLE_RATE) // self.feature_param["hop_length"]
-        self.n_columns = self.feature_param["n_fft"] // 2 + 1
+        self.n_rows = CHUNK_TIME_LENGTH
+        self.n_columns = self.feature_param["n_mels"]
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
         self.win_length = self.feature_param["win_length"]
         self.load_model()
 
     def input_reshape(self, data):
-        # scaler = StandardScaler()
-        # data = scaler.fit_transform(data)
         return data
 
     def input_label_reshape(self, data):
@@ -99,7 +70,7 @@ class SeparateDetectModel(BaseModel):
 
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
-        X = BaseModel.split_data(X, CHUNK_TIME_LENGTH)
+        X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
         y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
 
         # -- split train, val, test
@@ -132,18 +103,28 @@ class SeparateDetectModel(BaseModel):
         self.print_dataset_shape()
 
     def create(self):
-        self.model = Sequential()
+        # def mish(x):
+        #     return x * K.tanh(K.softplus(x))
 
-        self.model.add(
-            LSTM(64, input_shape=(CHUNK_TIME_LENGTH, 128), return_sequences=True)
-        )
-        self.model.add(LSTM(32, return_sequences=True))
-        self.model.add(LSTM(16, return_sequences=True))
-        # TimeDistributed를 쓸 땐 return_sequnces = True 로 받음
-        self.model.add(TimeDistributed(Dense(4, activation="sigmoid")))
+        input_layer = Input(shape=(self.n_rows, self.n_columns))
+        conv1 = Conv1D(
+            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
+        )(input_layer)
+        conv2 = Conv1D(
+            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
+        )(conv1)
+        conv3 = Conv1D(
+            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
+        )(conv2)
+        lstm1 = LSTM(32, return_sequences=True)(conv3)
+        lstm2 = LSTM(32, return_sequences=True)(lstm1)
+        lstm3 = LSTM(32, return_sequences=True)(lstm2)
 
+        lb = Activation(lambda x: relu(x, threshold=0.5))(lstm3)
+
+        output_layer = Dense(self.n_classes, activation="sigmoid")(lb)
+        self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
-
         # compile the self.model
         opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
@@ -227,7 +208,7 @@ class SeparateDetectModel(BaseModel):
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
 
-        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 500, 2000)
+        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 
         # # -- get onsets
         # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

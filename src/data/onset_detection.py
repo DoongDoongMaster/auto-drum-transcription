@@ -17,7 +17,7 @@ from essentia.standard import (
     Onsets,
 )
 
-from constant import DRUM_KIT, DRUM_MAP, SAMPLE_RATE, IMAGE_PATH, DRUM2CODE
+from constant import DRUM_KIT, DRUM_MAP, SAMPLE_RATE, IMAGE_PATH, DRUM2CODE, DRUM_TYPES
 
 
 class OnsetDetect:
@@ -386,14 +386,8 @@ class OnsetDetect:
         """
         onsets = OnsetDetect.get_onsets_using_librosa(audio)
 
-        wav_drum = {
-            "HH": ["overheads", "HH"],
-            "ST": ["toms"],
-            "SD": ["snare", "SD"],
-            "KK": ["kick", "KK"],
-        }
-        for drum, words in wav_drum.items():
-            if any((w in wav_path) for w in words):
+        for drum, words in DRUM_TYPES.items():
+            if any((str(w) in wav_path) for w in words):
                 if DRUM_KIT in wav_path:  # drum_kit
                     onsets = [0.02]
                 onset_dict[drum] = onsets

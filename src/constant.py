@@ -70,10 +70,10 @@ CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
 -- per_drum : CC_04_9949.wav
 -- pattern : P1_08_0001.wav
 """
-CODE2DRUM = {0: "HH", 1: "ST", 2: "SD", 3: "KK"}
-# -- {'HH':0, 'MT':1, ...}
+CODE2DRUM = {0: "CC", 1: "OH", 2: "CH", 3: "TT", 4: "SD", 5: "KK"}
+# -- {'CC':0, 'OH':1, ...}
 DRUM2CODE = {v: k for k, v in CODE2DRUM.items()}
-# -- {'HH':[1,0,0,0], 'MT':[0,1,0,0], ...}
+# -- {'CC':[1,0,0,0,0,0], 'OH':[0,1,0,0,0,0], ...}
 ONEHOT_DRUM2CODE = {}
 for code, index in DRUM2CODE.items():
     drum_mapping = [0] * len(DRUM2CODE)
@@ -81,16 +81,16 @@ for code, index in DRUM2CODE.items():
     ONEHOT_DRUM2CODE[code] = drum_mapping
 
 PATTERN = {
-    "HH": ONEHOT_DRUM2CODE["HH"],
+    "CH": ONEHOT_DRUM2CODE["CH"],
     "SD": ONEHOT_DRUM2CODE["SD"],
-    "HH_KK": [1, 0, 0, 1],
-    "HH_SD": [1, 0, 1, 0],
+    "CH_KK": [0, 0, 1, 0, 0, 1],
+    "CH_SD": [0, 0, 1, 0, 1, 0],
 }
 
-P_HH_KK = PATTERN["HH_KK"]
+P_HH_KK = PATTERN["CH_KK"]
 P_SD = PATTERN["SD"]
-P_HH = PATTERN["HH"]
-P_HH_SD = PATTERN["HH_SD"]
+P_HH = PATTERN["CH"]
+P_HH_SD = PATTERN["CH_SD"]
 
 P1_2CODE = [P_HH_KK, P_HH, P_HH_SD, P_HH, P_HH_KK, P_HH_KK, P_HH_SD, P_HH]
 P2_2CODE = [
@@ -112,6 +112,145 @@ P2_2CODE = [
     P_HH,
 ]
 PATTERN2CODE = {"P1": P1_2CODE, "P2": P2_2CODE}
+
+
+"""
+-- 우리 데이터랑 연관된 상수
+"""
+# -- dir name
+PATTERN_DIR = "pattern"
+PER_DRUM_DIR = "per-drum"
+
+
+"""
+-- data origin별로 사용하는 data path와 관련된 상수
+"""
+DATA_IDMT = (
+    "MIX",
+    "RealDrum",
+    "WaveDrum",
+)
+DATA_IDMT_NOT = (
+    "train",
+    "TechnoDrum",
+)
+DATA_ENST = (
+    "hits_snare-drum_sticks",
+    "hits_snare-drum_mallets",
+    "hits_medium-tom_sticks",
+    "hits_bass-drum_pedal",
+    "hits_pedal-hi-hat-close_pedal",
+    "hits_pedal-hi-hat-open_pedal",
+    "sticks",
+)
+DATA_ENST_NOT = ("accompaniment",)  # ENST dataset에서 제외할 데이터
+DATA_DDM_OWN = (
+    "per-drum/CC",
+    "per-drum/HH",
+    "per-drum/MT",
+    "per-drum/SD",
+    "per-drum/KK",
+    "pattern/P1",
+    "pattern/P2",
+)
+
+DATA_ALL = DATA_IDMT + DATA_ENST + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,)
+
+# -------------------------------------------------------------------------------------
+"""
+-- Mapping drum_type
+DRUM_TYPES에 추가하기
+
+=> DRUM_MAP을 접근해서 사용 {"sd": "SD", "mt": "TT", "bd": "KK", "chh": "CH", "ohh": "OH"}
+"""
+DRUM_TYPES = {
+    "CC": [
+        49,  # crash cymbal 1
+        57,  # crash cymbal 2
+        52,  # china cymbal
+        55,  # splash cymbal
+        51,  # ride cymbal
+        59,  # ride cymbal 2
+        "CC",  # crash (ddm-own)
+    ],  # crash
+    "OH": [
+        "ohh",
+        46,  # hi-hat open
+        "overheads",  # drum kit data
+    ],  # hi-hat open
+    "CH": [
+        "chh",
+        42,  # hi-hat cloased
+        "HH",  # closed hi-hat (ddm-own)
+    ],  # hi-hat closed
+    "TT": [
+        "mt",
+        45,  # mid tom
+        47,  # mid tom
+        48,  # high-mid tom
+        50,  # high tom
+        "toms",  # tom (drum kit data)
+    ],  # tom
+    "SD": [
+        "sd",
+        38,  # snare drum
+        40,  # electric snare drum
+        "snare",  # snare drum (drum kit data)
+        "SD",  # snare (ddm-own)
+    ],  # snare
+    "KK": [
+        "bd",
+        35,  # bass drum
+        36,  # kick drum
+        "kick",  # kick (drum kit data)
+        "KK",  # kick (ddm-own)
+    ],  # kick
+}
+DRUM_MAP = {}
+# Iterate over the DRUM_TYPES
+for drum_type, values in DRUM_TYPES.items():
+    # Iterate over the values for each drum_type
+    for value in values:
+        # Add the mapping to the new dictionary
+        DRUM_MAP[value] = drum_type
+
+
+"""
+-- classify 방법에서의 분류 라벨
+"""
+CLASSIFY_DETECT_TYPES = {
+    "OH": [
+        "CC",
+        "OH",
+    ],
+    "CH": [
+        "CH",
+    ],
+    "TT": [
+        "TT",
+    ],
+    "SD": [
+        "SD",
+    ],
+    "KK": [
+        "KK",
+    ],
+}
+CLASSIFY_MAP = {}
+# Iterate over the DRUM_TYPES
+for drum_type, values in CLASSIFY_DETECT_TYPES.items():
+    # Iterate over the values for each drum_type
+    for value in values:
+        # Add the mapping to the new dictionary
+        CLASSIFY_MAP[value] = drum_type
+"""
+-- {0: "OH", 1: "CH", ...}
+"""
+CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_DETECT_TYPES.keys())}
+"""
+-- {"OH": 0, "CH": 1, ...}
+"""
+CLASSIFY_DRUM2CODE = {v: k for k, v in CLASSIFY_CODE2DRUM.items()}
 
 
 """
@@ -138,13 +277,18 @@ FEATURE_PARAM = {
             **FEATURE_PARAM_BASIC,
             "n_mfcc": 40,
             "n_channels": 1,
+            "n_classes": len(CLASSIFY_CODE2DRUM),
         },
-        STFT: {**FEATURE_PARAM_BASIC},
+        STFT: {
+            **FEATURE_PARAM_BASIC,
+            "n_classes": len(CLASSIFY_CODE2DRUM),
+        },
         MEL_SPECTROGRAM: {
             **FEATURE_PARAM_BASIC,
             "n_mels": 128,  # -- number of mel bands
             "fmin": 27.5,
             "fmax": 16000,
+            "n_classes": len(CLASSIFY_CODE2DRUM),
         },
     },
     METHOD_DETECT: {
@@ -189,107 +333,3 @@ FEATURE_PARAM = {
 """
 CSV = "csv"
 PKL = "pkl"
-
-
-"""
--- 우리 데이터랑 연관된 상수
-"""
-# -- dir name
-PATTERN_DIR = "pattern"
-PER_DRUM_DIR = "per-drum"
-
-
-"""
--- classify 방법에서 사용하는 data path와 관련된 상수
-"""
-DATA_IDMT = (
-    "MIX",
-    "RealDrum",
-    "WaveDrum",
-)
-DATA_IDMT_NOT = (
-    "train",
-    "TechnoDrum",
-    "RealDrum",
-)
-DATA_ENST = (
-    "hits_snare-drum_sticks",
-    "hits_snare-drum_mallets",
-    "hits_medium-tom_sticks",
-    "hits_bass-drum_pedal",
-    "hits_pedal-hi-hat-close_pedal",
-    "hits_pedal-hi-hat-open_pedal",
-    "sticks",
-)
-DATA_ENST_NOT = ("accompaniment",)  # ENST dataset에서 제외할 데이터
-DATA_DDM_OWN = (
-    # "per-drum/HH",
-    # "per-drum/MT",
-    # "per-drum/SD",
-    # "per-drum/KK",
-    "pattern/P1",
-    "pattern/P2",
-)
-
-DATA_ALL = DATA_IDMT + DATA_ENST + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,)
-
-CLASSIFY_DRUM = {
-    0: (
-        "HH",
-        "hi-hat",
-    ),
-    1: ("tom",),
-    2: (
-        "SD",
-        "snare",
-    ),
-    3: (
-        "KD",
-        "KK",
-        "bass",
-    ),
-}
-
-# -------------------------------------------------------------------------------------
-"""
--- Mapping drum_type
-DRUM_TYPES에 추가하기
-
-=> DRUM_MAP을 접근해서 사용 {"sd": "SD", "mt": "ST", "bd": "KK", "chh": "HH", "ohh": "HH"}
-"""
-DRUM_TYPES = {
-    "HH": [
-        "chh",
-        "ohh",
-        42,  # hi-hat cloased
-        46,  # hi-hat open
-        49,  # crash cymbal 1
-        57,  # crash cymbal 2
-        52,  # china cymbal
-        55,  # splash cymbal
-        51,  # ride cymbal
-        59,  # ride cymbal 2
-    ],
-    "ST": [
-        "mt",
-        48,  # high-mid tom
-        50,  # high tom
-    ],
-    "SD": [
-        "sd",
-        38,  # snare drum
-        40,  # electric snare drum
-    ],
-    "KK": [
-        "bd",
-        35,  # bass drum
-        36,  # kick drum
-    ],
-}
-DRUM_MAP = {}
-# Iterate over the DRUM_TYPES
-for drum_type, values in DRUM_TYPES.items():
-    # Iterate over the values for each drum_type
-    for value in values:
-        # Add the mapping to the new dictionary
-        DRUM_MAP[value] = drum_type

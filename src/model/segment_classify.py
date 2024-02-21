@@ -303,7 +303,7 @@ class SegmentClassifyModel(BaseModel):
         true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
         )
-        DataLabeling.show_label_dict_plot(true_label)
+        # DataLabeling.show_label_dict_plot(true_label)
 
         # -- transport frame
         onset_dict = {v: [] for _, v in CODE2DRUM.items()}
@@ -316,8 +316,8 @@ class SegmentClassifyModel(BaseModel):
         frame_onset = DataLabeling._get_label_detect(
             onset_dict, frame_length, self.hop_length
         )
-        # DataLabeling.show_label_dict_compare_plot(true_label, frame_onset)
-        DataLabeling.show_label_dict_plot(frame_onset, 3200, 5000)
+        DataLabeling.show_label_dict_compare_plot(true_label, frame_onset, 0, 1200)
+        # DataLabeling.show_label_dict_plot(frame_onset, 3200, 5000)
 
         # delay 제거
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)

@@ -4,8 +4,10 @@ import numpy as np
 from typing import List
 
 from keras.models import Model
-from tensorflow.keras.layers import Dense, LSTM, Conv1D, Input
+from keras.activations import relu
+from tensorflow.keras.layers import Dense, LSTM, Conv1D, Input, Lambda, Activation
 from tensorflow.keras.optimizers import Adam
+import keras.backend as K
 from data.data_labeling import DataLabeling
 from sklearn.preprocessing import StandardScaler
 from feature.feature_extractor import FeatureExtractor
@@ -101,6 +103,9 @@ class SeparateDetectModel(BaseModel):
         self.print_dataset_shape()
 
     def create(self):
+        # def mish(x):
+        #     return x * K.tanh(K.softplus(x))
+
         input_layer = Input(shape=(self.n_rows, self.n_columns))
         conv1 = Conv1D(
             filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
@@ -115,10 +120,11 @@ class SeparateDetectModel(BaseModel):
         lstm2 = LSTM(32, return_sequences=True)(lstm1)
         lstm3 = LSTM(32, return_sequences=True)(lstm2)
 
-        output_layer = Dense(self.n_classes, activation="sigmoid")(lstm3)
+        lb = Activation(lambda x: relu(x, threshold=0.5))(lstm3)
+
+        output_layer = Dense(self.n_classes, activation="sigmoid")(lb)
         self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
-
         # compile the self.model
         opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(

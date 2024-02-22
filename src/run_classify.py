@@ -100,8 +100,8 @@ data_paths = [
     "../data/raw/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_57#KD.wav",
     f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}/per-drum/CC/04/CC_04_9949.m4a",
 ]
-FeatureExtractor.feature_extractor(data_paths, METHOD_DETECT, MEL_SPECTROGRAM, CSV)
-FeatureExtractor.load_feature_file(METHOD_DETECT, MEL_SPECTROGRAM, CSV)
+FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MFCC, CSV)
+FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MFCC, CSV)
 
 # data = FeatureExtractor._load_feature_one_file(
 #     "../data/processed-feature/classify/mfcc/mfcc-2024-02-08_11-15-29-0000.csv", CSV

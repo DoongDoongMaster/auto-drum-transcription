@@ -188,7 +188,10 @@ class BaseModel:
         # -- reshape
         y_test_data = self.data_2d_reshape(self.y_test)
         y_pred = self.data_2d_reshape(y_pred)
-        y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
+
+        # -- binary
+        y_test_data = np.where(y_test_data >= self.predict_standard, 1.0, 0.0)
+        y_pred = np.where(y_pred >= self.predict_standard, 1.0, 0.0)
 
         # confusion matrix & precision & recall
         print("-- ! confusion matrix ! --")

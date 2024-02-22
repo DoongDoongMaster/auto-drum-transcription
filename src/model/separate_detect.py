@@ -22,6 +22,60 @@ from constant import (
     MILLISECOND,
     SAMPLE_RATE,
 )
+from tensorflow.keras.utils import get_custom_objects
+
+import tensorflow as tf
+from keras import backend as K
+
+
+def hamming_loss(y_true, y_pred):
+    # Hamming loss calculation
+    return K.mean(K.not_equal(y_true, K.round(y_pred)), axis=-1)
+
+
+def shifted_hamming_loss(offset):
+    def loss(y_true, y_pred):
+        # Shift y_true to the left
+        shifted_y_true_left = tf.roll(y_true, shift=offset, axis=-1)
+        # Shift y_true to the right
+        shifted_y_true_right = tf.roll(y_true, shift=-offset, axis=-1)
+        # Calculate Hamming loss for both shifts and take the minimum
+        return K.minimum(
+            hamming_loss(shifted_y_true_left, y_pred),
+            hamming_loss(shifted_y_true_right, y_pred),
+        )
+
+    return loss
+
+
+def shifted_hamming_accuracy(offset):
+    def accuracy(y_true, y_pred):
+        # Shift y_true to the left
+        shifted_y_true_left = tf.roll(y_true, shift=offset, axis=-1)
+        # Shift y_true to the right
+        shifted_y_true_right = tf.roll(y_true, shift=-offset, axis=-1)
+        # Calculate accuracy for both shifts and take the maximum
+        return 1.0 - K.maximum(
+            hamming_loss(shifted_y_true_left, y_pred),
+            hamming_loss(shifted_y_true_right, y_pred),
+        )
+
+    return accuracy
+
+
+# Example offset for left and right shift
+offset_left = 1
+offset_right = -1
+
+# Register custom loss and accuracy functions
+get_custom_objects().update(
+    {
+        "shifted_hamming_loss_left": shifted_hamming_loss(offset_left),
+        "shifted_hamming_accuracy_left": shifted_hamming_accuracy(offset_left),
+        "shifted_hamming_loss_right": shifted_hamming_loss(offset_right),
+        "shifted_hamming_accuracy_right": shifted_hamming_accuracy(offset_right),
+    }
+)
 
 
 class SeparateDetectModel(BaseModel):
@@ -70,6 +124,18 @@ class SeparateDetectModel(BaseModel):
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
         X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
+
+        # # 다차원 배열을 1차원으로 평탄화
+        # print("ㅁㄴ어라ㅣㅁㄴ;ㅏ리ㅏ>>>!", y.shape)
+        # flattened_arr = y.reshape(-1, y.shape[-1])
+        # print("ㅁㄴ어라ㅣㅁㄴ;dfdafdsf>>>!", flattened_arr)
+
+        # # LabelEncoder 생성 및 적용
+        # label_encoder = LabelEncoder()
+        # flattened_labels = label_encoder.fit_transform(flattened_arr)
+        # # 인코딩된 레이블을 다시 원래의 형태로 재구성
+        # y = flattened_labels.reshape(y.shape[:-1])
+
         y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
 
         # -- split train, val, test
@@ -104,13 +170,13 @@ class SeparateDetectModel(BaseModel):
     def create(self):
         input_layer = Input(shape=(self.n_rows, self.n_columns))
         conv1 = Conv1D(
-            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
+            filters=32, kernel_size=8, strides=1, activation="relu", padding="same"
         )(input_layer)
         conv2 = Conv1D(
-            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
+            filters=32, kernel_size=8, strides=1, activation="relu", padding="same"
         )(conv1)
         conv3 = Conv1D(
-            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
+            filters=32, kernel_size=8, strides=1, activation="relu", padding="same"
         )(conv2)
         lstm1 = LSTM(32, return_sequences=True)(conv3)
         lstm2 = LSTM(32, return_sequences=True)(lstm1)
@@ -121,9 +187,21 @@ class SeparateDetectModel(BaseModel):
         self.model.summary()
         # compile the self.model
         opt = Adam(learning_rate=self.opt_learning_rate)
+        # Usage example for the left shift
         self.model.compile(
-            loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
+            # loss=shifted_hamming_loss(offset_left),
+            loss="binary_crossentropy",
+            optimizer=opt,
+            metrics=[shifted_hamming_accuracy(offset_left)],
         )
+
+        # self.model.compile(
+        #     loss="binary_crossentropy",
+        #     optimizer="adam",
+        #     metrics=[HammingLoss(threshold=0.5, mode="multilabel")],
+        # )
+        # self.model.add_loss(lambda: tf.reduce_mean(d.kernel))
+        # self.model.compile(optimizer=opt, metrics=["accuracy"])
 
     """
     -- 전체 wav 주어졌을 때, 한 마디에 대한 rhythm 계산
@@ -197,12 +275,14 @@ class SeparateDetectModel(BaseModel):
             "KK": [row[3] for row in predict_data],
         }
 
+        print("멀이ㅏ너리ㅏ;ㅁㄴ!!>>>", result_dict)
+
         # -- 실제 label
         true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
 
-        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
+        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 1200, 2400)
 
         # # -- get onsets
         # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

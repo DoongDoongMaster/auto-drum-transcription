@@ -203,6 +203,7 @@ DRUM_TYPES = {
         35,  # bass drum
         36,  # kick drum
         "kick",  # kick (drum kit data)
+        "KD",  # kick (idmt)
         "KK",  # kick (ddm-own)
     ],  # kick
 }

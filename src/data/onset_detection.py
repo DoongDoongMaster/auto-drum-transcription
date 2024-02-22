@@ -148,7 +148,7 @@ class OnsetDetect:
         """
         -- XML file에서 drum onsets 읽어오기
 
-        * onset_dict: {'HH': [], 'ST': [], 'SD': [], 'KD': []}
+        * onset_dict: {'CC':[], 'OH':[], 'CH':[], 'TT':[], 'SD':[], 'HH':[]}
         """
         print("-- ! xml file location: ", xml_path)
 
@@ -159,8 +159,7 @@ class OnsetDetect:
         for event in events:
             onset_sec = float(event.find("onsetSec").text)
             drum_type = event.find("instrument").text
-            if drum_type == "KD":
-                drum_type = "KK"
+            drum_type = DRUM_MAP[drum_type]
             if drum_type in onset_dict:
                 onset_dict[drum_type].append(onset_sec)
 
@@ -212,13 +211,12 @@ class OnsetDetect:
         """
         -- svl file에서 onset 및 drum onsets 읽어오기
 
-        * onset_dict: {'HH': [], 'ST': [], 'SD': [], 'KD': []}
+        * onset_dict: {'CC':[], 'OH':[], 'CH':[], 'TT':[], 'SD':[], 'HH':[]}
         """
 
         # WaveDrum02_01#HH.svl -> HH 추출
         drum_type = svl_path[-6:-4]
-        if drum_type == "KD":
-            drum_type = "KK"
+        drum_type = DRUM_MAP[drum_type]
 
         if drum_type in onset_dict:
             onset_dict[drum_type] = OnsetDetect.get_onsets_from_svl(
@@ -254,7 +252,7 @@ class OnsetDetect:
         """
         -- TXT file에서 onset 읽어오기
 
-        * onset_dict: {'HH': [], 'ST': [], 'SD': [], 'KD': []}
+        * onset_dict: {'CC':[], 'OH':[], 'CH':[], 'TT':[], 'SD':[], 'HH':[]}
         """
         print("-- ! txt file location: ", txt_path)
 
@@ -336,6 +334,8 @@ class OnsetDetect:
     ) -> dict[str, List[float]]:
         """
         -- midi file에서 드럼 악기별로 onset을 구하는 함수
+
+        onset_dict : {'CC':[], 'OH':[], 'CH':[], 'TT':[], 'SD':[], 'HH':[]}
         """
         midi_data = pretty_midi.PrettyMIDI(midi_path)
         drum_track = OnsetDetect._get_drum_track_from_mid(midi_data)

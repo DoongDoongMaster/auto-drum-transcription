@@ -24,6 +24,8 @@ from constant import (
     FEATURE_PARAM,
     ROOT_PATH,
     RAW_PATH,
+    CODE2DRUM,
+    CLASSIFY_CODE2DRUM,
 )
 
 
@@ -92,12 +94,14 @@ class BaseModel:
     def _get_x_y(method_type: str, feature_df: pd.DataFrame):
         if method_type == METHOD_CLASSIFY:
             X = np.array(feature_df.feature.tolist())
-            y = feature_df[["HH", "ST", "SD", "KK"]].to_numpy()
+            y = feature_df[[drum for _, drum in CLASSIFY_CODE2DRUM.items()]].to_numpy()
             return X, y
         if method_type in METHOD_DETECT:
             # label(HH, ST, SD, KK onset 여부) | mel-1, mel-2, mel-3, ...
-            X = feature_df.drop(["HH", "ST", "SD", "KK"], axis=1).to_numpy()
-            y = feature_df[["HH", "ST", "SD", "KK"]].to_numpy()
+            X = feature_df.drop(
+                [drum for _, drum in CODE2DRUM.items()], axis=1
+            ).to_numpy()
+            y = feature_df[[drum for _, drum in CODE2DRUM.items()]].to_numpy()
             return X, y
         if method_type in METHOD_RHYTHM:
             # label(onset 여부) | mel-1, mel-2, mel-3, ...
@@ -184,7 +188,10 @@ class BaseModel:
         # -- reshape
         y_test_data = self.data_2d_reshape(self.y_test)
         y_pred = self.data_2d_reshape(y_pred)
-        y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
+
+        # -- binary
+        y_test_data = np.where(y_test_data >= self.predict_standard, 1.0, 0.0)
+        y_pred = np.where(y_pred >= self.predict_standard, 1.0, 0.0)
 
         # confusion matrix & precision & recall
         print("-- ! confusion matrix ! --")

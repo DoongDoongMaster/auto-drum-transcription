@@ -31,7 +31,6 @@ from constant import (
     IMAGE_PATH,
     DATA_ALL,
     DATA_IDMT_NOT,
-    CLASSIFY_DRUM,
 )
 
 
@@ -123,7 +122,7 @@ class DataLabeling:
     ) -> List[float]:
         start, end = DataLabeling._calculate_start_end(idx)
 
-        # {'HH':[], 'ST':[], 'SD':[], 'HH':[]}
+        # {'CC':[], 'OH':[], 'CH':[], 'TT':[], 'SD':[], 'HH':[]}
         label_init = {v: [] for _, v in CODE2DRUM.items()}
         label = label_init
 
@@ -166,6 +165,9 @@ class DataLabeling:
 
     @staticmethod
     def get_onsets_instrument_all_arr(audio: np.ndarray, path: str) -> List[float]:
+        """
+        -- {"onset": onset, "drum": 드럼 번호} list 배열
+        """
         result = []
         if DDM_OWN in path or DRUM_KIT in path or IDMT in path:
             label_dict = DataLabeling.get_onsets_instrument_arr(audio, path)
@@ -224,7 +226,7 @@ class DataLabeling:
         }
         """
         if end is None:  # end가 none이라면 y_true 끝까지
-            end = len(label[CODE2DRUM[0]])
+            end = len(label[list(label.keys())[0]])  # 첫 번째 value의 길이
 
         leng = len(label.keys())
         for key, label_arr in label.items():
@@ -257,7 +259,8 @@ class DataLabeling:
         }
         """
         if end is None:  # end가 none이라면 y_true 끝까지
-            end = len(y_true[CODE2DRUM[0]])
+            end = len(y_true[y_true[list(y_true.keys())[0]]])  # 첫 번째 value의 길이
+
         leng = len(y_true.keys()) * 2
         for key, label_arr in y_true.items():
             true_data = np.array(label_arr)
@@ -402,12 +405,6 @@ class DataLabeling:
             drum_name = file_name[:2]  # -- CC
             label = ONEHOT_DRUM2CODE[drum_name]
         return label
-
-    @staticmethod
-    def _get_label_classify(path: str):
-        for idx, words in CLASSIFY_DRUM.items():
-            if any((w in path) for w in words):
-                return ONEHOT_DRUM2CODE[CODE2DRUM[idx]]
 
     @staticmethod
     def _get_frame_index(time: float, hop_length: int) -> int:

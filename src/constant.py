@@ -252,6 +252,10 @@ CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_DETECT_TYPES.keys())}
 -- {"OH": 0, "CH": 1, ...}
 """
 CLASSIFY_DRUM2CODE = {v: k for k, v in CLASSIFY_CODE2DRUM.items()}
+"""
+-- classify 방법에서 불가능한 라벨 값 (십진수)
+"""
+CLASSIFY_IMPOSSIBLE_LABEL = {14, 15, 22, 23, 26, 27, 28, 29, 30, 31}
 
 
 """

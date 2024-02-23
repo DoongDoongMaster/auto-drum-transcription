@@ -46,5 +46,5 @@ predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
 #     "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4_44.wav"
 # )
 separate_detect = SeparateDetectModel()
-# separate_detect.run()
+separate_detect.run()
 print(separate_detect.predict(predict_test_data, 100, 0))

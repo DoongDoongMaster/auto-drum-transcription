@@ -92,23 +92,23 @@ class SegmentClassifyModel(BaseModel):
         del feature_df
 
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
-        # # print(y)
-        # number_y = FeatureExtractor.one_hot_label_to_number(y)
-        # # print(number_y)
-        # counter = Counter(number_y)
-        # print("변경 전", counter)
+        # print(y)
+        number_y = FeatureExtractor.one_hot_label_to_number(y)
+        # print(number_y)
+        counter = Counter(number_y)
+        print("변경 전", counter)
 
-        # smt = SMOTE()
-        # X = self.x_data_1d_reshape(X)
-        # X, number_y = smt.fit_resample(X, number_y)
-        # # nm_model = NearMiss(version=3)
-        # # X, number_y = nm_model.fit_resample(X, number_y)
+        smt = SMOTE()
+        X = self.x_data_1d_reshape(X)
+        X, number_y = smt.fit_resample(X, number_y)
+        # nm_model = NearMiss(version=3)
+        # X, number_y = nm_model.fit_resample(X, number_y)
 
-        # # 비율 확인
-        # counter = Counter(number_y)
-        # print("변경 후", counter)
+        # 비율 확인
+        counter = Counter(number_y)
+        print("변경 후", counter)
 
-        # y = FeatureExtractor.number_to_one_hot_label(number_y)
+        y = FeatureExtractor.number_to_one_hot_label(number_y)
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(

@@ -71,8 +71,11 @@ feature_path = f"{ROOT_PATH}/{RAW_PATH}"
 # # # OnsetDetect.get_onsets_instrument_from_mid(midi_path, end=5)
 # predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
 # # predict_test_data = f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}/per-drum/HH/16/HH_16_0001.m4a"
+# predict_test_data = (
+#     "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4_44.wav"
+# )
 predict_test_data = (
-    "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4_44.wav"
+    f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/drummer1/session2/62_punk_144_beat_4-4.wav"
 )
 # # predict_test_data = "../data/test/ddm_test_항해.m4a"
 segment_classify = SegmentClassifyModel()

@@ -21,6 +21,7 @@ from constant import (
     MEL_SPECTROGRAM,
     MILLISECOND,
     SAMPLE_RATE,
+    CODE2DRUM,
 )
 from tensorflow.keras.utils import get_custom_objects
 
@@ -321,14 +322,11 @@ class SeparateDetectModel(BaseModel):
 
         # -- predict 결과 -- (#, time, 4 feature)
         predict_data = self.model.predict(audio_feature)
-        predict_data = predict_data.reshape((-1, 4))
+        predict_data = predict_data.reshape((-1, self.n_classes))
         # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
-        result_dict = {
-            "HH": [row[0] for row in predict_data],
-            "ST": [row[1] for row in predict_data],
-            "SD": [row[2] for row in predict_data],
-            "KK": [row[3] for row in predict_data],
-        }
+        result_dict = {}
+        for code, drum in CODE2DRUM.items():
+            result_dict[drum] = [row[code] for row in predict_data]
 
         print("멀이ㅏ너리ㅏ;ㅁㄴ!!>>>", result_dict)
 

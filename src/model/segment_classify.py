@@ -275,9 +275,11 @@ class SegmentClassifyModel(BaseModel):
                     temp_label = true_label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
                 else:
                     for frame_idx, frame_value in enumerate(true_label[origin_key]):
+                        if temp_label[frame_idx] == 1.0 or frame_value == 0.0:
+                            continue
                         temp_label[frame_idx] = frame_value
             l[k] = temp_label
-        print(l)
+        # print(l)
 
         # DataLabeling.show_label_dict_plot(true_label)
 
@@ -293,7 +295,7 @@ class SegmentClassifyModel(BaseModel):
             onset_dict, frame_length, self.hop_length
         )
         # print(onset_dict)
-        DataLabeling.show_label_dict_compare_plot(l, frame_onset, 0, 1200)
+        DataLabeling.show_label_dict_compare_plot(l, frame_onset, 0, 2400)
         # DataLabeling.show_label_dict_plot(frame_onset, 3200, 5000)
 
         # delay 제거

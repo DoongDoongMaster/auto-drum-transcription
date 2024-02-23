@@ -1,20 +1,20 @@
-from sklearn.model_selection import train_test_split
-import tensorflow as tf
-import numpy as np
 from typing import List
+import numpy as np
 
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from keras.models import Model
+
+import tensorflow as tf
 from tensorflow.keras.layers import Dense, LSTM, Conv1D, Input
 from tensorflow.keras.optimizers import Adam
-import keras.backend as K
-from data.data_labeling import DataLabeling
-from sklearn.preprocessing import StandardScaler
-from feature.feature_extractor import FeatureExtractor
 
-from model.base_model import BaseModel
+from feature.feature_extractor import FeatureExtractor
+from feature.audio_to_feature import AudioToFeature
 from data.rhythm_detection import RhythmDetection
 from data.data_processing import DataProcessing
-from feature.audio_to_feature import AudioToFeature
+from data.data_labeling import DataLabeling
+from model.base_model import BaseModel
 from constant import (
     CHUNK_TIME_LENGTH,
     METHOD_DETECT,
@@ -22,115 +22,6 @@ from constant import (
     MILLISECOND,
     SAMPLE_RATE,
     CODE2DRUM,
-)
-from tensorflow.keras.utils import get_custom_objects
-
-import tensorflow as tf
-from tensorflow.keras import backend as K
-from tensorflow.keras.utils import get_custom_objects
-from tensorflow.keras.losses import binary_crossentropy
-
-
-def ddm_loss(y_true, y_pred):
-    total_loss = 0
-
-    for idx in range(len(y_pred[0])):
-        # 1. y_true[:, idx]와 pred[:, idx]의 hamming loss 계산
-        current_hamming_loss = K.mean(
-            binary_crossentropy(y_true[:, idx], y_pred[:, idx])
-        )
-
-        # 2. y_true[:, idx-1]와 pred[:, idx-1]의 hamming loss 계산
-        if idx > 0:
-            left_shifted_y_pred = tf.concat(
-                [y_pred[:, idx:], K.zeros_like(y_pred[:, :idx])], axis=1
-            )
-            left_hamming_loss = K.mean(
-                binary_crossentropy(y_true[:, idx - 1], left_shifted_y_pred[:, idx - 1])
-            )
-        else:
-            left_hamming_loss = float("inf")
-
-        # 3. y_true[:, idx+1]와 pred[:, idx+1]의 hamming loss 계산
-        if idx < len(y_pred[0]) - 1:
-            right_shifted_y_pred = tf.concat(
-                [K.zeros_like(y_pred[:, idx + 1 :]), y_pred[:, : idx + 1]], axis=1
-            )
-            right_hamming_loss = K.mean(
-                binary_crossentropy(
-                    y_true[:, idx + 1], right_shifted_y_pred[:, idx + 1]
-                )
-            )
-        else:
-            right_hamming_loss = float("inf")
-
-        # 최소 Hamming Loss 선택
-        min_hamming_loss = K.minimum(
-            current_hamming_loss, K.minimum(left_hamming_loss, right_hamming_loss)
-        )
-
-        # Total Loss에 누적
-        total_loss += min_hamming_loss
-
-    return total_loss
-
-
-def ddm_accuracy(y_true, y_pred):
-    total_accuracy = 0
-
-    # Calculate accuracy for each label
-    for idx in range(len(y_pred)):
-        # 1. y_true[idx]와 pred의 hamming loss 계산
-        current_hamming_loss = K.mean(
-            K.not_equal(y_true[:, idx], K.round(y_pred[:, idx]))
-        )
-
-        # 2. y_true[idx-1]와 pred의 hamming loss 계산
-        if idx > 0:
-            left_shifted_y_pred = tf.concat(
-                [y_pred[:, idx:], K.zeros_like(y_pred[:, :idx])], axis=1
-            )
-            left_hamming_loss = K.mean(
-                K.not_equal(
-                    y_true[:, idx - 1], K.round(left_shifted_y_pred[:, idx - 1])
-                )
-            )
-        else:
-            left_hamming_loss = float("inf")
-
-        # 3. y_true[idx+1]와 pred의 hamming loss 계산
-        if idx < len(y_pred) - 1:
-            right_shifted_y_pred = tf.concat(
-                [K.zeros_like(y_pred[:, idx + 1 :]), y_pred[:, : idx + 1]], axis=1
-            )
-            right_hamming_loss = K.mean(
-                K.not_equal(
-                    y_true[:, idx + 1], K.round(right_shifted_y_pred[:, idx + 1])
-                )
-            )
-        else:
-            right_hamming_loss = float("inf")
-
-        # 최소 Hamming Loss 선택
-        min_hamming_loss = K.minimum(
-            current_hamming_loss, K.minimum(left_hamming_loss, right_hamming_loss)
-        )
-
-        # Total Accuracy에 누적
-        total_accuracy += 1.0 - min_hamming_loss  # Change 1 to 1.0
-
-    # Calculate overall accuracy (average of label accuracies)
-    overall_accuracy = total_accuracy / len(y_pred)
-
-    return overall_accuracy
-
-
-# Register custom loss and accuracy functions
-get_custom_objects().update(
-    {
-        "ddm_loss": ddm_loss,
-        "ddm_accuracy": ddm_accuracy,
-    }
 )
 
 
@@ -180,18 +71,6 @@ class SeparateDetectModel(BaseModel):
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
         X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
-
-        # # 다차원 배열을 1차원으로 평탄화
-        # print("ㅁㄴ어라ㅣㅁㄴ;ㅏ리ㅏ>>>!", y.shape)
-        # flattened_arr = y.reshape(-1, y.shape[-1])
-        # print("ㅁㄴ어라ㅣㅁㄴ;dfdafdsf>>>!", flattened_arr)
-
-        # # LabelEncoder 생성 및 적용
-        # label_encoder = LabelEncoder()
-        # flattened_labels = label_encoder.fit_transform(flattened_arr)
-        # # 인코딩된 레이블을 다시 원래의 형태로 재구성
-        # y = flattened_labels.reshape(y.shape[:-1])
-
         y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
 
         # -- split train, val, test
@@ -241,23 +120,12 @@ class SeparateDetectModel(BaseModel):
         output_layer = Dense(self.n_classes, activation="sigmoid")(lstm3)
         self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
-        # compile the self.model
         opt = Adam(learning_rate=self.opt_learning_rate)
-        # Usage example for the left shift
         self.model.compile(
-            loss=ddm_loss,
-            # loss="binary_crossentropy",
+            loss="binary_crossentropy",
             optimizer=opt,
-            metrics=[ddm_accuracy],
+            metrics=["accuracy"],
         )
-
-        # self.model.compile(
-        #     loss="binary_crossentropy",
-        #     optimizer="adam",
-        #     metrics=[HammingLoss(threshold=0.5, mode="multilabel")],
-        # )
-        # self.model.add_loss(lambda: tf.reduce_mean(d.kernel))
-        # self.model.compile(optimizer=opt, metrics=["accuracy"])
 
     """
     -- 전체 wav 주어졌을 때, 한 마디에 대한 rhythm 계산
@@ -328,7 +196,7 @@ class SeparateDetectModel(BaseModel):
         for code, drum in CODE2DRUM.items():
             result_dict[drum] = [row[code] for row in predict_data]
 
-        print("멀이ㅏ너리ㅏ;ㅁㄴ!!>>>", result_dict)
+        # print("멀이ㅏ너리ㅏ;ㅁㄴ!!>>>", result_dict)
 
         # -- 실제 label
         true_label = DataLabeling.data_labeling(

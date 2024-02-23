@@ -32,6 +32,7 @@ from constant import (
     CLASSIFY_MAP,
     CLASSIFY_DRUM2CODE,
     CLASSIFY_CODE2DRUM,
+    CLASSIFY_IMPOSSIBLE_LABEL,
 )
 
 
@@ -177,6 +178,45 @@ class FeatureExtractor:
         return combined_df
 
     @staticmethod
+    def binary_to_string(binary_list):
+        # 이진수를 문자열로 변환하는 함수 정의
+        binary_list = list(map(int, binary_list))  # 정수로 변환
+        return "".join(map(str, binary_list))
+
+    @staticmethod
+    def binary_to_decimal(binary_string):
+        # 이진수를 10진수로 변환하는 함수 정의
+        return int(binary_string, 2)
+
+    @staticmethod
+    def decimal_to_binary(decimal_number):
+        # 10진수를 이진수로 변환하는 함수 정의
+        binary_string = bin(decimal_number)[2:]
+        # 2진수를 라벨 개수 자리로 맞추기 위해 앞에 0을 채움
+        binary_string = (
+            "0" * (len(CLASSIFY_CODE2DRUM) - len(binary_string)) + binary_string
+        )
+        return [*map(int, binary_string)]
+
+    @staticmethod
+    def one_hot_label_to_number(labels: np.array):
+        # 각 리스트를 이진수로 변환한 뒤 10진수로 변환하여 저장
+        return np.apply_along_axis(
+            lambda x: FeatureExtractor.binary_to_decimal(
+                FeatureExtractor.binary_to_string(x)
+            ),
+            axis=1,
+            arr=labels,
+        )
+
+    @staticmethod
+    def number_to_one_hot_label(labels: np.array):
+        # 10진수를 다시 이진수로 변환하여 배열에 저장
+        return np.array(
+            [FeatureExtractor.decimal_to_binary(decimal) for decimal in labels]
+        )
+
+    @staticmethod
     def _translate_drum_label_to_classify(drum: int) -> int:
         if drum == -1:
             return
@@ -236,12 +276,20 @@ class FeatureExtractor:
             if duration < 0.16:  # 너무 짧게 잘린 데이터 버리기
                 continue
 
-            result_onsets.append({"onset": curr_onset, "duration": duration})
-
             label = {v: [0] for _, v in CLASSIFY_CODE2DRUM.items()}
+            binary_label = [0] * len(CLASSIFY_CODE2DRUM)
             for code in temp_label:
                 label[CLASSIFY_CODE2DRUM[code]] = [1]
+                binary_label[code] = 1
+            binary_label = [binary_label]
 
+            if (
+                FeatureExtractor.one_hot_label_to_number(np.array(binary_label))[0]
+                in CLASSIFY_IMPOSSIBLE_LABEL
+            ):  # 불가능한 라벨값이라면
+                continue
+
+            result_onsets.append({"onset": curr_onset, "duration": duration})
             result_label.append(label)
 
         # print("result_onsets-------------")

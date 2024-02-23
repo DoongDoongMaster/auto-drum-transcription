@@ -67,43 +67,6 @@ class SegmentClassifyModel(BaseModel):
             ],
         )
 
-    @staticmethod
-    def binary_to_string(binary_list):
-        # 이진수를 문자열로 변환하는 함수 정의
-        binary_list = list(map(int, binary_list))  # 정수로 변환
-        return "".join(map(str, binary_list))
-
-    @staticmethod
-    def binary_to_decimal(binary_string):
-        # 이진수를 10진수로 변환하는 함수 정의
-        return int(binary_string, 2)
-
-    @staticmethod
-    def decimal_to_binary(decimal_number):
-        # 10진수를 이진수로 변환하는 함수 정의
-        binary_string = bin(decimal_number)[2:]
-        # 2진수를 4자리로 맞추기 위해 앞에 0을 채움
-        binary_string = "0" * (4 - len(binary_string)) + binary_string
-        return [*map(int, binary_string)]
-
-    @staticmethod
-    def one_hot_label_to_number(labels: np.array):
-        # 각 리스트를 이진수로 변환한 뒤 10진수로 변환하여 저장
-        return np.apply_along_axis(
-            lambda x: SegmentClassifyModel.binary_to_decimal(
-                SegmentClassifyModel.binary_to_string(x)
-            ),
-            axis=1,
-            arr=labels,
-        )
-
-    @staticmethod
-    def number_to_one_hot_label(labels: np.array):
-        # 10진수를 다시 이진수로 변환하여 배열에 저장
-        return np.array(
-            [SegmentClassifyModel.decimal_to_binary(decimal) for decimal in labels]
-        )
-
     def x_data_1d_reshape(self, data):
         return tf.reshape(
             data,
@@ -127,24 +90,24 @@ class SegmentClassifyModel(BaseModel):
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
-        # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
+        np.set_printoptions(threshold=np.inf, linewidth=np.inf)
         # print(y)
-        # number_y = SegmentClassifyModel.one_hot_label_to_number(y)
-        # # # print(number_y)
-        # counter = Counter(number_y)
-        # print("변경 전", counter)
+        number_y = FeatureExtractor.one_hot_label_to_number(y)
+        # print(number_y)
+        counter = Counter(number_y)
+        print("변경 전", counter)
 
-        # # smt = SMOTE()
-        # X = self.x_data_1d_reshape(X)
-        # # X, number_y = smt.fit_resample(X, number_y)
+        smt = SMOTE()
+        X = self.x_data_1d_reshape(X)
+        X, number_y = smt.fit_resample(X, number_y)
         # nm_model = NearMiss(version=3)
         # X, number_y = nm_model.fit_resample(X, number_y)
 
-        # # 비율 확인
-        # counter = Counter(number_y)
-        # print("변경 후", counter)
+        # 비율 확인
+        counter = Counter(number_y)
+        print("변경 후", counter)
 
-        # y = SegmentClassifyModel.number_to_one_hot_label(number_y)
+        y = FeatureExtractor.number_to_one_hot_label(number_y)
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(

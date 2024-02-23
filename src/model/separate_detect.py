@@ -25,55 +25,110 @@ from constant import (
 from tensorflow.keras.utils import get_custom_objects
 
 import tensorflow as tf
-from keras import backend as K
+from tensorflow.keras import backend as K
+from tensorflow.keras.utils import get_custom_objects
+from tensorflow.keras.losses import binary_crossentropy
 
 
-def hamming_loss(y_true, y_pred):
-    # Hamming loss calculation
-    return K.mean(K.not_equal(y_true, K.round(y_pred)), axis=-1)
+def ddm_loss(y_true, y_pred):
+    total_loss = 0
 
-
-def shifted_hamming_loss(offset):
-    def loss(y_true, y_pred):
-        # Shift y_true to the left
-        shifted_y_true_left = tf.roll(y_true, shift=offset, axis=-1)
-        # Shift y_true to the right
-        shifted_y_true_right = tf.roll(y_true, shift=-offset, axis=-1)
-        # Calculate Hamming loss for both shifts and take the minimum
-        return K.minimum(
-            hamming_loss(shifted_y_true_left, y_pred),
-            hamming_loss(shifted_y_true_right, y_pred),
+    for idx in range(len(y_pred[0])):
+        # 1. y_true[:, idx]와 pred[:, idx]의 hamming loss 계산
+        current_hamming_loss = K.mean(
+            binary_crossentropy(y_true[:, idx], y_pred[:, idx])
         )
 
-    return loss
+        # 2. y_true[:, idx-1]와 pred[:, idx-1]의 hamming loss 계산
+        if idx > 0:
+            left_shifted_y_pred = tf.concat(
+                [y_pred[:, idx:], K.zeros_like(y_pred[:, :idx])], axis=1
+            )
+            left_hamming_loss = K.mean(
+                binary_crossentropy(y_true[:, idx - 1], left_shifted_y_pred[:, idx - 1])
+            )
+        else:
+            left_hamming_loss = float("inf")
 
+        # 3. y_true[:, idx+1]와 pred[:, idx+1]의 hamming loss 계산
+        if idx < len(y_pred[0]) - 1:
+            right_shifted_y_pred = tf.concat(
+                [K.zeros_like(y_pred[:, idx + 1 :]), y_pred[:, : idx + 1]], axis=1
+            )
+            right_hamming_loss = K.mean(
+                binary_crossentropy(
+                    y_true[:, idx + 1], right_shifted_y_pred[:, idx + 1]
+                )
+            )
+        else:
+            right_hamming_loss = float("inf")
 
-def shifted_hamming_accuracy(offset):
-    def accuracy(y_true, y_pred):
-        # Shift y_true to the left
-        shifted_y_true_left = tf.roll(y_true, shift=offset, axis=-1)
-        # Shift y_true to the right
-        shifted_y_true_right = tf.roll(y_true, shift=-offset, axis=-1)
-        # Calculate accuracy for both shifts and take the maximum
-        return 1.0 - K.maximum(
-            hamming_loss(shifted_y_true_left, y_pred),
-            hamming_loss(shifted_y_true_right, y_pred),
+        # 최소 Hamming Loss 선택
+        min_hamming_loss = K.minimum(
+            current_hamming_loss, K.minimum(left_hamming_loss, right_hamming_loss)
         )
 
-    return accuracy
+        # Total Loss에 누적
+        total_loss += min_hamming_loss
+
+    return total_loss
 
 
-# Example offset for left and right shift
-offset_left = 1
-offset_right = -1
+def ddm_accuracy(y_true, y_pred):
+    total_accuracy = 0
+
+    # Calculate accuracy for each label
+    for idx in range(len(y_pred)):
+        # 1. y_true[idx]와 pred의 hamming loss 계산
+        current_hamming_loss = K.mean(
+            K.not_equal(y_true[:, idx], K.round(y_pred[:, idx]))
+        )
+
+        # 2. y_true[idx-1]와 pred의 hamming loss 계산
+        if idx > 0:
+            left_shifted_y_pred = tf.concat(
+                [y_pred[:, idx:], K.zeros_like(y_pred[:, :idx])], axis=1
+            )
+            left_hamming_loss = K.mean(
+                K.not_equal(
+                    y_true[:, idx - 1], K.round(left_shifted_y_pred[:, idx - 1])
+                )
+            )
+        else:
+            left_hamming_loss = float("inf")
+
+        # 3. y_true[idx+1]와 pred의 hamming loss 계산
+        if idx < len(y_pred) - 1:
+            right_shifted_y_pred = tf.concat(
+                [K.zeros_like(y_pred[:, idx + 1 :]), y_pred[:, : idx + 1]], axis=1
+            )
+            right_hamming_loss = K.mean(
+                K.not_equal(
+                    y_true[:, idx + 1], K.round(right_shifted_y_pred[:, idx + 1])
+                )
+            )
+        else:
+            right_hamming_loss = float("inf")
+
+        # 최소 Hamming Loss 선택
+        min_hamming_loss = K.minimum(
+            current_hamming_loss, K.minimum(left_hamming_loss, right_hamming_loss)
+        )
+
+        # Total Accuracy에 누적
+        total_accuracy += 1.0 - min_hamming_loss  # Change 1 to 1.0
+
+    # Calculate overall accuracy (average of label accuracies)
+    overall_accuracy = total_accuracy / len(y_pred)
+
+    return overall_accuracy
+
 
 # Register custom loss and accuracy functions
 get_custom_objects().update(
     {
-        "shifted_hamming_loss_left": shifted_hamming_loss(offset_left),
-        "shifted_hamming_accuracy_left": shifted_hamming_accuracy(offset_left),
-        "shifted_hamming_loss_right": shifted_hamming_loss(offset_right),
-        "shifted_hamming_accuracy_right": shifted_hamming_accuracy(offset_right),
+        "ddm_loss": ddm_loss,
+        "ddm_accuracy": ddm_accuracy,
     }
 )
 
@@ -189,10 +244,10 @@ class SeparateDetectModel(BaseModel):
         opt = Adam(learning_rate=self.opt_learning_rate)
         # Usage example for the left shift
         self.model.compile(
-            # loss=shifted_hamming_loss(offset_left),
-            loss="binary_crossentropy",
+            loss=ddm_loss,
+            # loss="binary_crossentropy",
             optimizer=opt,
-            metrics=[shifted_hamming_accuracy(offset_left)],
+            metrics=[ddm_accuracy],
         )
 
         # self.model.compile(

@@ -182,23 +182,26 @@ class BaseModel:
         print("test loss:", results[0])
         print("test accuracy:", results[1])
 
-        # -- predict
-        y_pred = self.model.predict(self.x_test)
+        try:
+            # -- predict
+            y_pred = self.model.predict(self.x_test)
 
-        # -- reshape
-        y_test_data = self.data_2d_reshape(self.y_test)
-        y_pred = self.data_2d_reshape(y_pred)
+            # -- reshape
+            y_test_data = self.data_2d_reshape(self.y_test)
+            y_pred = self.data_2d_reshape(y_pred)
 
-        # -- binary
-        y_test_data = np.where(y_test_data >= self.predict_standard, 1.0, 0.0)
-        y_pred = np.where(y_pred >= self.predict_standard, 1.0, 0.0)
+            # -- binary
+            y_test_data = np.where(y_test_data > self.predict_standard, 1.0, 0.0)
+            y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
 
-        # confusion matrix & precision & recall
-        print("-- ! confusion matrix ! --")
-        print(multilabel_confusion_matrix(y_test_data, y_pred))
+            # confusion matrix & precision & recall
+            print("-- ! confusion matrix ! --")
+            print(multilabel_confusion_matrix(y_test_data, y_pred))
 
-        print("-- ! classification report ! --")
-        print(classification_report(y_test_data, y_pred))
+            print("-- ! classification report ! --")
+            print(classification_report(y_test_data, y_pred))
+        except Exception as e:
+            print(e)
 
     def extract_feature(self, data_path: str = f"{ROOT_PATH}/{RAW_PATH}"):
         """

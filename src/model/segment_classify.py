@@ -23,7 +23,8 @@ from constant import (
     SAMPLE_RATE,
     CLASSIFY_DURATION,
     PKL,
-    CODE2DRUM,
+    CLASSIFY_CODE2DRUM,
+    CLASSIFY_DETECT_TYPES,
 )
 
 
@@ -52,8 +53,8 @@ class SegmentClassifyModel(BaseModel):
         self.n_channels = self.feature_param["n_channels"]
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
-        self.load_model("../models/classify_mfcc_2024-02-19_15-29-29_smote.h5")
-        # self.load_model()
+        # self.load_model("../models/classify_mfcc_2024-02-19_15-29-29_smote.h5")
+        self.load_model()
 
     def input_reshape(self, data):
         # Implement input reshaping logic
@@ -90,24 +91,24 @@ class SegmentClassifyModel(BaseModel):
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
-        np.set_printoptions(threshold=np.inf, linewidth=np.inf)
-        # print(y)
-        number_y = FeatureExtractor.one_hot_label_to_number(y)
-        # print(number_y)
-        counter = Counter(number_y)
-        print("변경 전", counter)
+        # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
+        # # print(y)
+        # number_y = FeatureExtractor.one_hot_label_to_number(y)
+        # # print(number_y)
+        # counter = Counter(number_y)
+        # print("변경 전", counter)
 
-        smt = SMOTE()
-        X = self.x_data_1d_reshape(X)
-        X, number_y = smt.fit_resample(X, number_y)
-        # nm_model = NearMiss(version=3)
-        # X, number_y = nm_model.fit_resample(X, number_y)
+        # smt = SMOTE()
+        # X = self.x_data_1d_reshape(X)
+        # X, number_y = smt.fit_resample(X, number_y)
+        # # nm_model = NearMiss(version=3)
+        # # X, number_y = nm_model.fit_resample(X, number_y)
 
-        # 비율 확인
-        counter = Counter(number_y)
-        print("변경 후", counter)
+        # # 비율 확인
+        # counter = Counter(number_y)
+        # print("변경 후", counter)
 
-        y = FeatureExtractor.number_to_one_hot_label(number_y)
+        # y = FeatureExtractor.number_to_one_hot_label(number_y)
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
@@ -266,20 +267,33 @@ class SegmentClassifyModel(BaseModel):
         true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
         )
+        l = {}
+        for k, v in CLASSIFY_DETECT_TYPES.items():
+            temp_label = []
+            for drum_idx, origin_key in enumerate(v):
+                if len(temp_label) == 0:  # 초기화
+                    temp_label = true_label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
+                else:
+                    for frame_idx, frame_value in enumerate(true_label[origin_key]):
+                        temp_label[frame_idx] = frame_value
+            l[k] = temp_label
+        print(l)
+
         # DataLabeling.show_label_dict_plot(true_label)
 
         # -- transport frame
-        onset_dict = {v: [] for _, v in CODE2DRUM.items()}
+        onset_dict = {v: [] for _, v in CLASSIFY_CODE2DRUM.items()}
         for data in drum_instrument:
             idx = data[0]
             instrument = data[1]
             for inst in instrument:
-                onset_dict[CODE2DRUM[inst]].append(onsets_arr[idx])
+                onset_dict[CLASSIFY_CODE2DRUM[inst]].append(onsets_arr[idx])
         frame_length = len(audio) // self.hop_length
         frame_onset = DataLabeling._get_label_detect(
             onset_dict, frame_length, self.hop_length
         )
-        DataLabeling.show_label_dict_compare_plot(true_label, frame_onset, 0, 1200)
+        # print(onset_dict)
+        DataLabeling.show_label_dict_compare_plot(l, frame_onset, 0, 1200)
         # DataLabeling.show_label_dict_plot(frame_onset, 3200, 5000)
 
         # delay 제거

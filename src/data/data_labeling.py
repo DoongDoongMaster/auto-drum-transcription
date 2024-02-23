@@ -261,7 +261,7 @@ class DataLabeling:
         if end is None:  # end가 none이라면 y_true 끝까지
             end = len(y_true[y_true[list(y_true.keys())[0]]])  # 첫 번째 value의 길이
 
-        leng = len(y_true.keys()) * 2
+        leng = len(DRUM2CODE) * 2
         for key, label_arr in y_true.items():
             true_data = np.array(label_arr)
             plt.subplot(leng, 1, 2 * DRUM2CODE[key] + 1)

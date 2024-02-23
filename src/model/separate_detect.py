@@ -37,7 +37,7 @@ class SeparateDetectModel(BaseModel):
             feature_type=MEL_SPECTROGRAM,
         )
         self.unit_number = unit_number
-        self.predict_standard = 0.5
+        self.predict_standard = 0.4
         self.n_rows = CHUNK_TIME_LENGTH
         self.n_columns = self.feature_param["n_mels"]
         self.n_classes = self.feature_param["n_classes"]

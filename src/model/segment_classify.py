@@ -77,6 +77,26 @@ class SegmentClassifyModel(BaseModel):
             ],
         )
 
+    @staticmethod
+    def delete_small_data(counter_y, X, number_y):
+        SMALL_STANDARD = 300
+        
+        small_label = []
+        for key, value in counter_y.items():
+            if value < SMALL_STANDARD:
+                small_label.append(key)
+
+        small_y = np.array([])
+        number_y = number_y.ravel()
+        for l in small_label:
+            small_y = np.append(small_y, np.where(number_y == l))
+        
+        small_y = small_y.astype(int)
+        print(small_y)
+        new_x = np.delete(X, small_y, axis = 0)
+        new_y = np.delete(number_y, small_y, axis = 0)
+        return new_x, new_y
+
     def create_dataset(self):
         """
         -- load data from data file
@@ -100,6 +120,8 @@ class SegmentClassifyModel(BaseModel):
 
         smt = SMOTE()
         X = self.x_data_1d_reshape(X)
+
+        X, number_y = SegmentClassifyModel.delete_small_data(counter, X, number_y)
         X, number_y = smt.fit_resample(X, number_y)
         # nm_model = NearMiss(version=3)
         # X, number_y = nm_model.fit_resample(X, number_y)

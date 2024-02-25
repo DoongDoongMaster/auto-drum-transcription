@@ -78,10 +78,10 @@ predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
 # predict_test_data = (
 #     f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/drummer1/session3/8_rock_135_beat_4-4.wav"
 # )
-# # predict_test_data = "../data/test/ddm_test_항해.m4a"
+# predict_test_data = "../data/test/항해_솔로_일부분.wav"
 segment_classify = SegmentClassifyModel()
 # segment_classify.extract_feature(feature_path)
-# segment_classify.run()
+segment_classify.run()
 print(segment_classify.predict(predict_test_data, 100, 0))
 
 # -------------------

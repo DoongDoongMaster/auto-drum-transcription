@@ -477,9 +477,7 @@ class DataLabeling:
             if onset_position >= frame_length:
                 break
 
-            soft_start_position = max(  # -- onset - offset
-                (onset_position - ONSET_OFFSET), 0
-            )
+            soft_start_position = max((onset_position - 0), 0)  # -- onset - offset
             soft_end_position = min(  # -- onset + offset
                 onset_position + ONSET_OFFSET + 1, frame_length
             )
@@ -488,7 +486,9 @@ class DataLabeling:
             for i in range(soft_start_position, soft_end_position):
                 if labels[i] == 1:
                     continue
-                labels[i] = 0.5
+                labels[i] = 1
+            if soft_end_position < frame_length and labels[soft_end_position] != 1:
+                labels[soft_end_position] = 0.5
 
             labels[onset_position] = 1
 

@@ -227,26 +227,19 @@ class SeparateDetectModel(BaseModel):
         for code, drum in CLASSIFY_CODE2DRUM.items():
             result_dict[drum] = [row[code] for row in predict_data]
 
-        # -- 실제 label
-        # true_label = DataLabeling.data_labeling(
-        #     audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
-        # )
-        # -- 원래 정답 라벨
-        tmp_true_label = DataLabeling.data_labeling(
+        # -- 실제 label (merge cc into oh)
+        class_6_true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
-        true_label = {}
-        for k, v in CLASSIFY_DETECT_TYPES.items():
-            temp_label = []
-            for drum_idx, origin_key in enumerate(v):
-                if len(temp_label) == 0:  # 초기화
-                    temp_label = tmp_true_label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
-                else:
-                    for frame_idx, frame_value in enumerate(tmp_true_label[origin_key]):
-                        temp_label[frame_idx] = frame_value
-            true_label[k] = temp_label
+        keys_to_extract = ["CC", "OH"]
+        selected_values = [class_6_true_label[key] for key in keys_to_extract]
+        cc_oh_label = np.vstack(selected_values).T
+        merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
+        class_6_true_label.pop("CC", None)
+        class_6_true_label["OH"] = merged_cc_oh
+        true_label = class_6_true_label  # -- class 5
 
-        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
+        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 1200, 2400)
 
         # # -- get onsets
         # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

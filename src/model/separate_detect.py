@@ -105,13 +105,13 @@ class SeparateDetectModel(BaseModel):
     def create(self):
         input_layer = Input(shape=(self.n_rows, self.n_columns))
         conv1 = Conv1D(
-            filters=32, kernel_size=8, strides=1, activation="relu", padding="same"
+            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
         )(input_layer)
         conv2 = Conv1D(
-            filters=32, kernel_size=8, strides=1, activation="relu", padding="same"
+            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
         )(conv1)
         conv3 = Conv1D(
-            filters=32, kernel_size=8, strides=1, activation="relu", padding="same"
+            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
         )(conv2)
         lstm1 = LSTM(32, return_sequences=True)(conv3)
         lstm2 = LSTM(32, return_sequences=True)(lstm1)
@@ -122,9 +122,7 @@ class SeparateDetectModel(BaseModel):
         self.model.summary()
         opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
-            loss="binary_crossentropy",
-            optimizer=opt,
-            metrics=["accuracy"],
+            loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
         )
 
     """
@@ -186,7 +184,7 @@ class SeparateDetectModel(BaseModel):
         audio_feature = scaler.fit_transform(audio_feature)
 
         # -- input (#, time, 128 feature)
-        audio_feature = BaseModel.split_data(audio_feature, CHUNK_TIME_LENGTH)
+        audio_feature = BaseModel.split_x_data(audio_feature, CHUNK_TIME_LENGTH)
 
         # -- predict 결과 -- (#, time, 4 feature)
         predict_data = self.model.predict(audio_feature)
@@ -196,14 +194,12 @@ class SeparateDetectModel(BaseModel):
         for code, drum in CODE2DRUM.items():
             result_dict[drum] = [row[code] for row in predict_data]
 
-        # print("멀이ㅏ너리ㅏ;ㅁㄴ!!>>>", result_dict)
-
         # -- 실제 label
         true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
 
-        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 1200, 2400)
+        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 
         # # -- get onsets
         # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

@@ -22,6 +22,8 @@ from constant import (
     MILLISECOND,
     SAMPLE_RATE,
     CODE2DRUM,
+    CLASSIFY_DETECT_TYPES,
+    CLASSIFY_CODE2DRUM,
 )
 
 
@@ -68,6 +70,21 @@ class SeparateDetectModel(BaseModel):
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
+        # ------------------------------------------------------------------
+        # y: CC, OH 합치기
+        l = {}
+        for k, v in CLASSIFY_DETECT_TYPES.items():
+            temp_label = []
+            for drum_idx, origin_key in enumerate(v):
+                if len(temp_label) == 0:  # 초기화
+                    temp_label = y[CLASSIFY_DETECT_TYPES[k][drum_idx]]
+                else:
+                    for frame_idx, frame_value in enumerate(y[origin_key]):
+                        temp_label[frame_idx] = frame_value
+            l[k] = temp_label
+        label_df = FeatureExtractor._make_label_dataframe(METHOD_DETECT, l)
+        y = label_df.to_numpy()
+        # ------------------------------------------------------------------
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
         X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
@@ -191,13 +208,27 @@ class SeparateDetectModel(BaseModel):
         predict_data = predict_data.reshape((-1, self.n_classes))
         # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
         result_dict = {}
-        for code, drum in CODE2DRUM.items():
+        for code, drum in CLASSIFY_CODE2DRUM.items():
             result_dict[drum] = [row[code] for row in predict_data]
 
         # -- 실제 label
-        true_label = DataLabeling.data_labeling(
+        # true_label = DataLabeling.data_labeling(
+        #     audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
+        # )
+        # -- 원래 정답 라벨
+        tmp_true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
+        true_label = {}
+        for k, v in CLASSIFY_DETECT_TYPES.items():
+            temp_label = []
+            for drum_idx, origin_key in enumerate(v):
+                if len(temp_label) == 0:  # 초기화
+                    temp_label = tmp_true_label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
+                else:
+                    for frame_idx, frame_value in enumerate(tmp_true_label[origin_key]):
+                        temp_label[frame_idx] = frame_value
+            true_label[k] = temp_label
 
         DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 

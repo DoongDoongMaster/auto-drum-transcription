@@ -308,6 +308,7 @@ FEATURE_PARAM = {
             "n_mels": 128,  # -- number of mel bands
             "fmin": 27.5,
             "fmax": 16000,
+            "n_classes": len(CLASSIFY_CODE2DRUM),
         },
     },
     METHOD_RHYTHM: {

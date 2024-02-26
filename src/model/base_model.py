@@ -101,7 +101,7 @@ class BaseModel:
             X = feature_df.drop(
                 [drum for _, drum in CODE2DRUM.items()], axis=1
             ).to_numpy()
-            y = feature_df[[drum for _, drum in CODE2DRUM.items()]].to_numpy()
+            y = feature_df[[drum for _, drum in CODE2DRUM.items()]]
             return X, y
         if method_type in METHOD_RHYTHM:
             # label(onset 여부) | mel-1, mel-2, mel-3, ...

@@ -7,7 +7,7 @@ from keras.models import Model
 
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, LSTM, Conv1D, Input
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import RMSprop
 
 from feature.feature_extractor import FeatureExtractor
 from feature.audio_to_feature import AudioToFeature
@@ -153,9 +153,9 @@ class SeparateDetectModel(BaseModel):
         output_layer = Dense(self.n_classes, activation="sigmoid")(lstm3)
         self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
-        opt = Adam(learning_rate=self.opt_learning_rate)
+        opt = RMSprop(learning_rate=self.opt_learning_rate)
         self.model.compile(
-            loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
+            loss="binary_crossentropy", optimizer=opt, metrics=["binary_accuracy"]
         )
 
     """

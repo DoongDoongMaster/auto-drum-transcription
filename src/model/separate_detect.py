@@ -17,6 +17,7 @@ from data.data_labeling import DataLabeling
 from model.base_model import BaseModel
 from constant import (
     CHUNK_TIME_LENGTH,
+    DRUM2CODE,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
     MILLISECOND,
@@ -25,6 +26,27 @@ from constant import (
     CLASSIFY_DETECT_TYPES,
     CLASSIFY_CODE2DRUM,
 )
+
+
+def merge_columns(arr, col1, col2):
+    # merge col2 into col1
+    # -- 둘 중 하나라도 1이면 1
+    # -- else, 둘 중 하나라도 0.5이면 0.5
+    # -- else, 0
+    merged_column = np.zeros(arr.shape[0])
+    for i in range(arr.shape[0]):
+        if 1 in arr[i, [col1, col2]]:
+            merged_column[i] = 1
+        elif 0.5 in arr[i, [col1, col2]]:
+            merged_column[i] = 0.5
+        else:
+            merged_column[i] = 0
+
+    # merge한 배열 col1 자리에 끼워넣기
+    result = np.delete(arr, [col1, col2], axis=1)
+    result = np.insert(result, col1, merged_column, axis=1)
+
+    return result
 
 
 class SeparateDetectModel(BaseModel):
@@ -72,18 +94,25 @@ class SeparateDetectModel(BaseModel):
 
         # ------------------------------------------------------------------
         # y: CC, OH 합치기
-        l = {}
-        for k, v in CLASSIFY_DETECT_TYPES.items():
-            temp_label = []
-            for drum_idx, origin_key in enumerate(v):
-                if len(temp_label) == 0:  # 초기화
-                    temp_label = y[CLASSIFY_DETECT_TYPES[k][drum_idx]]
-                else:
-                    for frame_idx, frame_value in enumerate(y[origin_key]):
-                        temp_label[frame_idx] = frame_value
-            l[k] = temp_label
-        label_df = FeatureExtractor._make_label_dataframe(METHOD_DETECT, l)
-        y = label_df.to_numpy()
+        # l = {}
+        # for k, v in CLASSIFY_DETECT_TYPES.items():
+        #     temp_label = []
+        #     for drum_idx, origin_key in enumerate(v):
+        #         if len(temp_label) == 0:  # 초기화
+        #             temp_label = y[CLASSIFY_DETECT_TYPES[k][drum_idx]]
+        #         else:
+        #             for frame_idx, frame_value in enumerate(y[origin_key]):
+        #                 temp_label[frame_idx] = frame_value
+        #     l[k] = temp_label
+        # label_df = FeatureExtractor._make_label_dataframe(METHOD_DETECT, l)
+        # y = label_df.to_numpy()
+        # CC열과 OH열을 합치고 싶은 경우
+        col1 = DRUM2CODE["CC"]
+        col2 = DRUM2CODE["OH"]
+        result = merge_columns(y, col1, col2)
+        y = result
+        del result
+
         # ------------------------------------------------------------------
         scaler = StandardScaler()
         X = scaler.fit_transform(X)

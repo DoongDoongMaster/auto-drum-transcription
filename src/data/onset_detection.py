@@ -424,7 +424,7 @@ class OnsetDetect:
             post_max=3,
             pre_avg=3,
             post_avg=3,
-            delta=0.1,
+            delta=1,
             wait=wait,
         )
         onset_times = librosa.frames_to_time(
@@ -432,6 +432,8 @@ class OnsetDetect:
         )
 
         # OnsetDetect._show_onset_plot(onset_env, peaks)
+
+        onset_times = onset_times - 0.01
 
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_times, start, end)
         return onset_sec_list

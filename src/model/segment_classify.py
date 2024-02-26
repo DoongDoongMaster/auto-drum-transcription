@@ -1,13 +1,18 @@
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import tensorflow_addons as tfa
 
+from tensorflow import keras
+from tensorflow.keras import layers
 from collections import Counter
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import NearMiss
 from sklearn.model_selection import train_test_split
-from tensorflow.keras import layers, Sequential
-from tensorflow.keras.optimizers import Adam, SGD, RMSprop
+from sklearn.preprocessing import StandardScaler
+from keras.models import Model
+from keras.layers import Dense, LSTM, Conv1D, Input
+from keras.optimizers import Adam, SGD, RMSprop
 
 from model.base_model import BaseModel
 from data.onset_detection import OnsetDetect
@@ -17,6 +22,7 @@ from data.rhythm_detection import RhythmDetection
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
 from constant import (
+    CLASSIFY_DETECT_TYPES,
     METHOD_CLASSIFY,
     MFCC,
     MILLISECOND,
@@ -24,7 +30,6 @@ from constant import (
     CLASSIFY_DURATION,
     PKL,
     CLASSIFY_CODE2DRUM,
-    CLASSIFY_DETECT_TYPES,
 )
 
 
@@ -46,14 +51,14 @@ class SegmentClassifyModel(BaseModel):
             feature_extension=feature_extension,
         )
         self.predict_standard = 0.8
-        self.n_row = self.feature_param["n_mfcc"]
+        self.n_rows = self.feature_param["n_mfcc"]
         self.n_columns = (
             int(CLASSIFY_DURATION * SAMPLE_RATE) // self.feature_param["hop_length"]
         )
         self.n_channels = self.feature_param["n_channels"]
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
-        # self.load_model("../models/classify_mfcc_2024-02-19_15-29-29_smote.h5")
+        # self.load_model("../models/classify_mfcc_2024-02-25_22-04-08_smote_5_b.h5")
         self.load_model()
 
     def input_reshape(self, data):
@@ -62,9 +67,8 @@ class SegmentClassifyModel(BaseModel):
             data,
             [
                 -1,
-                self.n_row,
                 self.n_columns,
-                self.n_channels,
+                self.n_rows,
             ],
         )
 
@@ -73,9 +77,44 @@ class SegmentClassifyModel(BaseModel):
             data,
             [
                 -1,
-                self.n_row * self.n_columns * self.n_channels,
+                self.n_rows * self.n_columns * self.n_channels,
             ],
         )
+
+    def x_data_2d_reshape(self, data):
+        return tf.reshape(data, [-1, self.n_columns])
+
+    @staticmethod
+    def x_data_transpose(data):
+        """
+        -- 시계열 모델 학습 시, 데이터 transpose (1차원: 데이터 개수, 2차원: time stamp, 3차원: feature 개수)
+        """
+        return np.transpose(data, (0, 2, 1))
+
+    @staticmethod
+    def delete_small_data(counter_y, X, number_y):
+        """
+        -- SMOTE 전에 데이터 분포에서 너무 적은 개수를 가진 데이터는 삭제하는 함수
+        """
+        SMALL_STANDARD = 300
+
+        # 데이터 적은 라벨 번호 구하기
+        small_label = []
+        for key, value in counter_y.items():
+            if value < SMALL_STANDARD:
+                small_label.append(key)
+
+        # 데이터 적은 라벨을 지닌 데이터 인덱스 구하기
+        small_y = np.array([])
+        number_y = number_y.ravel()
+        for l in small_label:
+            small_y = np.append(small_y, np.where(number_y == l))
+
+        # 데이터 삭제
+        small_y = small_y.astype(int)
+        new_x = np.delete(X, small_y, axis=0)
+        new_y = np.delete(number_y, small_y, axis=0)
+        return new_x, new_y
 
     def create_dataset(self):
         """
@@ -91,28 +130,39 @@ class SegmentClassifyModel(BaseModel):
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
+        X = SegmentClassifyModel.x_data_transpose(X)
+
+        # nm_model = NearMiss(version=3)
+        # X, number_y = nm_model.fit_resample(X, number_y)
+
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
-        # # print(y)
-        # number_y = FeatureExtractor.one_hot_label_to_number(y)
-        # # print(number_y)
-        # counter = Counter(number_y)
-        # print("변경 전", counter)
+        # print(y)
+        number_y = FeatureExtractor.one_hot_label_to_number(y)
+        # print(number_y)
+        counter = Counter(number_y)
+        print("변경 전", counter)
 
-        # smt = SMOTE()
-        # X = self.x_data_1d_reshape(X)
-        # X, number_y = smt.fit_resample(X, number_y)
-        # # nm_model = NearMiss(version=3)
-        # # X, number_y = nm_model.fit_resample(X, number_y)
+        smt = SMOTE()
+        X = self.x_data_1d_reshape(X)
 
-        # # 비율 확인
-        # counter = Counter(number_y)
-        # print("변경 후", counter)
+        # X, number_y = SegmentClassifyModel.delete_small_data(counter, X, number_y)
+        X, number_y = smt.fit_resample(X, number_y)
+        # nm_model = NearMiss(version=3)
+        # X, number_y = nm_model.fit_resample(X, number_y)
 
-        # y = FeatureExtractor.number_to_one_hot_label(number_y)
+        # 비율 확인
+        counter = Counter(number_y)
+        print("변경 후", counter)
+
+        y = FeatureExtractor.number_to_one_hot_label(number_y)
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+            X,
+            y,
+            test_size=0.2,
+            random_state=42,
+            stratify=y,
         )
         del X
         del y
@@ -127,10 +177,26 @@ class SegmentClassifyModel(BaseModel):
         del x_train_temp
         del y_train_temp
 
+        # standard scaler
+        x_train_final = self.x_data_1d_reshape(x_train_final)
+        scaler = StandardScaler()
+        x_train_final = scaler.fit_transform(x_train_final)
+        x_train_final = self.input_reshape(x_train_final)
+
+        x_val_final = self.x_data_1d_reshape(x_val_final)
+        scaler = StandardScaler()
+        x_val_final = scaler.fit_transform(x_val_final)
+        x_val_final = self.input_reshape(x_val_final)
+
+        x_test = self.x_data_1d_reshape(x_test)
+        scaler = StandardScaler()
+        x_test = scaler.fit_transform(x_test)
+        x_test = self.input_reshape(x_test)
+
         # input shape 조정
-        self.x_train = self.input_reshape(x_train_final)
-        self.x_val = self.input_reshape(x_val_final)
-        self.x_test = self.input_reshape(x_test)
+        self.x_train = x_train_final
+        self.x_val = x_val_final
+        self.x_test = x_test
         self.y_train = y_train_final
         self.y_val = y_val_final
         self.y_test = y_test
@@ -139,52 +205,40 @@ class SegmentClassifyModel(BaseModel):
         self.print_dataset_shape()
 
     def create(self):
-        # Implement model creation logic
-        self.model = Sequential()
+        n_steps = self.n_columns
+        n_features = self.n_rows
 
-        self.model.add(
-            layers.Conv2D(
-                input_shape=(self.n_row, self.n_columns, self.n_channels),
-                filters=64,
-                kernel_size=(3, 3),
-                activation="tanh",
-                padding="same",
-            )
+        keras.backend.clear_session()
+
+        self.model = keras.Sequential(
+            [
+                layers.Input(shape=(n_steps, n_features)),
+                layers.Conv1D(
+                    filters=64,
+                    kernel_size=8,
+                    padding="same",
+                    data_format="channels_last",
+                    dilation_rate=1,
+                    activation="relu",
+                ),
+                layers.LSTM(
+                    units=32, activation="tanh", name="lstm_1", return_sequences=True
+                ),
+                layers.Dropout(0.2),
+                layers.LSTM(
+                    units=32, activation="tanh", name="lstm_2", return_sequences=True
+                ),
+                layers.Dropout(0.2),
+                layers.Flatten(),
+                layers.Dense(self.n_classes, activation="sigmoid"),
+            ]
         )
-        self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-        # self.model.add(layers.Dropout(0.2))
-
-        self.model.add(
-            layers.Conv2D(
-                filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
-            )
-        )
-        self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-        # self.model.add(layers.Dropout(0.2))
-
-        self.model.add(
-            layers.Conv2D(
-                filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
-            )
-        )
-        self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-        # self.model.add(layers.Dropout(0.2))
-
-        self.model.add(layers.GlobalAveragePooling2D())
-
-        self.model.add(layers.Reshape((64, 1), input_shape=(None, 64, 1)))
-        self.model.add(
-            layers.Bidirectional(
-                layers.LSTM(8, input_shape=(None, 64, 1), return_sequences=True)
-            )
-        )
-        self.model.add(layers.Bidirectional(layers.LSTM(10)))
-        self.model.add(layers.Dropout(0.2))
-        self.model.add(layers.Dense(units=self.n_classes, activation="sigmoid"))
-
         self.model.summary()
-
-        opt = RMSprop(learning_rate=self.opt_learning_rate)
+        # compile the self.model
+        opt = Adam(learning_rate=self.opt_learning_rate)
+        metric = tfa.metrics.HammingLoss(
+            mode="multilabel", threshold=self.predict_standard
+        )
         self.model.compile(
             loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
         )
@@ -229,7 +283,7 @@ class SegmentClassifyModel(BaseModel):
     -- output : 각 onset에 대한 악기 종류 분류
     """
 
-    def get_drum_instrument(self, audio):
+    def get_drum_instrument(self, audio, bpm):
         # -- trimmed audio
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
         trimmed_audios = DataProcessing.trim_audio_per_onset(audio, onsets_arr)
@@ -259,7 +313,7 @@ class SegmentClassifyModel(BaseModel):
         audio = FeatureExtractor.load_audio(wav_path)
 
         # -- instrument
-        drum_instrument = self.get_drum_instrument(audio)
+        drum_instrument = self.get_drum_instrument(audio, bpm)
         # -- rhythm
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
 
@@ -275,9 +329,11 @@ class SegmentClassifyModel(BaseModel):
                     temp_label = true_label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
                 else:
                     for frame_idx, frame_value in enumerate(true_label[origin_key]):
+                        if temp_label[frame_idx] == 1.0 or frame_value == 0.0:
+                            continue
                         temp_label[frame_idx] = frame_value
             l[k] = temp_label
-        print(l)
+        # print(l)
 
         # DataLabeling.show_label_dict_plot(true_label)
 
@@ -292,9 +348,13 @@ class SegmentClassifyModel(BaseModel):
         frame_onset = DataLabeling._get_label_detect(
             onset_dict, frame_length, self.hop_length
         )
-        # print(onset_dict)
-        DataLabeling.show_label_dict_compare_plot(l, frame_onset, 0, 1200)
-        # DataLabeling.show_label_dict_plot(frame_onset, 3200, 5000)
+        new_frame_onset = {}
+        for k, v in frame_onset.items():
+            if k in list(CLASSIFY_CODE2DRUM.values()):
+                new_frame_onset[k] = v
+
+        DataLabeling.show_label_dict_compare_plot(l, new_frame_onset, 0, 2400)
+        # DataLabeling.show_label_dict_plot(new_frame_onset)
 
         # delay 제거
         new_audio = DataProcessing.trim_audio_first_onset(audio, delay / MILLISECOND)

@@ -40,11 +40,12 @@ data_paths = [
 ]
 # FeatureExtractor.feature_extractor(data_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
 # FeatureExtractor.load_feature_file(METHOD_DETECT, MEL_SPECTROGRAM, PKL)
-predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
+# predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
 # predict_test_data = f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}/per-drum/HH/16/HH_16_0001.m4a"
 # predict_test_data = (
 #     "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4_44.wav"
 # )
+predict_test_data = "../data/test/항해_솔로_일부분.wav"
 separate_detect = SeparateDetectModel()
 # separate_detect.run()
 print(separate_detect.predict(predict_test_data, 100, 0))

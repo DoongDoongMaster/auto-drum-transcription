@@ -94,19 +94,6 @@ class SeparateDetectModel(BaseModel):
 
         # ------------------------------------------------------------------
         # y: CC, OH 합치기
-        # l = {}
-        # for k, v in CLASSIFY_DETECT_TYPES.items():
-        #     temp_label = []
-        #     for drum_idx, origin_key in enumerate(v):
-        #         if len(temp_label) == 0:  # 초기화
-        #             temp_label = y[CLASSIFY_DETECT_TYPES[k][drum_idx]]
-        #         else:
-        #             for frame_idx, frame_value in enumerate(y[origin_key]):
-        #                 temp_label[frame_idx] = frame_value
-        #     l[k] = temp_label
-        # label_df = FeatureExtractor._make_label_dataframe(METHOD_DETECT, l)
-        # y = label_df.to_numpy()
-        # CC열과 OH열을 합치고 싶은 경우
         col1 = DRUM2CODE["CC"]
         col2 = DRUM2CODE["OH"]
         result = merge_columns(y, col1, col2)

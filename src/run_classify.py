@@ -6,6 +6,7 @@ from data.data_labeling import DataLabeling
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
 from constant import (
+    NEW_PATH,
     ROOT_PATH,
     RAW_PATH,
     IDMT,
@@ -69,15 +70,18 @@ from constant import (
 feature_path = f"{ROOT_PATH}/{RAW_PATH}"
 # # # midi_path = "../data/raw/e-gmd-v1.0.0/drummer1/session2/8_jazz-march_176_beat_4-4.mid"
 # # # OnsetDetect.get_onsets_instrument_from_mid(midi_path, end=5)
-# predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
+predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
 # # predict_test_data = f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}/per-drum/HH/16/HH_16_0001.m4a"
-predict_test_data = (
-    "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4_44.wav"
-)
-# # predict_test_data = "../data/test/ddm_test_항해.m4a"
+# predict_test_data = (
+#     "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4_44.wav"
+# )
+# predict_test_data = (
+#     f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/drummer1/session3/8_rock_135_beat_4-4.wav"
+# )
+# predict_test_data = "../data/test/항해_솔로_일부분.wav"
 segment_classify = SegmentClassifyModel()
 # segment_classify.extract_feature(feature_path)
-# segment_classify.run()
+segment_classify.run()
 print(segment_classify.predict(predict_test_data, 100, 0))
 
 # -------------------

@@ -334,6 +334,8 @@ class FeatureExtractor:
                         temp_label = label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
                     else:
                         for frame_idx, frame_value in enumerate(label[origin_key]):
+                            if temp_label[frame_idx] == 1.0 or frame_value == 0.0:
+                                continue
                             temp_label[frame_idx] = frame_value
                 l[k] = temp_label
 

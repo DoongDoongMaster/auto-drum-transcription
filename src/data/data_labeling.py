@@ -228,7 +228,7 @@ class DataLabeling:
         if end is None:  # end가 none이라면 y_true 끝까지
             end = len(label[list(label.keys())[0]])  # 첫 번째 value의 길이
 
-        leng = len(label.keys())
+        leng = len(DRUM2CODE)
         for key, label_arr in label.items():
             data = np.array(label_arr)
             plt.subplot(leng, 1, DRUM2CODE[key] + 1)
@@ -259,7 +259,7 @@ class DataLabeling:
         }
         """
         if end is None:  # end가 none이라면 y_true 끝까지
-            end = len(y_true[y_true[list(y_true.keys())[0]]])  # 첫 번째 value의 길이
+            end = len(y_true[list(y_true.keys())[0]])  # 첫 번째 value의 길이
 
         leng = len(DRUM2CODE) * 2
         for key, label_arr in y_true.items():

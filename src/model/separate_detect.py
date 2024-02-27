@@ -93,10 +93,12 @@ class SeparateDetectModel(BaseModel):
         del feature_df
 
         # ------------------------------------------------------------------
-        # y: CC, OH 합치기
-        col1 = DRUM2CODE["CC"]
-        col2 = DRUM2CODE["OH"]
+        # y: 0 CC, 1 OH, 2 CH 합치기
+        col2 = DRUM2CODE["CH"]
+        col1 = DRUM2CODE["OH"]
+        col0 = DRUM2CODE["CC"]
         result = merge_columns(y, col1, col2)
+        result = merge_columns(result, col0, col1)
         y = result
         del result
 
@@ -231,13 +233,23 @@ class SeparateDetectModel(BaseModel):
         class_6_true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
-        # keys_to_extract = ["CC", "OH"]
-        # selected_values = [class_6_true_label[key] for key in keys_to_extract]
-        # cc_oh_label = np.vstack(selected_values).T
-        # merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
-        # class_6_true_label.pop("CC", None)
-        # class_6_true_label["OH"] = merged_cc_oh
-        true_label = class_6_true_label  # -- class 5
+        # -- OH - CH
+        keys_to_extract = ["OH", "CH"]
+        selected_values = [class_6_true_label[key] for key in keys_to_extract]
+        oh_ch_label = np.vstack(selected_values).T
+        merged_cc_oh = merge_columns(oh_ch_label, 1, 2)
+        class_6_true_label.pop("CH", None)
+        class_6_true_label["OH"] = merged_cc_oh
+        class_5_true_label = class_6_true_label  # -- class 5
+        # -- CC - OH
+        keys_to_extract = ["CC", "OH"]
+        selected_values = [class_5_true_label[key] for key in keys_to_extract]
+        cc_oh_label = np.vstack(selected_values).T
+        merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
+        class_5_true_label.pop("CC", None)
+        class_5_true_label["OH"] = merged_cc_oh
+
+        true_label = class_5_true_label  # -- class 5
 
         DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 

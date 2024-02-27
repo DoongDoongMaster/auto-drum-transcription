@@ -220,10 +220,13 @@ for drum_type, values in DRUM_TYPES.items():
 -- classify 방법에서의 분류 라벨
 """
 CLASSIFY_DETECT_TYPES = {
-    "OH": ["CC", "OH", "CH"],
-    # : [
-    #     "CH",
-    # ],
+    "OH": [
+        "CC",
+        "OH",
+    ],
+    "CH": [
+        "CH",
+    ],
     "TT": [
         "TT",
     ],
@@ -254,6 +257,31 @@ CLASSIFY_DRUM2CODE = {v: k for k, v in CLASSIFY_CODE2DRUM.items()}
 """
 CLASSIFY_IMPOSSIBLE_LABEL = {14, 15, 22, 23, 26, 27, 28, 29, 30, 31}
 
+
+"""
+-- detect 방법에서의 분류 라벨
+"""
+DETECT_TYPES = {
+    "OH": ["CC", "OH", "CH"],
+    "TT": [
+        "TT",
+    ],
+    "SD": [
+        "SD",
+    ],
+    "KK": [
+        "KK",
+    ],
+}
+DETECT_MAP = {}
+for drum_type, values in DETECT_TYPES.items():
+    for value in values:
+        DETECT_MAP[value] = drum_type
+"""
+-- {0: "OH", 1: "TT", ...}
+"""
+DETECT_CODE2DRUM = {i: k for i, k in enumerate(DETECT_TYPES.keys())}
+# ------------------------------------------------------------------------------------
 
 """
 -- feature type
@@ -305,7 +333,7 @@ FEATURE_PARAM = {
             "n_mels": 128,  # -- number of mel bands
             "fmin": 27.5,
             "fmax": 16000,
-            "n_classes": len(CLASSIFY_CODE2DRUM),
+            "n_classes": len(DETECT_CODE2DRUM),
         },
     },
     METHOD_RHYTHM: {

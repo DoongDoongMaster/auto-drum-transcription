@@ -22,9 +22,7 @@ from constant import (
     MEL_SPECTROGRAM,
     MILLISECOND,
     SAMPLE_RATE,
-    CODE2DRUM,
-    CLASSIFY_DETECT_TYPES,
-    CLASSIFY_CODE2DRUM,
+    DETECT_CODE2DRUM,
 )
 
 
@@ -226,30 +224,32 @@ class SeparateDetectModel(BaseModel):
         predict_data = predict_data.reshape((-1, self.n_classes))
         # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
         result_dict = {}
-        for code, drum in CODE2DRUM.items():
+        for code, drum in DETECT_CODE2DRUM.items():
             result_dict[drum] = [row[code] for row in predict_data]
 
         # -- 실제 label (merge cc into oh)
         class_6_true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
+
         # -- OH - CH
         keys_to_extract = ["OH", "CH"]
         selected_values = [class_6_true_label[key] for key in keys_to_extract]
         oh_ch_label = np.vstack(selected_values).T
-        merged_cc_oh = merge_columns(oh_ch_label, 1, 2)
+        merged_cc_oh = merge_columns(oh_ch_label, 0, 1)
         class_6_true_label.pop("CH", None)
-        class_6_true_label["OH"] = merged_cc_oh
+        class_6_true_label["OH"] = merged_cc_oh.flatten()
         class_5_true_label = class_6_true_label  # -- class 5
         # -- CC - OH
-        keys_to_extract = ["CC", "OH"]
-        selected_values = [class_5_true_label[key] for key in keys_to_extract]
-        cc_oh_label = np.vstack(selected_values).T
+        keys_to_extract_s = ["CC", "OH"]
+        selected_values_s = [class_5_true_label[key] for key in keys_to_extract_s]
+        cc_oh_label = np.vstack(selected_values_s).T
         merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
         class_5_true_label.pop("CC", None)
         class_5_true_label["OH"] = merged_cc_oh
+        class_4_true_label = class_5_true_label  # -- class 4
 
-        true_label = class_5_true_label  # -- class 5
+        true_label = class_4_true_label
 
         DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 

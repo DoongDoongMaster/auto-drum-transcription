@@ -191,17 +191,17 @@ class SegmentClassifyModel(BaseModel):
         # x_train_final = self.x_data_1d_reshape(x_train_final)
         # scaler = StandardScaler()
         # x_train_final = scaler.fit_transform(x_train_final)
-        # x_train_final = self.input_reshape(x_train_final)
+        x_train_final = self.input_reshape(x_train_final)
 
         # x_val_final = self.x_data_1d_reshape(x_val_final)
         # scaler = StandardScaler()
         # x_val_final = scaler.fit_transform(x_val_final)
-        # x_val_final = self.input_reshape(x_val_final)
+        x_val_final = self.input_reshape(x_val_final)
 
         # x_test = self.x_data_1d_reshape(x_test)
         # scaler = StandardScaler()
         # x_test = scaler.fit_transform(x_test)
-        # x_test = self.input_reshape(x_test)
+        x_test = self.input_reshape(x_test)
 
         # input shape 조정
         self.x_train = x_train_final

@@ -70,7 +70,8 @@ CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
 -- per_drum : CC_04_9949.wav
 -- pattern : P1_08_0001.wav
 """
-CODE2DRUM = {0: "CC", 1: "OH", 2: "CH", 3: "TT", 4: "SD", 5: "KK"}
+# CODE2DRUM = {0: "CC", 1: "OH", 2: "CH", 3: "TT", 4: "SD", 5: "KK"}
+CODE2DRUM = {0: "HH", 1: "ST", 2: "SD", 3: "KK"}
 # -- {'CC':0, 'OH':1, ...}
 DRUM2CODE = {v: k for k, v in CODE2DRUM.items()}
 # -- {'CC':[1,0,0,0,0,0], 'OH':[0,1,0,0,0,0], ...}
@@ -81,7 +82,7 @@ for code, index in DRUM2CODE.items():
     ONEHOT_DRUM2CODE[code] = drum_mapping
 
 PATTERN = {
-    "CH": ONEHOT_DRUM2CODE["CH"],
+    # "CH": ONEHOT_DRUM2CODE["CH"],
     "SD": ONEHOT_DRUM2CODE["SD"],
     "CH_KK": [0, 0, 1, 0, 0, 1],
     "CH_SD": [0, 0, 1, 0, 1, 0],
@@ -89,28 +90,11 @@ PATTERN = {
 
 P_HH_KK = PATTERN["CH_KK"]
 P_SD = PATTERN["SD"]
-P_HH = PATTERN["CH"]
+# P_HH = PATTERN["CH"]
 P_HH_SD = PATTERN["CH_SD"]
 
-P1_2CODE = [P_HH_KK, P_HH, P_HH_SD, P_HH, P_HH_KK, P_HH_KK, P_HH_SD, P_HH]
-P2_2CODE = [
-    P_HH_KK,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_SD,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_HH_KK,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_SD,
-    P_HH,
-    P_HH,
-    P_HH,
-]
+P1_2CODE = []
+P2_2CODE = []
 PATTERN2CODE = {"P1": P1_2CODE, "P2": P2_2CODE}
 
 
@@ -164,7 +148,7 @@ DRUM_TYPES에 추가하기
 => DRUM_MAP을 접근해서 사용 {"sd": "SD", "mt": "TT", "bd": "KK", "chh": "CH", "ohh": "OH"}
 """
 DRUM_TYPES = {
-    "CC": [
+    "HH": [
         49,  # crash cymbal 1
         57,  # crash cymbal 2
         52,  # china cymbal
@@ -172,18 +156,18 @@ DRUM_TYPES = {
         51,  # ride cymbal
         59,  # ride cymbal 2
         "CC",  # crash (ddm-own)
-    ],  # crash
-    "OH": [
         "ohh",
         46,  # hi-hat open
         "overheads",  # drum kit data
-    ],  # hi-hat open
-    "CH": [
         "chh",
         42,  # hi-hat cloased
         "HH",  # closed hi-hat (ddm-own)
-    ],  # hi-hat closed
-    "TT": [
+    ],  # crash
+    # "OH": [
+    # ],  # hi-hat open
+    # "CH": [
+    # ],  # hi-hat closed
+    "ST": [
         "mt",
         45,  # mid tom
         47,  # mid tom

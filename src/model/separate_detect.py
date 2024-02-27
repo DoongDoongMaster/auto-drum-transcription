@@ -224,22 +224,22 @@ class SeparateDetectModel(BaseModel):
         predict_data = predict_data.reshape((-1, self.n_classes))
         # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
         result_dict = {}
-        for code, drum in CLASSIFY_CODE2DRUM.items():
+        for code, drum in CODE2DRUM.items():
             result_dict[drum] = [row[code] for row in predict_data]
 
         # -- 실제 label (merge cc into oh)
         class_6_true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
-        keys_to_extract = ["CC", "OH"]
-        selected_values = [class_6_true_label[key] for key in keys_to_extract]
-        cc_oh_label = np.vstack(selected_values).T
-        merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
-        class_6_true_label.pop("CC", None)
-        class_6_true_label["OH"] = merged_cc_oh
+        # keys_to_extract = ["CC", "OH"]
+        # selected_values = [class_6_true_label[key] for key in keys_to_extract]
+        # cc_oh_label = np.vstack(selected_values).T
+        # merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
+        # class_6_true_label.pop("CC", None)
+        # class_6_true_label["OH"] = merged_cc_oh
         true_label = class_6_true_label  # -- class 5
 
-        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 1200, 2400)
+        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 
         # # -- get onsets
         # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)

@@ -143,7 +143,31 @@ DATA_ENST = (
     "hits_pedal-hi-hat-open_pedal",
     "sticks",
 )
-DATA_ENST_NOT = ("accompaniment",)  # ENST dataset에서 제외할 데이터
+DATA_ENST_NOT = (
+    "accompaniment",
+    "cowbell",
+    "brushes",
+    "no-snare",
+    "mallets",
+    "cross-sticks",
+    "phrase_reggae",
+    "salsa",
+    "096_solo_latin_hands",
+    "113_minus-one_charleston_sticks",
+    # -- drummer2
+    "108_solo_toms_sticks",
+    "134_MIDI-minus-one_country-120_sticks",
+    "144_MIDI-minus-one_rock-113_sticks",
+    "150_MIDI-minus-one_soul-98_sticks",
+    # -- drummer3
+    "090_phrase_shuffle-blues_complex_fast_sticks",
+    "114_phrase_oriental_complex_fast_sticks",
+    "115_phrase_cha-cha_simple_slow_sticks",
+    "116_phrase_cha-cha_complex_slow_sticks",
+    "134_minus-one_bossa_sticks",
+    "140_MIDI-minus-one_bigband_sticks",
+    "160_MIDI-minus-one_soul-98_sticks",
+)  # ENST dataset에서 제외할 데이터
 DATA_DDM_OWN = (
     "per-drum/CC",
     "per-drum/HH",
@@ -172,6 +196,17 @@ DRUM_TYPES = {
         51,  # ride cymbal
         59,  # ride cymbal 2
         "CC",  # crash (ddm-own)
+        "c1",  # crash cymbal 1 (enst/drummer1,2)
+        "cr1",  # crash cymbal 1 (enst/drummer2)
+        "cr2",  # crash cymbal 1 (enst/drummer3)
+        "cr5",  # crash cymbal 2 (enst/drummer3)
+        "rc3",  # ride cymbal 1 (enst/drummer2)
+        "rc2",  # ride cymbal 2 (enst/drummer1)
+        "rc4",  # ride cymbal 2 (enst/drummer2)
+        "c4",  # ride cymbal 2 (enst/drummer3)
+        "ch5",  # china ride cymbal (enst/drummer2)
+        "ch1",  # china ride cymbal (enst/drummer3)
+        "spl2",  # splash cymbal (enst/drummer2)
     ],  # crash
     "OH": [
         "ohh",
@@ -190,6 +225,9 @@ DRUM_TYPES = {
         48,  # high-mid tom
         50,  # high tom
         "toms",  # tom (drum kit data)
+        "lmt",  # mid-tom-2 (enst/drummer3)
+        "lt",  # low-tom (enst)
+        "lft",  # low-tom-2 (enst/drummer3)
     ],  # tom
     "SD": [
         "sd",

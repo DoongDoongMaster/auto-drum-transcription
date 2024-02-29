@@ -11,6 +11,7 @@ from data.onset_detection import OnsetDetect
 
 from constant import (
     DATA_ENST_NOT,
+    DATA_E_GMD_NOT,
     PATTERN_DIR,
     PER_DRUM_DIR,
     PATTERN2CODE,
@@ -82,6 +83,9 @@ class DataLabeling:
             return False
         # ENST: accompaniment 들어가면 x
         if ENST in path and any(p in path for p in DATA_ENST_NOT):
+            return False
+        # E-GMD
+        if E_GMD in path and any(p in path for p in DATA_E_GMD_NOT):
             return False
         return True
 

@@ -19,7 +19,7 @@ PROCESSED_FEATURE = "processed-feature"
 """
 DDM_OWN = "ddm-own-v2"
 IDMT = "IDMT-SMT-DRUMS-V2"
-ENST = "ENST-drums-public"
+ENST = "ENST-drums-public-clean"
 E_GMD = "e-gmd-v1.0.0"
 DRUM_KIT = "drum-kit-sound"
 
@@ -135,13 +135,13 @@ DATA_IDMT_NOT = (
     "TechnoDrum",
 )
 DATA_ENST = (
-    "hits_snare-drum_sticks",
-    "hits_snare-drum_mallets",
-    "hits_medium-tom_sticks",
-    "hits_bass-drum_pedal",
-    "hits_pedal-hi-hat-close_pedal",
-    "hits_pedal-hi-hat-open_pedal",
-    "sticks",
+    # "hits_snare-drum_sticks",
+    # "hits_snare-drum_mallets",
+    # "hits_medium-tom_sticks",
+    # "hits_bass-drum_pedal",
+    # "hits_pedal-hi-hat-close_pedal",
+    # "hits_pedal-hi-hat-open_pedal",
+    # "sticks",
 )
 DATA_ENST_NOT = (
     "accompaniment",
@@ -153,14 +153,20 @@ DATA_ENST_NOT = (
     "phrase_reggae",
     "salsa",
     "096_solo_latin_hands",
+    "108_minus-one_rock-60s_sticks",
     "113_minus-one_charleston_sticks",
     # -- drummer2
     "108_solo_toms_sticks",
+    "121_minus-one_charleston_sticks",
     "134_MIDI-minus-one_country-120_sticks",
     "144_MIDI-minus-one_rock-113_sticks",
     "150_MIDI-minus-one_soul-98_sticks",
+    "124_minus-one_bossa_sticks",
     # -- drummer3
+    "067_phrase_afro_simple_slow_sticks",
+    "068_phrase_afro_simple_medium_sticks",
     "090_phrase_shuffle-blues_complex_fast_sticks",
+    "111_phrase_oriental_simple_fast_sticks",
     "114_phrase_oriental_complex_fast_sticks",
     "115_phrase_cha-cha_simple_slow_sticks",
     "116_phrase_cha-cha_complex_slow_sticks",
@@ -177,8 +183,14 @@ DATA_DDM_OWN = (
     "pattern/P1",
     "pattern/P2",
 )
+DATA_E_GMD_NOT = (
+    "5_rock_180_beat_4-4",
+    "7_jazz-swing_215_beat_4-4",
+    "8_jazz-swing_215_beat_4-4",
+    "9_jazz-swing_110_beat_4-4",
+)
 
-DATA_ALL = DATA_IDMT + DATA_ENST + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,)
+DATA_ALL = DATA_IDMT + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,) + (ENST,)
 
 # -------------------------------------------------------------------------------------
 """

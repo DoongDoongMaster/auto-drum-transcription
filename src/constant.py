@@ -149,6 +149,7 @@ DATA_ENST_NOT = (
     "brushes",
     "no-snare",
     "mallets",
+    "rods",
     "cross-sticks",
     "phrase_reggae",
     "salsa",

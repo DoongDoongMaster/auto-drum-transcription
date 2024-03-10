@@ -134,15 +134,6 @@ DATA_IDMT_NOT = (
     "train",
     "TechnoDrum",
 )
-DATA_ENST = (
-    # "hits_snare-drum_sticks",
-    # "hits_snare-drum_mallets",
-    # "hits_medium-tom_sticks",
-    # "hits_bass-drum_pedal",
-    # "hits_pedal-hi-hat-close_pedal",
-    # "hits_pedal-hi-hat-open_pedal",
-    # "sticks",
-)
 DATA_ENST_NOT = (
     "accompaniment",
     "cowbell",
@@ -184,12 +175,7 @@ DATA_DDM_OWN = (
     "pattern/P1",
     "pattern/P2",
 )
-DATA_E_GMD_NOT = (
-    "5_rock_180_beat_4-4",
-    "7_jazz-swing_215_beat_4-4",
-    "8_jazz-swing_215_beat_4-4",
-    "9_jazz-swing_110_beat_4-4",
-)
+DATA_E_GMD_NOT = ("drummer1/session2/66_punk_144_fill_4-4",)  ## 싱크 안 맞는 느낌
 
 DATA_ALL = DATA_IDMT + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,) + (ENST,)
 
@@ -202,6 +188,11 @@ DRUM_TYPES에 추가하기
 """
 DRUM_TYPES = {
     "CC": [
+        27,  # -- china 1
+        28,  # -- cymbal 1
+        30,  # -- cymbal 3
+        31,  # -- cymbal 4
+        32,  # -- cymbal 5
         49,  # crash cymbal 1
         57,  # crash cymbal 2
         52,  # china cymbal
@@ -222,21 +213,30 @@ DRUM_TYPES = {
         "spl2",  # splash cymbal (enst/drummer2)
     ],  # crash
     "OH": [
+        23,  # -- open pedal
+        24,  # -- open 1
+        25,  # -- open 2
+        26,  # -- open 3
         "ohh",
         46,  # hi-hat open
         "overheads",  # drum kit data
     ],  # hi-hat open
     "CH": [
+        21,  # -- closed pedal
+        22,  # -- closed Edge
         "chh",
         42,  # hi-hat cloased
         "HH",  # closed hi-hat (ddm-own)
     ],  # hi-hat closed
     "TT": [
         "mt",
+        41,  # -- low tom 2
+        43,  # -- low tom 1
         45,  # mid tom
         47,  # mid tom
         48,  # high-mid tom
         50,  # high tom
+        58,  # -- vibra slap
         "toms",  # tom (drum kit data)
         "lmt",  # mid-tom-2 (enst/drummer3)
         "lt",  # low-tom (enst)

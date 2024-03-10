@@ -134,15 +134,6 @@ DATA_IDMT_NOT = (
     "train",
     "TechnoDrum",
 )
-DATA_ENST = (
-    # "hits_snare-drum_sticks",
-    # "hits_snare-drum_mallets",
-    # "hits_medium-tom_sticks",
-    # "hits_bass-drum_pedal",
-    # "hits_pedal-hi-hat-close_pedal",
-    # "hits_pedal-hi-hat-open_pedal",
-    # "sticks",
-)
 DATA_ENST_NOT = (
     "accompaniment",
     "cowbell",

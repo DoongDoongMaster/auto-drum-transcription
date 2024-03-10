@@ -19,7 +19,7 @@ PROCESSED_FEATURE = "processed-feature"
 """
 DDM_OWN = "ddm-own-v2"
 IDMT = "IDMT-SMT-DRUMS-V2"
-ENST = "ENST-drums-public"
+ENST = "ENST-drums-public-clean"
 E_GMD = "e-gmd-v1.0.0"
 DRUM_KIT = "drum-kit-sound"
 
@@ -135,15 +135,46 @@ DATA_IDMT_NOT = (
     "TechnoDrum",
 )
 DATA_ENST = (
-    "hits_snare-drum_sticks",
-    "hits_snare-drum_mallets",
-    "hits_medium-tom_sticks",
-    "hits_bass-drum_pedal",
-    "hits_pedal-hi-hat-close_pedal",
-    "hits_pedal-hi-hat-open_pedal",
-    "sticks",
+    # "hits_snare-drum_sticks",
+    # "hits_snare-drum_mallets",
+    # "hits_medium-tom_sticks",
+    # "hits_bass-drum_pedal",
+    # "hits_pedal-hi-hat-close_pedal",
+    # "hits_pedal-hi-hat-open_pedal",
+    # "sticks",
 )
-DATA_ENST_NOT = ("accompaniment",)  # ENST dataset에서 제외할 데이터
+DATA_ENST_NOT = (
+    "accompaniment",
+    "cowbell",
+    "brushes",
+    "no-snare",
+    "mallets",
+    "rods",
+    "cross-sticks",
+    "phrase_reggae",
+    "salsa",
+    "096_solo_latin_hands",
+    "108_minus-one_rock-60s_sticks",
+    "113_minus-one_charleston_sticks",
+    # -- drummer2
+    "108_solo_toms_sticks",
+    "121_minus-one_charleston_sticks",
+    "134_MIDI-minus-one_country-120_sticks",
+    "144_MIDI-minus-one_rock-113_sticks",
+    "150_MIDI-minus-one_soul-98_sticks",
+    "124_minus-one_bossa_sticks",
+    # -- drummer3
+    "067_phrase_afro_simple_slow_sticks",
+    "068_phrase_afro_simple_medium_sticks",
+    "090_phrase_shuffle-blues_complex_fast_sticks",
+    "111_phrase_oriental_simple_fast_sticks",
+    "114_phrase_oriental_complex_fast_sticks",
+    "115_phrase_cha-cha_simple_slow_sticks",
+    "116_phrase_cha-cha_complex_slow_sticks",
+    "134_minus-one_bossa_sticks",
+    "140_MIDI-minus-one_bigband_sticks",
+    "160_MIDI-minus-one_soul-98_sticks",
+)  # ENST dataset에서 제외할 데이터
 DATA_DDM_OWN = (
     "per-drum/CC",
     "per-drum/HH",
@@ -153,8 +184,14 @@ DATA_DDM_OWN = (
     "pattern/P1",
     "pattern/P2",
 )
+DATA_E_GMD_NOT = (
+    "5_rock_180_beat_4-4",
+    "7_jazz-swing_215_beat_4-4",
+    "8_jazz-swing_215_beat_4-4",
+    "9_jazz-swing_110_beat_4-4",
+)
 
-DATA_ALL = DATA_IDMT + DATA_ENST + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,)
+DATA_ALL = DATA_IDMT + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,) + (ENST,)
 
 # -------------------------------------------------------------------------------------
 """
@@ -172,6 +209,17 @@ DRUM_TYPES = {
         51,  # ride cymbal
         59,  # ride cymbal 2
         "CC",  # crash (ddm-own)
+        "c1",  # crash cymbal 1 (enst/drummer1,2)
+        "cr1",  # crash cymbal 1 (enst/drummer2)
+        "cr2",  # crash cymbal 1 (enst/drummer3)
+        "cr5",  # crash cymbal 2 (enst/drummer3)
+        "rc3",  # ride cymbal 1 (enst/drummer2)
+        "rc2",  # ride cymbal 2 (enst/drummer1)
+        "rc4",  # ride cymbal 2 (enst/drummer2)
+        "c4",  # ride cymbal 2 (enst/drummer3)
+        "ch5",  # china ride cymbal (enst/drummer2)
+        "ch1",  # china ride cymbal (enst/drummer3)
+        "spl2",  # splash cymbal (enst/drummer2)
     ],  # crash
     "OH": [
         "ohh",
@@ -190,6 +238,9 @@ DRUM_TYPES = {
         48,  # high-mid tom
         50,  # high tom
         "toms",  # tom (drum kit data)
+        "lmt",  # mid-tom-2 (enst/drummer3)
+        "lt",  # low-tom (enst)
+        "lft",  # low-tom-2 (enst/drummer3)
     ],  # tom
     "SD": [
         "sd",
@@ -259,6 +310,31 @@ CLASSIFY_IMPOSSIBLE_LABEL = {14, 15, 22, 23, 26, 27, 28, 29, 30, 31}
 
 
 """
+-- detect 방법에서의 분류 라벨
+"""
+DETECT_TYPES = {
+    "OH": ["CC", "OH", "CH"],
+    "TT": [
+        "TT",
+    ],
+    "SD": [
+        "SD",
+    ],
+    "KK": [
+        "KK",
+    ],
+}
+DETECT_MAP = {}
+for drum_type, values in DETECT_TYPES.items():
+    for value in values:
+        DETECT_MAP[value] = drum_type
+"""
+-- {0: "OH", 1: "TT", ...}
+"""
+DETECT_CODE2DRUM = {i: k for i, k in enumerate(DETECT_TYPES.keys())}
+# ------------------------------------------------------------------------------------
+
+"""
 -- feature type
 """
 MFCC = "mfcc"
@@ -308,6 +384,7 @@ FEATURE_PARAM = {
             "n_mels": 128,  # -- number of mel bands
             "fmin": 27.5,
             "fmax": 16000,
+            "n_classes": len(DETECT_CODE2DRUM),
         },
     },
     METHOD_RHYTHM: {

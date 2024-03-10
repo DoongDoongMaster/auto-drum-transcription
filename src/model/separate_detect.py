@@ -1,28 +1,50 @@
-from sklearn.model_selection import train_test_split
-import tensorflow as tf
-import numpy as np
 from typing import List
+import numpy as np
 
-from keras.models import Model
-from tensorflow.keras.layers import Dense, LSTM, Conv1D, Input
-from tensorflow.keras.optimizers import Adam
-import keras.backend as K
-from data.data_labeling import DataLabeling
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from feature.feature_extractor import FeatureExtractor
+from keras.models import Model
 
-from model.base_model import BaseModel
+import tensorflow as tf
+from tensorflow.keras.layers import Dense, LSTM, Conv1D, Input
+from tensorflow.keras.optimizers import RMSprop
+
+from feature.feature_extractor import FeatureExtractor
+from feature.audio_to_feature import AudioToFeature
 from data.rhythm_detection import RhythmDetection
 from data.data_processing import DataProcessing
-from feature.audio_to_feature import AudioToFeature
+from data.data_labeling import DataLabeling
+from model.base_model import BaseModel
 from constant import (
     CHUNK_TIME_LENGTH,
+    DRUM2CODE,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
     MILLISECOND,
     SAMPLE_RATE,
-    CODE2DRUM,
+    DETECT_CODE2DRUM,
 )
+
+
+def merge_columns(arr, col1, col2):
+    # merge col2 into col1
+    # -- 둘 중 하나라도 1이면 1
+    # -- else, 둘 중 하나라도 0.5이면 0.5
+    # -- else, 0
+    merged_column = np.zeros(arr.shape[0])
+    for i in range(arr.shape[0]):
+        if 1 in arr[i, [col1, col2]]:
+            merged_column[i] = 1
+        elif 0.5 in arr[i, [col1, col2]]:
+            merged_column[i] = 0.5
+        else:
+            merged_column[i] = 0
+
+    # merge한 배열 col1 자리에 끼워넣기
+    result = np.delete(arr, [col1, col2], axis=1)
+    result = np.insert(result, col1, merged_column, axis=1)
+
+    return result
 
 
 class SeparateDetectModel(BaseModel):
@@ -68,6 +90,17 @@ class SeparateDetectModel(BaseModel):
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
+        # ------------------------------------------------------------------
+        # y: 0 CC, 1 OH, 2 CH 합치기
+        col2 = DRUM2CODE["CH"]
+        col1 = DRUM2CODE["OH"]
+        col0 = DRUM2CODE["CC"]
+        result = merge_columns(y, col1, col2)
+        result = merge_columns(result, col0, col1)
+        y = result
+        del result
+
+        # ------------------------------------------------------------------
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
         X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
@@ -120,10 +153,9 @@ class SeparateDetectModel(BaseModel):
         output_layer = Dense(self.n_classes, activation="sigmoid")(lstm3)
         self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
-        # compile the self.model
-        opt = Adam(learning_rate=self.opt_learning_rate)
+        opt = RMSprop(learning_rate=self.opt_learning_rate)
         self.model.compile(
-            loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
+            loss="binary_crossentropy", optimizer=opt, metrics=["binary_accuracy"]
         )
 
     """
@@ -185,20 +217,39 @@ class SeparateDetectModel(BaseModel):
         audio_feature = scaler.fit_transform(audio_feature)
 
         # -- input (#, time, 128 feature)
-        audio_feature = BaseModel.split_data(audio_feature, CHUNK_TIME_LENGTH)
+        audio_feature = BaseModel.split_x_data(audio_feature, CHUNK_TIME_LENGTH)
 
         # -- predict 결과 -- (#, time, 4 feature)
         predict_data = self.model.predict(audio_feature)
         predict_data = predict_data.reshape((-1, self.n_classes))
         # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
         result_dict = {}
-        for code, drum in CODE2DRUM.items():
+        for code, drum in DETECT_CODE2DRUM.items():
             result_dict[drum] = [row[code] for row in predict_data]
 
-        # -- 실제 label
-        true_label = DataLabeling.data_labeling(
+        # -- 실제 label (merge cc into oh)
+        class_6_true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
+
+        # -- OH - CH
+        keys_to_extract = ["OH", "CH"]
+        selected_values = [class_6_true_label[key] for key in keys_to_extract]
+        oh_ch_label = np.vstack(selected_values).T
+        merged_cc_oh = merge_columns(oh_ch_label, 0, 1)
+        class_6_true_label.pop("CH", None)
+        class_6_true_label["OH"] = merged_cc_oh.flatten()
+        class_5_true_label = class_6_true_label  # -- class 5
+        # -- CC - OH
+        keys_to_extract_s = ["CC", "OH"]
+        selected_values_s = [class_5_true_label[key] for key in keys_to_extract_s]
+        cc_oh_label = np.vstack(selected_values_s).T
+        merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
+        class_5_true_label.pop("CC", None)
+        class_5_true_label["OH"] = merged_cc_oh
+        class_4_true_label = class_5_true_label  # -- class 4
+
+        true_label = class_4_true_label
 
         DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 

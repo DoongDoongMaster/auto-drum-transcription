@@ -144,27 +144,27 @@ DATA_ENST_NOT = (
     "cross-sticks",
     "phrase_reggae",
     "salsa",
-    "096_solo_latin_hands",
-    "108_minus-one_rock-60s_sticks",
-    "113_minus-one_charleston_sticks",
+    # -- drummer1
+    "096_solo_latin_hands",  # sd- (no-snare)
+    "108_minus-one_rock-60s_sticks",  # cb (cow bell)
     # -- drummer2
-    "108_solo_toms_sticks",
-    "121_minus-one_charleston_sticks",
-    "134_MIDI-minus-one_country-120_sticks",
-    "144_MIDI-minus-one_rock-113_sticks",
-    "150_MIDI-minus-one_soul-98_sticks",
-    "124_minus-one_bossa_sticks",
+    "108_solo_toms_sticks",  # sd-
+    "121_minus-one_charleston_sticks",  # cs (cross sticks)
+    "124_minus-one_bossa_sticks",  # cs
+    "134_MIDI-minus-one_country-120_sticks",  # cs
+    "144_MIDI-minus-one_rock-113_sticks",  # cs
+    "150_MIDI-minus-one_soul-98_sticks",  # cs
     # -- drummer3
-    "067_phrase_afro_simple_slow_sticks",
-    "068_phrase_afro_simple_medium_sticks",
-    "090_phrase_shuffle-blues_complex_fast_sticks",
-    "111_phrase_oriental_simple_fast_sticks",
-    "114_phrase_oriental_complex_fast_sticks",
-    "115_phrase_cha-cha_simple_slow_sticks",
-    "116_phrase_cha-cha_complex_slow_sticks",
-    "134_minus-one_bossa_sticks",
-    "140_MIDI-minus-one_bigband_sticks",
-    "160_MIDI-minus-one_soul-98_sticks",
+    "067_phrase_afro_simple_slow_sticks",  # cs
+    "068_phrase_afro_simple_medium_sticks",  # cs
+    "090_phrase_shuffle-blues_complex_fast_sticks",  # sticks
+    "111_phrase_oriental_simple_fast_sticks",  # cs
+    "114_phrase_oriental_complex_fast_sticks",  # cs
+    "115_phrase_cha-cha_simple_slow_sticks",  # cs
+    "116_phrase_cha-cha_complex_slow_sticks",  # cb
+    "134_minus-one_bossa_sticks",  # cs
+    "140_MIDI-minus-one_bigband_sticks",  # cs
+    "160_MIDI-minus-one_soul-98_sticks",  # cs
 )  # ENST dataset에서 제외할 데이터
 DATA_DDM_OWN = (
     "per-drum/CC",
@@ -240,6 +240,7 @@ DRUM_TYPES = {
         50,  # high tom
         58,  # -- vibra slap
         "toms",  # tom (drum kit data)
+        "ltr",  # low-tom, hit on the rim (enst/drummer1)
         "lmt",  # mid-tom-2 (enst/drummer3)
         "lt",  # low-tom (enst)
         "lft",  # low-tom-2 (enst/drummer3)
@@ -251,6 +252,7 @@ DRUM_TYPES = {
         40,  # electric snare drum
         "snare",  # snare drum (drum kit data)
         "SD",  # snare (ddm-own)
+        "rs",  # rim shot
     ],  # snare
     "KK": [
         "bd",

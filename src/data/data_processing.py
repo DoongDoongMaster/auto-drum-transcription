@@ -121,7 +121,7 @@ class DataProcessing:
             end_duration = min(
                 onsets[i]["duration"] + ONSET_DURATION_LEFT, ONSET_DURATION_RIGHT
             )
-            end = int((onsets[i]["onset"] + end_duration) * SAMPLE_RATE)
+            end = int(float(onsets[i]["onset"] + end_duration) * SAMPLE_RATE)
 
             trimmed = audio[start:end]
             trimmed_audios.append(trimmed)

@@ -273,7 +273,7 @@ class FeatureExtractor:
             if idx < len(onsets):
                 duration = onsets[idx]["onset"] - curr_onset
 
-            if duration < 0.16:  # 너무 짧게 잘린 데이터 버리기
+            if duration < 0.05:  # 너무 짧게 잘린 데이터 버리기
                 continue
 
             label = {v: [0] for _, v in CLASSIFY_CODE2DRUM.items()}

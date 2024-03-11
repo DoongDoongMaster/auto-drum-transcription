@@ -244,6 +244,7 @@ DRUM_TYPES = {
     ],  # tom
     "SD": [
         "sd",
+        37,  # rimshot
         38,  # snare drum
         40,  # electric snare drum
         "snare",  # snare drum (drum kit data)

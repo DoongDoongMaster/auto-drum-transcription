@@ -199,6 +199,7 @@ DRUM_TYPES = {
         55,  # splash cymbal
         51,  # ride cymbal
         59,  # ride cymbal 2
+        53,  # ride bell
         "CC",  # crash (ddm-own)
         "c1",  # crash cymbal 1 (enst/drummer1,2)
         "cr1",  # crash cymbal 1 (enst/drummer2)
@@ -226,6 +227,7 @@ DRUM_TYPES = {
         22,  # -- closed Edge
         "chh",
         42,  # hi-hat cloased
+        44,  # hi-hat pedal
         "HH",  # closed hi-hat (ddm-own)
     ],  # hi-hat closed
     "TT": [
@@ -244,6 +246,7 @@ DRUM_TYPES = {
     ],  # tom
     "SD": [
         "sd",
+        37,  # rimshot
         38,  # snare drum
         40,  # electric snare drum
         "snare",  # snare drum (drum kit data)

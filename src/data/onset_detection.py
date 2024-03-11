@@ -389,7 +389,7 @@ class OnsetDetect:
         for drum, words in DRUM_TYPES.items():
             if any((str(w) in wav_path) for w in words):
                 if DRUM_KIT in wav_path:  # drum_kit
-                    onsets = [0.02]
+                    onsets = [0.0]
                 onset_dict[drum] = onsets
                 break
 

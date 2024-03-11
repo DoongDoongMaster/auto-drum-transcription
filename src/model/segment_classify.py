@@ -58,11 +58,21 @@ class SegmentClassifyModel(BaseModel):
         self.n_channels = self.feature_param["n_channels"]
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
-        # self.load_model("../models/classify_mfcc_2024-02-25_22-04-08_smote_5_b.h5")
+        # self.load_model("../models/classify_mfcc_2024-02-24_00-53-10_smote_5.h5")
         self.load_model()
 
     def input_reshape(self, data):
-        # Implement input reshaping logic
+        # cnn data
+        # return tf.reshape(
+        #     data,
+        #     [
+        #         -1,
+        #         self.n_rows,
+        #         self.n_columns,
+        #         self.n_channels,
+        #     ],
+        # )
+        # sequence data
         return tf.reshape(
             data,
             [
@@ -178,19 +188,19 @@ class SegmentClassifyModel(BaseModel):
         del y_train_temp
 
         # standard scaler
-        x_train_final = self.x_data_1d_reshape(x_train_final)
-        scaler = StandardScaler()
-        x_train_final = scaler.fit_transform(x_train_final)
+        # x_train_final = self.x_data_1d_reshape(x_train_final)
+        # scaler = StandardScaler()
+        # x_train_final = scaler.fit_transform(x_train_final)
         x_train_final = self.input_reshape(x_train_final)
 
-        x_val_final = self.x_data_1d_reshape(x_val_final)
-        scaler = StandardScaler()
-        x_val_final = scaler.fit_transform(x_val_final)
+        # x_val_final = self.x_data_1d_reshape(x_val_final)
+        # scaler = StandardScaler()
+        # x_val_final = scaler.fit_transform(x_val_final)
         x_val_final = self.input_reshape(x_val_final)
 
-        x_test = self.x_data_1d_reshape(x_test)
-        scaler = StandardScaler()
-        x_test = scaler.fit_transform(x_test)
+        # x_test = self.x_data_1d_reshape(x_test)
+        # scaler = StandardScaler()
+        # x_test = scaler.fit_transform(x_test)
         x_test = self.input_reshape(x_test)
 
         # input shape 조정
@@ -236,11 +246,8 @@ class SegmentClassifyModel(BaseModel):
         self.model.summary()
         # compile the self.model
         opt = Adam(learning_rate=self.opt_learning_rate)
-        metric = tfa.metrics.HammingLoss(
-            mode="multilabel", threshold=self.predict_standard
-        )
         self.model.compile(
-            loss="binary_crossentropy", optimizer=opt, metrics=["accuracy"]
+            loss="binary_crossentropy", optimizer=opt, metrics=["binary_accuracy"]
         )
 
     """
@@ -296,8 +303,13 @@ class SegmentClassifyModel(BaseModel):
             )
             predict_data.append(trimmed_feature)
 
+        # # standard scaler
+        # predict_data = self.x_data_1d_reshape(predict_data)
+        # scaler = StandardScaler()
+        # predict_data = scaler.fit_transform(predict_data)
+
         # -- reshape
-        predict_data = self.input_reshape(predict_data)
+        predict_data = SegmentClassifyModel.x_data_transpose(predict_data)
 
         # -- predict
         predict_data = self.model.predict(predict_data)

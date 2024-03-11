@@ -252,7 +252,7 @@ DRUM_TYPES = {
         40,  # electric snare drum
         "snare",  # snare drum (drum kit data)
         "SD",  # snare (ddm-own)
-        "rs",  # rim shot
+        "rs",  # rim shot (enst)
     ],  # snare
     "KK": [
         "bd",

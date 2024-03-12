@@ -1,8 +1,10 @@
+import math
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import tensorflow_addons as tfa
 
+from glob import glob
 from tensorflow import keras
 from tensorflow.keras import layers
 from collections import Counter
@@ -51,13 +53,20 @@ class SegmentClassifyModel(BaseModel):
             feature_type=feature_type,
             feature_extension=feature_extension,
         )
+        self.data_cnt = 2
         self.train_cnt = 1
         self.predict_standard = 0.8
-        self.n_rows = self.feature_param["n_mfcc"] if feature_type == MFCC else self.feature_param["n_mels"]
+        self.n_rows = (
+            self.feature_param["n_mfcc"]
+            if feature_type == MFCC
+            else self.feature_param["n_mels"]
+        )
         self.n_columns = (
             int(CLASSIFY_DURATION * SAMPLE_RATE) // self.feature_param["hop_length"]
         )
-        self.n_channels = self.feature_param["n_channels"] if feature_type == MFCC else 1
+        self.n_channels = (
+            self.feature_param["n_channels"] if feature_type == MFCC else 1
+        )
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
         # self.load_model("../models/classify_mfcc_2024-02-24_00-53-10_smote_5.h5")
@@ -140,13 +149,13 @@ class SegmentClassifyModel(BaseModel):
 
         return x_1d, number_y
 
-    def load_dataset(self):
+    def load_dataset(self, feature_files: list[str] = None):
         """
         -- load data from data file
         """
         # Implement dataset split feature & label logic
         feature_df = FeatureExtractor.load_feature_file(
-            self.method_type, self.feature_type, self.feature_extension
+            self.method_type, self.feature_type, self.feature_extension, feature_files
         )
 
         # -- get X, y
@@ -271,14 +280,22 @@ class SegmentClassifyModel(BaseModel):
         """
         데이터셋 생성, 모델 생성, 학습, 평가, 모델 저장 파이프라인
         """
-        split_dataset = self.load_dataset()
-        self.create()
+        save_folder_path = FeatureExtractor._get_save_folder_path(
+            self.method_type, self.feature_type
+        )
+        feature_files = glob(f"{save_folder_path}/*.{self.feature_extension}")
+        feature_file_offset = math.ceil(len(feature_files) / float(self.data_cnt))
+        for i in range(self.data_cnt):
+            split_dataset = self.load_dataset(
+                feature_files[i * feature_file_offset : (i + 1) * feature_file_offset]
+            )
+            # self.create()
 
-        for data in split_dataset:
-            print("split data length", len(data["x"]))
-            self.create_dataset(data["x"], data["y"])
-            self.train()
-            self.evaluate()
+            for data in split_dataset:
+                print("split data length", len(data["x"]))
+                self.create_dataset(data["x"], data["y"])
+                self.train()
+                self.evaluate()
         self.save()
 
     """

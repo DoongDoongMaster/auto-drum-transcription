@@ -51,13 +51,13 @@ class SegmentClassifyModel(BaseModel):
             feature_type=feature_type,
             feature_extension=feature_extension,
         )
-        self.train_cnt = 4
+        self.train_cnt = 1
         self.predict_standard = 0.8
-        self.n_rows = self.feature_param["n_mfcc"]
+        self.n_rows = self.feature_param["n_mfcc"] if feature_type == MFCC else self.feature_param["n_mels"]
         self.n_columns = (
             int(CLASSIFY_DURATION * SAMPLE_RATE) // self.feature_param["hop_length"]
         )
-        self.n_channels = self.feature_param["n_channels"]
+        self.n_channels = self.feature_param["n_channels"] if feature_type == MFCC else 1
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
         # self.load_model("../models/classify_mfcc_2024-02-24_00-53-10_smote_5.h5")
@@ -130,7 +130,7 @@ class SegmentClassifyModel(BaseModel):
 
     @staticmethod
     def smote_data(x_1d, number_y):
-        smt = SMOTE(k_neighbors=1)
+        smt = SMOTE(random_state=42)
 
         x_1d, number_y = smt.fit_resample(x_1d, number_y)
 
@@ -138,9 +138,7 @@ class SegmentClassifyModel(BaseModel):
         counter = Counter(number_y)
         print("변경 후", counter)
 
-        y = FeatureExtractor.number_to_one_hot_label(number_y)
-
-        return x_1d, y
+        return x_1d, number_y
 
     def load_dataset(self):
         """
@@ -190,9 +188,10 @@ class SegmentClassifyModel(BaseModel):
         """
         -- Implement dataset split feature & label logic
         """
-        X = self.x_data_1d_reshape(X)
+        # X = self.x_data_1d_reshape(X)
+        # X, y = SegmentClassifyModel.smote_data(X, y)
 
-        X, y = SegmentClassifyModel.smote_data(X, y)
+        y = FeatureExtractor.number_to_one_hot_label(y)
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(

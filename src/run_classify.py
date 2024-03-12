@@ -79,19 +79,19 @@ from constant import (
 #     f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/drummer1/session3/8_rock_135_beat_4-4.wav"
 # )
 # # predict_test_data = "../data/test/항해_솔로_일부분.wav"
-segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
+# segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
 # segment_classify.load_dataset()
 # # segment_classify.extract_feature(feature_path)
-segment_classify.run()
+# segment_classify.run()
 # print(segment_classify.predict(predict_test_data, 100, 0))
 
 # -------------------
 # Feature Extract
-data_paths_ddm = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}")
-data_paths_kit = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DRUM_KIT}")
-data_paths_enst = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{ENST}")
-data_paths_idmt = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{IDMT}")
-data_paths_egmd = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}")
+# data_paths_ddm = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}")
+# data_paths_kit = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DRUM_KIT}")
+# data_paths_enst = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{ENST}")
+# data_paths_idmt = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{IDMT}")
+# data_paths_egmd = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}")
 
 # data_paths = data_paths_kit + data_path_enst + data_path_idmt
 # data_paths_egmd=[]
@@ -123,20 +123,20 @@ data_paths_egmd = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}")
 
 # ----------------------------------------------------------------------------
 # model test
-# segment_classify = SegmentClassifyModel()
+segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
 
-# predict_test_datas = [
-#     "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
-#     "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
-#     "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
-#     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
-#     "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
-#     "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
-#     "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
-#     "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
-# ]
-# for predict_test_data in predict_test_datas:
-#     print(segment_classify.predict(predict_test_data, 100, 0))
+predict_test_datas = [
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
+    "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+]
+for predict_test_data in predict_test_datas:
+    print(segment_classify.predict(predict_test_data, 100, 0))
 
 # --- personal test
 # predict_test_data = "../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"

@@ -13,6 +13,7 @@ from sklearn.preprocessing import StandardScaler
 from keras.models import Model
 from keras.layers import Dense, LSTM, Conv1D, Input
 from keras.optimizers import Adam, SGD, RMSprop
+from keras.metrics import BinaryAccuracy
 
 from model.base_model import BaseModel
 from data.onset_detection import OnsetDetect
@@ -50,6 +51,7 @@ class SegmentClassifyModel(BaseModel):
             feature_type=feature_type,
             feature_extension=feature_extension,
         )
+        self.train_cnt = 4
         self.predict_standard = 0.8
         self.n_rows = self.feature_param["n_mfcc"]
         self.n_columns = (
@@ -126,10 +128,23 @@ class SegmentClassifyModel(BaseModel):
         new_y = np.delete(number_y, small_y, axis=0)
         return new_x, new_y
 
-    def create_dataset(self):
+    @staticmethod
+    def smote_data(x_1d, number_y):
+        smt = SMOTE(k_neighbors=1)
+
+        x_1d, number_y = smt.fit_resample(x_1d, number_y)
+
+        # 비율 확인
+        counter = Counter(number_y)
+        print("변경 후", counter)
+
+        y = FeatureExtractor.number_to_one_hot_label(number_y)
+
+        return x_1d, y
+
+    def load_dataset(self):
         """
         -- load data from data file
-        -- Implement dataset split feature & label logic
         """
         # Implement dataset split feature & label logic
         feature_df = FeatureExtractor.load_feature_file(
@@ -142,29 +157,42 @@ class SegmentClassifyModel(BaseModel):
 
         X = SegmentClassifyModel.x_data_transpose(X)
 
-        # nm_model = NearMiss(version=3)
-        # X, number_y = nm_model.fit_resample(X, number_y)
-
-        # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
-        # print(y)
         number_y = FeatureExtractor.one_hot_label_to_number(y)
-        # print(number_y)
         counter = Counter(number_y)
         print("변경 전", counter)
 
-        smt = SMOTE()
+        label_cnt = {}  # label별 나눠서 학습시킬 데이터 개수
+        total = 0
+        for label, cnt in counter.items():
+            label_cnt[label] = cnt // self.train_cnt
+            total += label_cnt[label]
+
+        label_temp_cnt = {l: 0 for l in counter.keys()}  # 각 라벨별 개수
+        label_idx = {l: 0 for l in counter.keys()}  # 각 라벨별 인덱스
+        split_data = [
+            {"x": [], "y": []} for _ in range(self.train_cnt)
+        ]  # 나눈 데이터 형태
+
+        for idx, label in enumerate(number_y):  # 각 라벨별로 label_cnt 개수만큼 나누기
+            split_data[label_idx[label]]["x"].append(X[idx])
+            split_data[label_idx[label]]["y"].append(label)
+            label_temp_cnt[label] += 1
+            if (
+                label_temp_cnt[label] == label_cnt[label]
+                and label_idx[label] < self.train_cnt - 1
+            ):
+                label_temp_cnt[label] = 0
+                label_idx[label] += 1
+
+        return split_data
+
+    def create_dataset(self, X, y):
+        """
+        -- Implement dataset split feature & label logic
+        """
         X = self.x_data_1d_reshape(X)
 
-        # X, number_y = SegmentClassifyModel.delete_small_data(counter, X, number_y)
-        X, number_y = smt.fit_resample(X, number_y)
-        # nm_model = NearMiss(version=3)
-        # X, number_y = nm_model.fit_resample(X, number_y)
-
-        # 비율 확인
-        counter = Counter(number_y)
-        print("변경 후", counter)
-
-        y = FeatureExtractor.number_to_one_hot_label(number_y)
+        X, y = SegmentClassifyModel.smote_data(X, y)
 
         # -- split train, val, test
         x_train_temp, x_test, y_train_temp, y_test = train_test_split(
@@ -187,23 +215,11 @@ class SegmentClassifyModel(BaseModel):
         del x_train_temp
         del y_train_temp
 
-        # standard scaler
-        # x_train_final = self.x_data_1d_reshape(x_train_final)
-        # scaler = StandardScaler()
-        # x_train_final = scaler.fit_transform(x_train_final)
+        # input shape 조정
         x_train_final = self.input_reshape(x_train_final)
-
-        # x_val_final = self.x_data_1d_reshape(x_val_final)
-        # scaler = StandardScaler()
-        # x_val_final = scaler.fit_transform(x_val_final)
         x_val_final = self.input_reshape(x_val_final)
-
-        # x_test = self.x_data_1d_reshape(x_test)
-        # scaler = StandardScaler()
-        # x_test = scaler.fit_transform(x_test)
         x_test = self.input_reshape(x_test)
 
-        # input shape 조정
         self.x_train = x_train_final
         self.x_val = x_val_final
         self.x_test = x_test
@@ -247,8 +263,24 @@ class SegmentClassifyModel(BaseModel):
         # compile the self.model
         opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
-            loss="binary_crossentropy", optimizer=opt, metrics=["binary_accuracy"]
+            loss="binary_crossentropy",
+            optimizer=opt,
+            metrics=[BinaryAccuracy(threshold=self.predict_standard)],
         )
+
+    def run(self):
+        """
+        데이터셋 생성, 모델 생성, 학습, 평가, 모델 저장 파이프라인
+        """
+        split_dataset = self.load_dataset()
+        self.create()
+
+        for data in split_dataset:
+            print("split data length", len(data["x"]))
+            self.create_dataset(data["x"], data["y"])
+            self.train()
+            self.evaluate()
+        self.save()
 
     """
     -- 전체 wav 주어졌을 때, 한 마디에 대한 rhythm 계산

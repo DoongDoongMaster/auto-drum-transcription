@@ -176,6 +176,7 @@ DATA_DDM_OWN = (
     "pattern/P2",
 )
 DATA_E_GMD_NOT = ("drummer1/session2/66_punk_144_fill_4-4",)  ## 싱크 안 맞는 느낌
+DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(f"_{i}.wav" for i in range(2, 59)) # acustic kit 만 사용 
 
 DATA_ALL = DATA_IDMT + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,) + (ENST,)
 

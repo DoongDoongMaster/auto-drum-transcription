@@ -285,6 +285,7 @@ class DataLabeling:
         )  # 현재 날짜와 시간 가져오기
         plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
         plt.show()
+        plt.clf()
 
     @staticmethod
     def show_label_onset_plot(label: List[float], onset: List[int]):

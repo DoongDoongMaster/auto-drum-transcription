@@ -1,4 +1,5 @@
 import librosa
+import numpy as np
 from feature.audio_to_feature import AudioToFeature
 from data.data_labeling import DataLabeling
 from data.data_processing import DataProcessing
@@ -69,15 +70,25 @@ from constant import (
 
 separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
 
-separate_detect.create_dataset()
-separate_detect.create()
-separate_detect.train()
-separate_detect.evaluate()
-separate_detect.save()
-# predict_test_data = (
-#     "../data/raw/e-gmd-v1.0.0/drummer1/session1/4_jazz-funk_116_beat_4-4.wav"
-# )
-# print(separate_detect.predict(predict_test_data, 100, 0))
+# separate_detect.create_dataset()
+# separate_detect.create()
+# separate_detect.train()
+# separate_detect.evaluate()
+# separate_detect.save()
+
+predict_test_datas = [
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
+    "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+]
+for predict_test_data in predict_test_datas:
+    print(separate_detect.predict(predict_test_data, 100, 0))
+
 # print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
 # print(separate_detect.predict("../data/test/RealDrum01_03#HH#train.wav", 100, 0))
 # print(separate_detect.predict("../data/test/WaveDrum02_31#SD#train.wav", 100, 0))
@@ -129,3 +140,38 @@ separate_detect.save()
 # # plt.show()
 # plt.savefig(f"new-output.png")
 # # plt.savefig(f"{bpm1}_beat_4-4-output.png")
+# --------------------------------------------------
+# def merge_columns(arr, col1, col2):
+#     # merge col2 into col1
+#     # -- 둘 중 하나라도 1이면 1
+#     # -- else, 둘 중 하나라도 0.5이면 0.5
+#     # -- else, 0
+#     merged_column = np.zeros(arr.shape[0])
+#     for i in range(arr.shape[0]):
+#         if 1 in arr[i, [col1, col2]]:
+#             merged_column[i] = 1
+#         elif 0.5 in arr[i, [col1, col2]]:
+#             merged_column[i] = 0.5
+#         else:
+#             merged_column[i] = 0
+
+#     # merge한 배열 col1 자리에 끼워넣기
+#     result = np.delete(arr, [col1, col2], axis=1)
+#     result = np.insert(result, col1, merged_column, axis=1)
+
+#     return result
+
+# arr = np.array(
+#     [
+#         [0, 1, 1],
+#         [0, 0.5, 1],
+#         [0, 0, 1],
+#         [0.5, 1, 1],
+#         [0.5, 0.5, 1],
+#         [0.5, 0, 1],
+#         [1, 1, 1],
+#         [1, 0.5, 1],
+#         [1, 0, 1],
+#     ]
+# )
+# print(merge_columns(arr, 0, 1))

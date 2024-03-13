@@ -43,23 +43,28 @@ class FeatureExtractor:
 
     @staticmethod
     def load_feature_file(
-        method_type: str, feature_type: str, feature_extension: str
+        method_type: str,
+        feature_type: str,
+        feature_extension: str,
+        feature_files: list[str] = None,
     ) -> pd.DataFrame:
         """
         -- feature 추출한 파일 불러오기
         """
-        save_folder_path = FeatureExtractor._get_save_folder_path(
-            method_type, feature_type
-        )
-        if not os.path.exists(save_folder_path):
-            raise Exception(
-                f"모델: {method_type}, 피쳐: {feature_type} 에 해당하는 피쳐가 없습니다!!!"
+        if (
+            feature_files is None
+        ):  # 피쳐 파일 리스트가 비어있다면 -> 피쳐 저장된 경로 통해서 접근
+            save_folder_path = FeatureExtractor._get_save_folder_path(
+                method_type, feature_type
             )
+            if not os.path.exists(save_folder_path):
+                raise Exception(
+                    f"모델: {method_type}, 피쳐: {feature_type} 에 해당하는 피쳐가 없습니다!!!"
+                )
+            feature_files = glob(f"{save_folder_path}/*.{feature_extension}")
 
         # dataframe 초기화
         combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
-
-        feature_files = glob(f"{save_folder_path}/*.{feature_extension}")
         for feature_file in feature_files:
             # feature 파일을 읽어와 DataFrame으로 변환
             data_feature_label = FeatureExtractor._load_feature_one_file(

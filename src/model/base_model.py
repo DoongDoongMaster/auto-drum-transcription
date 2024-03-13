@@ -191,7 +191,8 @@ class BaseModel:
             y_pred = self.data_2d_reshape(y_pred)
 
             # -- binary
-            y_test_data = np.where(y_test_data > self.predict_standard, 1.0, 0.0)
+            if self.method_type == METHOD_DETECT:
+                y_test_data = np.where(y_test_data > self.predict_standard, 1.0, 0.0)
             y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
 
             # confusion matrix & precision & recall

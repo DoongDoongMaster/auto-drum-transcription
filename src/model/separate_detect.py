@@ -59,7 +59,7 @@ class SeparateDetectModel(BaseModel):
             feature_type=MEL_SPECTROGRAM,
         )
         self.unit_number = unit_number
-        self.predict_standard = 0.4
+        self.predict_standard = 0.5
         self.n_rows = CHUNK_TIME_LENGTH
         self.n_columns = self.feature_param["n_mels"]
         self.n_classes = self.feature_param["n_classes"]
@@ -169,14 +169,17 @@ class SeparateDetectModel(BaseModel):
     -- input  : time stamp마다 onset 확률 (모델 결과)
     -- output : 
         - onsets 배열
+          {"CC":[0.0, 0.01, 0.18], "SD":[0.43, 0.76, 0.77, 1.07], ...}
         - 일정 확률 이상으로 예측된 악기 추출
           [몇 번째 onset, [악기]]
           ex. [[1, [1, 7]], [2, [1]], [3, [1]], [4, [1]], ...
     """
 
     def get_predict_onsets_instrument(self, predict_data) -> List[float]:
+        # predict standard 이상일 때 1, else 0
         onsets_arr = []
         drum_instrument = []
+        each_instrument_onsets_arr = predict_data
 
         for i in range(len(predict_data)):
             is_onset = (
@@ -187,11 +190,22 @@ class SeparateDetectModel(BaseModel):
                 if predict_data[i][j] > self.predict_standard:
                     is_onset = True
                     drums.append(j)
+                    each_instrument_onsets_arr[i][j] = 1
+                else:
+                    each_instrument_onsets_arr[i][j] = 0
+
             if is_onset:
                 onsets_arr.append(i * self.hop_length / SAMPLE_RATE)
                 drum_instrument.append([len(onsets_arr), drums])
 
-        return onsets_arr, drum_instrument
+        return onsets_arr, drum_instrument, each_instrument_onsets_arr
+
+    # tranform 2D array to dict
+    def transform_arr_to_dict(self, arr_data):
+        result_dict = {}
+        for code, drum in DETECT_CODE2DRUM.items():
+            result_dict[drum] = [row[code] for row in arr_data]
+        return result_dict
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
@@ -222,10 +236,11 @@ class SeparateDetectModel(BaseModel):
         # -- predict 결과 -- (#, time, 4 feature)
         predict_data = self.model.predict(audio_feature)
         predict_data = predict_data.reshape((-1, self.n_classes))
-        # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
-        result_dict = {}
-        for code, drum in DETECT_CODE2DRUM.items():
-            result_dict[drum] = [row[code] for row in predict_data]
+        # # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
+        # result_dict = {}
+        # for code, drum in DETECT_CODE2DRUM.items():
+        #     result_dict[drum] = [row[code] for row in predict_data]
+        result_dict = self.transform_arr_to_dict(predict_data)
 
         # -- 실제 label (merge cc into oh)
         class_6_true_label = DataLabeling.data_labeling(
@@ -251,10 +266,15 @@ class SeparateDetectModel(BaseModel):
 
         true_label = class_4_true_label
 
-        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
+        # -- threshold 0.5
+        onsets_arr, drum_instrument, each_instrument_onsets_arr = (
+            self.get_predict_onsets_instrument(predict_data)
+        )
+        threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
 
-        # # -- get onsets
-        # onsets_arr, drum_instrument = self.get_predict_onsets_instrument(predict_data)
+        DataLabeling.show_label_dict_compare_plot_detect(
+            true_label, result_dict, threshold_dict, 0, 1200
+        )
 
         # # -- rhythm
         # bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)

@@ -17,7 +17,15 @@ from essentia.standard import (
     Onsets,
 )
 
-from constant import DRUM_KIT, DRUM_MAP, SAMPLE_RATE, IMAGE_PATH, DRUM2CODE, DRUM_TYPES
+from constant import (
+    DDM_OWN,
+    DRUM_KIT,
+    DRUM_MAP,
+    SAMPLE_RATE,
+    IMAGE_PATH,
+    DRUM2CODE,
+    DRUM_TYPES,
+)
 
 
 class OnsetDetect:
@@ -386,12 +394,28 @@ class OnsetDetect:
         """
         onsets = OnsetDetect.get_onsets_using_librosa(audio)
 
-        for drum, words in DRUM_TYPES.items():
-            if any((str(w) in wav_path) for w in words):
-                if DRUM_KIT in wav_path:  # drum_kit
-                    onsets = [0.0]
-                onset_dict[drum] = onsets
-                break
+        drum_type = ""
+        is_drum_kit = False
+        is_ddm = False
+        is_ddm_cc_08 = False  # 08박자면 처음 한 번만 치므로 예외처리
+        if DDM_OWN in wav_path:  # ddm own
+            is_ddm = True
+            drum_type = wav_path.split("/")[-3]
+            rhythm = wav_path.split("/")[-2]
+            if drum_type == "CC" and rhythm == "08":
+                is_ddm_cc_08 = True
+        elif DRUM_KIT in wav_path:  # drum kit
+            is_drum_kit = True
+            drum_type = wav_path.split("/")[-2]
+
+        if drum_type in DRUM_MAP:
+            if is_drum_kit:
+                onsets = [0.0]
+            elif is_ddm_cc_08:
+                onsets = [onsets[(onsets >= 2.0) & (onsets < 3.0)][0]]
+            elif is_ddm:
+                onsets = onsets[(onsets >= 2.0) & (onsets < 5.1)]
+            onset_dict[DRUM_MAP[drum_type]] = onsets
 
         onset_dict = OnsetDetect._get_filtering_onsets_instrument(
             onset_dict, start, end

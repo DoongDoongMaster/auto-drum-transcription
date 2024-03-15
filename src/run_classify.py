@@ -79,7 +79,8 @@ from constant import (
 #     f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/drummer1/session3/8_rock_135_beat_4-4.wav"
 # )
 # # predict_test_data = "../data/test/항해_솔로_일부분.wav"
-# segment_classify = SegmentClassifyModel()
+# segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
+# segment_classify.load_dataset()
 # # segment_classify.extract_feature(feature_path)
 # segment_classify.run()
 # print(segment_classify.predict(predict_test_data, 100, 0))
@@ -87,10 +88,12 @@ from constant import (
 # -------------------
 # Feature Extract
 # data_paths_ddm = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}")
-data_paths_kit = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DRUM_KIT}")
-data_path_enst = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{ENST}")
-data_path_idmt = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{IDMT}")
-data_paths = data_paths_kit + data_path_enst + data_path_idmt
+# data_paths_kit = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DRUM_KIT}")
+# data_paths_enst = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{ENST}")
+# data_paths_idmt = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{IDMT}")
+# data_paths_egmd = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}")
+
+# data_paths = data_paths_kit + data_path_enst + data_path_idmt
 # data_paths_egmd=[]
 # for i in range(3, 11):
 #     data_paths_temp = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/drummer{i}")
@@ -107,10 +110,35 @@ data_paths = data_paths_kit + data_path_enst + data_path_idmt
 #     "../data/raw/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_57#KD.wav",
 #     f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}/per-drum/CC/04/CC_04_9949.m4a",
 # ]
-FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MFCC, PKL)
-FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MFCC, PKL)
+# data_paths = [
+#     "../data/raw/e-gmd-v1.0.0/drummer1/session1/78_jazz-fast_290_beat_4-4.wav"
+# ]
+# FeatureExtractor.feature_extractor(data_paths_idmt, METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL)
+# FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL)
 
-# data = FeatureExtractor._load_feature_one_file(
-#     "../data/processed-feature/classify/mfcc/mfcc-2024-02-08_11-15-29-0000.csv", CSV
-# )
+# print(FeatureExtractor._load_feature_one_file(
+#     "../data/processed-feature/classify/mel-spectrogram/mel-spectrogram-2024-03-13_01-26-48-0100.pkl", PKL
+# ))
 # AudioToFeature.show_feature_plot(data["feature"][1], METHOD_CLASSIFY, MFCC)
+
+# ----------------------------------------------------------------------------
+# model test
+segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
+
+predict_test_datas = [
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
+    "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+]
+for predict_test_data in predict_test_datas:
+    print(segment_classify.predict(predict_test_data, 100, 0))
+
+# --- personal test
+# predict_test_data = "../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
+
+# print(segment_classify.predict(predict_test_data, 100, 0))

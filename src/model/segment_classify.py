@@ -244,6 +244,30 @@ class SegmentClassifyModel(BaseModel):
 
         keras.backend.clear_session()
 
+        # self.model = keras.Sequential(
+        #     [
+        #         layers.Input(shape=(n_steps, n_features)),
+        #         layers.Conv1D(
+        #             filters=64,
+        #             kernel_size=8,
+        #             padding="same",
+        #             data_format="channels_last",
+        #             dilation_rate=1,
+        #             activation="relu",
+        #         ),
+        #         layers.LSTM(
+        #             units=32, activation="tanh", name="lstm_1", return_sequences=True
+        #         ),
+        #         layers.Dropout(0.2),
+        #         layers.LSTM(
+        #             units=32, activation="tanh", name="lstm_2", return_sequences=True
+        #         ),
+        #         layers.Dropout(0.2),
+        #         layers.Flatten(),
+        #         layers.Dense(self.n_classes, activation="sigmoid"),
+        #     ]
+        # )
+
         self.model = keras.Sequential(
             [
                 layers.Input(shape=(n_steps, n_features)),
@@ -253,14 +277,14 @@ class SegmentClassifyModel(BaseModel):
                     padding="same",
                     data_format="channels_last",
                     dilation_rate=1,
-                    activation="relu",
+                    activation="tanh",
                 ),
-                layers.LSTM(
-                    units=32, activation="tanh", name="lstm_1", return_sequences=True
+                layers.Bidirectional(
+                    layers.LSTM(64, activation="tanh", return_sequences=True)
                 ),
                 layers.Dropout(0.2),
-                layers.LSTM(
-                    units=32, activation="tanh", name="lstm_2", return_sequences=True
+                layers.Bidirectional(
+                    layers.LSTM(32, activation="tanh", return_sequences=True)
                 ),
                 layers.Dropout(0.2),
                 layers.Flatten(),
@@ -289,7 +313,7 @@ class SegmentClassifyModel(BaseModel):
             split_dataset = self.load_dataset(
                 feature_files[i * feature_file_offset : (i + 1) * feature_file_offset]
             )
-            # self.create()
+            self.create()
 
             for data in split_dataset:
                 print("split data length", len(data["x"]))

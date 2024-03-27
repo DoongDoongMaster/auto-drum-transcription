@@ -245,9 +245,8 @@ class SeparateDetectModel(BaseModel):
         )
         threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
 
-        DataLabeling.show_pred_dict_plot_detect(result_dict, threshold_dict, 0, 1200)
-
-        return
+        # predict : threshold 둘만 비교
+        # DataLabeling.show_pred_dict_plot_detect(result_dict, threshold_dict, 0, 1200)
 
         # -- 실제 label (merge cc into oh)
         class_6_true_label = DataLabeling.data_labeling(
@@ -272,12 +271,6 @@ class SeparateDetectModel(BaseModel):
         class_4_true_label = class_5_true_label  # -- class 4
 
         true_label = class_4_true_label
-
-        # -- threshold 0.5
-        onsets_arr, drum_instrument, each_instrument_onsets_arr = (
-            self.get_predict_onsets_instrument(predict_data)
-        )
-        threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
 
         DataLabeling.show_label_dict_compare_plot_detect(
             true_label, result_dict, threshold_dict, 0, 1200

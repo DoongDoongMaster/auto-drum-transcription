@@ -48,6 +48,24 @@ def merge_columns(arr, col1, col2):
     return result
 
 
+def binary_to_decimal(binary_list):
+    decimal_value = 0
+    for i in range(len(binary_list)):
+        decimal_value += binary_list[i] * (2 ** (len(binary_list) - 1 - i))
+    return decimal_value
+
+
+def decimal_to_one_hot(decimal_value, num_classes):
+    one_hot_vector = [0] * num_classes
+    one_hot_vector[decimal_value] = 1
+    return one_hot_vector
+
+
+def preprocess_binary(binary_list):
+    preprocessed_list = [1 if bit >= 0.5 else 0 for bit in binary_list]
+    return preprocessed_list
+
+
 class SeparateDetectMultiClassModel(BaseModel):
     def __init__(
         self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16
@@ -63,7 +81,7 @@ class SeparateDetectMultiClassModel(BaseModel):
         self.predict_standard = 0.5
         self.n_rows = CHUNK_TIME_LENGTH
         self.n_columns = self.feature_param["n_mels"]
-        self.n_classes = self.feature_param["n_classes"]
+        self.n_classes = 16
         self.hop_length = self.feature_param["hop_length"]
         self.win_length = self.feature_param["win_length"]
         self.load_model()
@@ -102,18 +120,24 @@ class SeparateDetectMultiClassModel(BaseModel):
         del result
 
         # ------------------------------------------------------------------
-        # 각 행마다 binary list -> decimal num
-        # [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0] -> [32]
-        decimal_y = FeatureExtractor.one_hot_label_to_number(y).reshape((-1, 1))
-        # print("decimal_y: ", decimal_y)
+        # # 각 행마다 binary list -> decimal num
+        # # [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0] -> [32]
+        # decimal_y = FeatureExtractor.one_hot_label_to_number(y).reshape((-1, 1))
+        # # print("decimal_y: ", decimal_y)
 
-        onehot_encoder = OneHotEncoder()
-        onehot_label_df = onehot_encoder.fit_transform(decimal_y)
-        onehot_label_df = onehot_label_df.toarray()
-        # print("onehot_label_df: ", onehot_label_df)
+        # onehot_encoder = OneHotEncoder()
+        # onehot_label_df = onehot_encoder.fit_transform(decimal_y)
+        # onehot_label_df = onehot_label_df.toarray()
+        binary_sequences = [preprocess_binary(seq) for seq in y]
 
-        y = onehot_label_df
-        del decimal_y, onehot_label_df
+        onehot_label_df = [
+            decimal_to_one_hot(binary_to_decimal(seq), self.n_classes)
+            for seq in binary_sequences
+        ]
+
+        y = np.array(onehot_label_df)
+        print("one hot y: ", y)
+        del onehot_label_df
         # ------------------------------------------------------------------
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
@@ -145,9 +169,6 @@ class SeparateDetectMultiClassModel(BaseModel):
         self.y_train = y_train_final
         self.y_val = y_val_final
         self.y_test = y_test
-
-        # 이때 class 개수 따로 저장해놓기 → 모델 결과 개수니까(dense layer, predict data reshape에 쓰일 예정)
-        self.n_classes = self.y_train.shape[2]
 
         # -- print shape
         self.print_dataset_shape()

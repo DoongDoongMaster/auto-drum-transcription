@@ -126,14 +126,14 @@ from constant import (
 segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
 
 predict_test_datas = [
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
-    "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/voyage_solo.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
 ]
 for predict_test_data in predict_test_datas:
     print(segment_classify.predict(predict_test_data, 100, 0))

@@ -131,7 +131,7 @@ class BaseModel:
         data = data[: num_chunks * chunk_size, :]
 
         # reshape을 통해 3D 배열로 변환
-        return data.reshape((num_chunks, chunk_size, num_features, 1))
+        return np.reshape(data, [-1, chunk_size, num_features])
 
     def create_dataset(self):
         # Implement model

@@ -1,0 +1,2 @@
+class ModelServing:
+    pass

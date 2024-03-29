@@ -48,8 +48,12 @@ MODEL_DIR = "models"
 """
 -- served model
 """
-SERVED_MODEL_DIR = "served-models" # 서빙 모델 최상위 폴더 
-SERVED_MODEL_TYPE = (METHOD_CLASSIFY, METHOD_DETECT, METHOD_RHYTHM,)
+SERVED_MODEL_DIR = "served-models"  # 서빙 모델 최상위 폴더
+SERVED_MODEL_TYPE = (
+    METHOD_CLASSIFY,
+    METHOD_DETECT,
+    METHOD_RHYTHM,
+)
 REDIS_AI_HOST = "localhost"
 REDIS_AI_PORT = 6379
 
@@ -58,7 +62,9 @@ REDIS_AI_PORT = 6379
 """
 SERVED_MODEL_CLASSIFY_LSTM = "classify_mel-spectrogram_2024-03-15_10-15-34_[all]_[5]_[smote]_[crnn(lstm)_acc(0.98)]"
 SERVED_MODEL_CLASSIFY_BI_LSTM = "classify_mel-spectrogram_2024-03-18_03-27-38_[all]_[5]_[smote]_[crnn(bi-lstm)_acc(0.98)]"
-SERVED_MODEL_CLASSIFY_MFCC = "classify_mfcc_2024-03-14_02-16-35_[all]_[5]_[smote]_[crnn(lstm)_acc(0.97)]"
+SERVED_MODEL_CLASSIFY_MFCC = (
+    "classify_mfcc_2024-03-14_02-16-35_[all]_[5]_[smote]_[crnn(lstm)_acc(0.97)]"
+)
 SERVED_MODEl_DETECT_LSTM = "detect_mel-spectrogram_2024-03-15_16-36-20-[all]-[4]-[1-1-0.5]-[crnn(lstm)-acc(0.96)]"
 
 
@@ -201,7 +207,9 @@ DATA_DDM_OWN = (
     "pattern/P2",
 )
 DATA_E_GMD_NOT = ("drummer1/session2/66_punk_144_fill_4-4",)  ## 싱크 안 맞는 느낌
-DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(f"_{i}.wav" for i in range(2, 59)) # acustic kit 만 사용 
+DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(
+    f"_{i}.wav" for i in range(2, 59)
+)  # acustic kit 만 사용
 
 DATA_ALL = DATA_IDMT + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,) + (ENST,)
 

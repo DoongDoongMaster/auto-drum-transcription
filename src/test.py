@@ -12,7 +12,7 @@ from model.segment_classify import SegmentClassifyModel
 
 # redisai_client = Client(host='localhost', port=6379)
 
-#====success code!!!!! h5 -> graphdef (frozen model)==============
+# ====success code!!!!! h5 -> graphdef (frozen model)==============
 # import tensorflow as tf
 # from tensorflow import keras
 # from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
@@ -24,7 +24,7 @@ from model.segment_classify import SegmentClassifyModel
 # model = tf.keras.models.load_model('../models/detect_mel-spectrogram_2024-03-15_16-36-20-[all]-[4]-[1-1-0.5]-[crnn(lstm)-acc(0.96)].h5') # tf_saved_model load
 
 # full_model = tf.function(lambda x: model(x))
-# full_model = full_model.get_concrete_function(tf.TensorSpec(model.inputs[0].shape, model.inputs[0].dtype)) 
+# full_model = full_model.get_concrete_function(tf.TensorSpec(model.inputs[0].shape, model.inputs[0].dtype))
 # frozen_func = convert_variables_to_constants_v2(full_model)
 # frozen_func.graph.as_graph_def()
 # layers = [op.name for op in frozen_func.graph.get_operations()]
@@ -46,24 +46,24 @@ from model.segment_classify import SegmentClassifyModel
 #                   logdir=frozen_output_path,
 #                   name=f'{frozen_model}.pbtxt',
 #                   as_text=True)
-#==================================================
+# ==================================================
 
-#=========redisAI model store=================
+# =========redisAI model store=================
 # model = open("../models/detect/frozen/frozen_test.pb", 'rb').read()
 
 # redisai_client.modelstore('ddm-detect', 'tf', 'gpu', model, inputs=['x'], outputs=['Identity'])
-#==============================================
+# ==============================================
 
 # ==========check inputs, outputs name===========
 # import tensorflow as tf
 # gf = tf.compat.v1.GraphDef()
 # gf.ParseFromString(open('../models/detect/frozen/frozen_test.pb','rb').read())
- 
+
 # print([n.name + '=>' +  n.op for n in gf.node if n.op])
 # ==============================================
 
 
-#===========redisAI predict (classify)================
+# ===========redisAI predict (classify)================
 # import librosa
 # import numpy as np
 
@@ -95,7 +95,7 @@ from model.segment_classify import SegmentClassifyModel
 #     np.set_printoptions(precision=2, suppress=True)
 #     print(out)
 
-#=====================redisAI predict (detect) =================
+# =====================redisAI predict (detect) =================
 # import librosa
 # import numpy as np
 # from sklearn.preprocessing import StandardScaler

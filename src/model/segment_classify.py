@@ -421,14 +421,14 @@ class SegmentClassifyModel(BaseModel):
         bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
 
         return {"instrument": drum_instrument, "rhythm": bar_rhythm}
-    
+
     # tranform 2D array to dict
     def transform_arr_to_dict(self, arr_data):
         result_dict = {}
         for code, drum in CLASSIFY_CODE2DRUM.items():
             result_dict[drum] = [row[code] for row in arr_data]
         return result_dict
-    
+
     def data_pre_processing(self, audio: np.array) -> np.array:
         # -- trimmed audio
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
@@ -449,7 +449,7 @@ class SegmentClassifyModel(BaseModel):
         # -- reshape
         predict_data = SegmentClassifyModel.x_data_transpose(predict_data)
         return predict_data
-    
+
     def data_post_processing(self, predict_data: np.array, audio: np.array):
         drum_instrument = self.get_predict_result(predict_data)
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
@@ -471,7 +471,6 @@ class SegmentClassifyModel(BaseModel):
             if k in list(CLASSIFY_CODE2DRUM.values()):
                 new_frame_onset[k] = v
 
-        DataLabeling.show_label_dict_plot(new_frame_onset, 0, 2000)
+        # DataLabeling.show_label_dict_plot(new_frame_onset, 0, 2000)
 
         return drum_instrument, onsets_arr
-

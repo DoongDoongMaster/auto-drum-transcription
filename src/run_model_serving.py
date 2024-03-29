@@ -1,11 +1,20 @@
-from constant import METHOD_CLASSIFY, METHOD_DETECT, SERVED_MODEL_CLASSIFY_BI_LSTM, SERVED_MODEL_CLASSIFY_LSTM, SERVED_MODEL_CLASSIFY_MFCC, SERVED_MODEl_DETECT_LSTM
+from constant import (
+    METHOD_CLASSIFY,
+    METHOD_DETECT,
+    SERVED_MODEL_CLASSIFY_BI_LSTM,
+    SERVED_MODEL_CLASSIFY_LSTM,
+    SERVED_MODEL_CLASSIFY_MFCC,
+    SERVED_MODEl_DETECT_LSTM,
+)
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from serving.model_serving import ModelServing
 
 # ============ sercved model class create ========================
 model_serving_classify_lstm = ModelServing(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_LSTM)
-model_serving_classify_bi_lstm = ModelServing(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_BI_LSTM)
+model_serving_classify_bi_lstm = ModelServing(
+    METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_BI_LSTM
+)
 model_serving_classify_mfcc = ModelServing(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_MFCC)
 model_serving_detect_lstm = ModelServing(METHOD_DETECT, SERVED_MODEl_DETECT_LSTM)
 

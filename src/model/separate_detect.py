@@ -292,7 +292,7 @@ class SeparateDetectModel(BaseModel):
 
         # reshape을 통해 3D 배열로 변환
         return np.reshape(data, [-1, chunk_size, num_features])
-    
+
     def data_pre_processing(self, audio: np.array) -> np.array:
         audio_feature = np.zeros((0, self.n_columns))
 
@@ -310,12 +310,14 @@ class SeparateDetectModel(BaseModel):
 
         # -- input (#, time, 128 feature)
         # [TODO] redisAI not work BaseModel func. So, create new func (data_pre_processing_reshape) in this class
-        audio_feature = SeparateDetectModel.data_pre_processing_reshpae(audio_feature, CHUNK_TIME_LENGTH)
+        audio_feature = SeparateDetectModel.data_pre_processing_reshpae(
+            audio_feature, CHUNK_TIME_LENGTH
+        )
         audio_feature = audio_feature.astype(np.float32)
 
         return audio_feature
-    
-    def data_post_processing(self, predict_data:np.array, _: np.array = None):
+
+    def data_post_processing(self, predict_data: np.array, _: np.array = None):
         predict_data = predict_data.reshape((-1, self.n_classes))
         predict_data = predict_data.copy()
 
@@ -325,6 +327,6 @@ class SeparateDetectModel(BaseModel):
         )
 
         threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
-        DataLabeling.show_label_dict_plot(threshold_dict, 0, 2000)
+        # DataLabeling.show_label_dict_plot(threshold_dict, 0, 2000)
 
         return drum_instrument, onsets_arr

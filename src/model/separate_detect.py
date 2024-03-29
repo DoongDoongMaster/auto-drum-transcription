@@ -196,7 +196,7 @@ class SeparateDetectModel(BaseModel):
 
             if is_onset:
                 onsets_arr.append(i * self.hop_length / SAMPLE_RATE)
-                drum_instrument.append([len(onsets_arr), drums])
+                drum_instrument.append([len(onsets_arr) - 1, drums])
 
         return onsets_arr, drum_instrument, each_instrument_onsets_arr
 

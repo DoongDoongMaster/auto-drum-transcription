@@ -421,3 +421,20 @@ class SegmentClassifyModel(BaseModel):
         bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
 
         return {"instrument": drum_instrument, "rhythm": bar_rhythm}
+    
+    def data_pre_processing(self, audio: np.array) -> np.array:
+        # -- trimmed audio
+        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+        trimmed_audios = DataProcessing.trim_audio_per_onset(audio, onsets_arr)
+
+        # -- trimmed feature
+        predict_data = []
+        for _, taudio in enumerate(trimmed_audios):
+            trimmed_feature = AudioToFeature.extract_feature(
+                taudio, self.method_type, self.feature_type
+            )
+            predict_data.append(trimmed_feature)
+
+        # -- reshape
+        predict_data = SegmentClassifyModel.x_data_transpose(predict_data)
+        return predict_data

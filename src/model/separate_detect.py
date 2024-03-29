@@ -281,3 +281,36 @@ class SeparateDetectModel(BaseModel):
 
         # return {"instrument": drum_instrument, "rhythm": bar_rhythm}
         # return NULL
+
+    @staticmethod
+    def data_pre_processing_reshpae(data, chunk_size):
+        num_samples, num_features = data.shape
+        num_chunks = num_samples // chunk_size
+
+        # 나머지 부분을 제외한 데이터만 사용
+        data = data[: num_chunks * chunk_size, :]
+
+        # reshape을 통해 3D 배열로 변환
+        return np.reshape(data, [-1, chunk_size, num_features])
+    
+    def data_pre_processing(self, audio: np.array) -> np.array:
+        audio_feature = np.zeros((0, self.n_columns))
+
+        # 12s chunk하면서 audio feature추출 후 이어붙이기 -> 함수로 뽑을 예정
+        audios = DataProcessing.cut_chunk_audio(audio)
+        for i, ao in enumerate(audios):
+            # audio to feature
+            feature = AudioToFeature.extract_feature(
+                ao, self.method_type, self.feature_type
+            )
+            audio_feature = np.vstack([audio_feature, feature])
+
+        scaler = StandardScaler()
+        audio_feature = scaler.fit_transform(audio_feature)
+
+        # -- input (#, time, 128 feature)
+        # [TODO] redisAI not work BaseModel func. So, create new func (data_pre_processing_reshape) in this class
+        audio_feature = SeparateDetectModel.data_pre_processing_reshpae(audio_feature, CHUNK_TIME_LENGTH)
+        audio_feature = audio_feature.astype(np.float32)
+
+        return audio_feature

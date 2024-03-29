@@ -451,7 +451,13 @@ class SegmentClassifyModel(BaseModel):
         return predict_data
 
     def data_post_processing(self, predict_data: np.array, audio: np.array):
-        drum_instrument = self.get_predict_result(predict_data)
+        predict_data_result = []
+        for data in predict_data:
+            data_0 = max(data[0], data[1])
+            predict_data_result.append([data_0, data[2], data[3], data[4]])
+
+        predict_data_result = np.array(predict_data_result)
+        drum_instrument = self.get_predict_result(predict_data_result)
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio).tolist()
 
         # -- show graph

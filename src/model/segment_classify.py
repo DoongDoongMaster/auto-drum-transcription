@@ -422,10 +422,19 @@ class SegmentClassifyModel(BaseModel):
 
         return {"instrument": drum_instrument, "rhythm": bar_rhythm}
     
+    # tranform 2D array to dict
+    def transform_arr_to_dict(self, arr_data):
+        result_dict = {}
+        for code, drum in CLASSIFY_CODE2DRUM.items():
+            result_dict[drum] = [row[code] for row in arr_data]
+        return result_dict
+    
     def data_pre_processing(self, audio: np.array) -> np.array:
         # -- trimmed audio
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
         trimmed_audios = DataProcessing.trim_audio_per_onset(audio, onsets_arr)
+
+        print("onsets_arr", onsets_arr)
 
         # -- trimmed feature
         predict_data = []
@@ -435,6 +444,34 @@ class SegmentClassifyModel(BaseModel):
             )
             predict_data.append(trimmed_feature)
 
+        print(predict_data)
+
         # -- reshape
         predict_data = SegmentClassifyModel.x_data_transpose(predict_data)
         return predict_data
+    
+    def data_post_processing(self, predict_data: np.array, audio: np.array):
+        drum_instrument = self.get_predict_result(predict_data)
+        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+
+        # -- show graph
+        # -- transport frame
+        onset_dict = {v: [] for _, v in CLASSIFY_CODE2DRUM.items()}
+        for data in drum_instrument:
+            idx = data[0]
+            instrument = data[1]
+            for inst in instrument:
+                onset_dict[CLASSIFY_CODE2DRUM[inst]].append(onsets_arr[idx])
+        frame_length = len(audio) // self.hop_length
+        frame_onset = DataLabeling._get_label_detect(
+            onset_dict, frame_length, self.hop_length
+        )
+        new_frame_onset = {}
+        for k, v in frame_onset.items():
+            if k in list(CLASSIFY_CODE2DRUM.values()):
+                new_frame_onset[k] = v
+
+        DataLabeling.show_label_dict_plot(new_frame_onset, 0, 2000)
+
+        return drum_instrument, onsets_arr
+

@@ -66,8 +66,7 @@ SERVED_MODEl_DETECT_LSTM = "detect_mel-spectrogram_2024-03-15_16-36-20-[all]-[4]
 -- related audio
 """
 # -- 일정한 시간 간격으로 음압을 측정하는 주파수, 44100Hz (단위 Hz)
-SAMPLE_RATE = 4
-4100
+SAMPLE_RATE = 44100
 
 # -- 오디오 자를 시, onset 기준 왼쪽, 오른쪽으로 몇 초 자를지 (단위: sec)
 ONSET_DURATION_LEFT = 0.03

@@ -73,7 +73,9 @@ class ModelServing:
             # post-processing
             drum_instrument, onsets_arr = model_class.data_post_processing(predict_result, audio)
             
+            print("drum_instrument", drum_instrument)
+            print("onests_arr",onsets_arr)
             return drum_instrument, onsets_arr
 
         else:
-            raise Exception("Model Not Found")
+            return False

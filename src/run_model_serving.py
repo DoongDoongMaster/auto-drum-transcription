@@ -1,0 +1,17 @@
+from constant import METHOD_CLASSIFY, METHOD_DETECT, SERVED_MODEL_CLASSIFY_BI_LSTM, SERVED_MODEL_CLASSIFY_LSTM, SERVED_MODEL_CLASSIFY_MFCC, SERVED_MODEl_DETECT_LSTM
+from serving.model_serving import ModelServing
+
+model_serving_classify_lstm = ModelServing(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_LSTM)
+model_serving_classify_bi_lstm = ModelServing(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_BI_LSTM)
+model_serving_classify_mfcc = ModelServing(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_MFCC)
+model_serving_detect_lstm = ModelServing(METHOD_DETECT, SERVED_MODEl_DETECT_LSTM)
+
+ModelServing.convert_model_to_frozen(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_LSTM)
+ModelServing.convert_model_to_frozen(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_BI_LSTM)
+ModelServing.convert_model_to_frozen(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_MFCC)
+ModelServing.convert_model_to_frozen(METHOD_DETECT, SERVED_MODEl_DETECT_LSTM)
+
+model_serving_classify_lstm.store_model_to_server()
+model_serving_classify_bi_lstm.store_model_to_server()
+model_serving_classify_mfcc.store_model_to_server()
+model_serving_detect_lstm.store_model_to_server()

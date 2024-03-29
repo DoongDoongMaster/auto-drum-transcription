@@ -38,10 +38,36 @@ METHOD_RHYTHM = "rhythm"
 
 
 """
+-- model saved type
+"""
+MODEL_SAVED_H5 = "h5"
+MODEL_SAVED_PB = "pb"
+MODEL_DIR = "models"
+
+
+"""
+-- served model
+"""
+SERVED_MODEL_DIR = "served-models" # 서빙 모델 최상위 폴더 
+SERVED_MODEL_TYPE = (METHOD_CLASSIFY, METHOD_DETECT, METHOD_RHYTHM,)
+REDIS_AI_HOST = "localhost"
+REDIS_AI_PORT = 6379
+
+"""
+-- stored model name
+"""
+SERVED_MODEL_CLASSIFY_LSTM = "classify_mel-spectrogram_2024-03-15_10-15-34_[all]_[5]_[smote]_[crnn(lstm)_acc(0.98)]"
+SERVED_MODEL_CLASSIFY_BI_LSTM = "classify_mel-spectrogram_2024-03-18_03-27-38_[all]_[5]_[smote]_[crnn(bi-lstm)_acc(0.98)]"
+SERVED_MODEL_CLASSIFY_MFCC = "classify_mfcc_2024-03-14_02-16-35_[all]_[5]_[smote]_[crnn(lstm)_acc(0.97)]"
+SERVED_MODEl_DETECT_LSTM = "detect_mel-spectrogram_2024-03-15_16-36-20-[all]-[4]-[1-1-0.5]-[crnn(lstm)-acc(0.96)]"
+
+
+"""
 -- related audio
 """
 # -- 일정한 시간 간격으로 음압을 측정하는 주파수, 44100Hz (단위 Hz)
-SAMPLE_RATE = 44100
+SAMPLE_RATE = 4
+4100
 
 # -- 오디오 자를 시, onset 기준 왼쪽, 오른쪽으로 몇 초 자를지 (단위: sec)
 ONSET_DURATION_LEFT = 0.03

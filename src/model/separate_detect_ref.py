@@ -19,6 +19,7 @@ from tensorflow.keras.layers import (
     Conv2D,
     MaxPooling2D,
     Reshape,
+    Dropout,
 )
 from tensorflow.keras.optimizers import RMSprop
 
@@ -151,38 +152,59 @@ class SeparateDetectRefModel(BaseModel):
     def create(self):
         input_layer = Input(shape=(self.n_rows, self.n_columns, 1))
 
-        # First Convolutional Block
+        # 1st Convolutional Block
         conv1_1 = Conv2D(
             filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
         )(input_layer)
-        conv1_1 = BatchNormalization()(conv1_1)
         conv1_2 = Conv2D(
             filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
         )(conv1_1)
-        conv1_2 = BatchNormalization()(conv1_2)
         pool1 = MaxPooling2D(pool_size=(1, 3))(conv1_2)
+        dropout1 = Dropout(0.4)(pool1)
 
-        # Second Convolutional Block
+        # 2nd Convolutional Block
         conv2_1 = Conv2D(
             filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
-        )(pool1)
-        conv2_1 = BatchNormalization()(conv2_1)
+        )(dropout1)
         conv2_2 = Conv2D(
             filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
         )(conv2_1)
-        conv2_2 = BatchNormalization()(conv2_2)
         pool2 = MaxPooling2D(pool_size=(1, 3))(conv2_2)
+        dropout2 = Dropout(0.4)(pool2)
+
+        # 3rd Convolutional Block
+        conv3_1 = Conv2D(
+            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(dropout2)
+        conv3_2 = Conv2D(
+            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(conv3_1)
+        pool3 = MaxPooling2D(pool_size=(1, 3))(conv3_2)
+        dropout3 = Dropout(0.4)(pool3)
+
+        # 4th Convolutional Block
+        conv4_1 = Conv2D(
+            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(dropout3)
+        conv4_2 = Conv2D(
+            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(conv4_1)
+        pool4 = MaxPooling2D(pool_size=(1, 3))(conv4_2)
+        dropout4 = Dropout(0.4)(pool4)
 
         # Reshape for RNN
-        reshape = Reshape((pool2.shape[1], pool2.shape[2] * pool2.shape[3]))(pool2)
+        reshape = Reshape((dropout4.shape[1], dropout4.shape[2] * dropout4.shape[3]))(
+            dropout4
+        )
 
-        # BiGRU layers
-        gru1 = Bidirectional(GRU(50, return_sequences=True))(reshape)
-        gru2 = Bidirectional(GRU(50, return_sequences=True))(gru1)
-        gru3 = Bidirectional(GRU(50, return_sequences=True))(gru2)
+        # BiLSTM layers
+        lstm1 = Bidirectional(LSTM(50, return_sequences=True))(reshape)
+        lstm2 = Bidirectional(LSTM(50, return_sequences=True))(lstm1)
+        lstm3 = Bidirectional(LSTM(50, return_sequences=True))(lstm2)
+        last_dropout = Dropout(0.4)(lstm3)
 
         # Output layer
-        output_layer = Dense(self.n_classes, activation="sigmoid")(gru3)
+        output_layer = Dense(self.n_classes, activation="sigmoid")(last_dropout)
 
         # Model compilation
         self.model = Model(inputs=input_layer, outputs=output_layer)

@@ -1,4 +1,5 @@
 from typing import List
+import librosa
 import numpy as np
 
 from sklearn.model_selection import train_test_split
@@ -57,6 +58,7 @@ def merge_columns(arr, col1, col2):
     # merge한 배열 col1 자리에 끼워넣기
     result = np.delete(arr, [col1, col2], axis=1)
     result = np.insert(result, col1, merged_column, axis=1)
+    result = result.flatten()
 
     return result
 
@@ -190,7 +192,7 @@ class SeparateDetectRefModel(BaseModel):
             filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(conv4_1)
         pool4 = MaxPooling2D(pool_size=(1, 3))(conv4_2)
-        dropout4 = Dropout(0.4)(pool4)
+        dropout4 = Dropout(0.1)(pool4)
 
         # Reshape for RNN
         reshape = Reshape((dropout4.shape[1], dropout4.shape[2] * dropout4.shape[3]))(
@@ -263,6 +265,27 @@ class SeparateDetectRefModel(BaseModel):
             result_dict[drum] = [row[code] for row in arr_data]
         return result_dict
 
+    def transform_peakpick_from_dict(self, data_dict):
+        result_dict = {}
+        for key, values in data_dict.items():
+            item_value = np.array(values)
+            peak_value = np.zeros(len(item_value))
+
+            # peak_pick를 통해 몇 번째 인덱스가 peak인지 추출
+            peaks = librosa.util.peak_pick(
+                item_value,
+                pre_max=3,
+                post_max=3,
+                pre_avg=3,
+                post_avg=3,
+                delta=0.1,
+                wait=1,
+            )
+            for idx in peaks:
+                peak_value[idx] = 1
+            result_dict[key] = peak_value
+        return result_dict
+
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
         audio = FeatureExtractor.load_audio(wav_path)
@@ -308,7 +331,6 @@ class SeparateDetectRefModel(BaseModel):
         class_6_true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
-
         # -- OH - CH
         keys_to_extract = ["OH", "CH"]
         selected_values = [class_6_true_label[key] for key in keys_to_extract]
@@ -327,6 +349,11 @@ class SeparateDetectRefModel(BaseModel):
         class_4_true_label = class_5_true_label  # -- class 4
 
         true_label = class_4_true_label
+
+        # -- 각 라벨마다 peak picking
+        true_label = self.transform_peakpick_from_dict(true_label)
+        result_dict = self.transform_peakpick_from_dict(result_dict)
+        threshold_dict = self.transform_peakpick_from_dict(threshold_dict)
 
         DataLabeling.show_label_dict_compare_plot_detect(
             true_label, result_dict, threshold_dict, 0, 1200

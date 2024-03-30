@@ -175,8 +175,24 @@ DATA_DDM_OWN = (
     "pattern/P1",
     "pattern/P2",
 )
-DATA_E_GMD_NOT = ("drummer1/session2/66_punk_144_fill_4-4",)  ## 싱크 안 맞는 느낌
-DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(f"_{i}.wav" for i in range(2, 59)) # acustic kit 만 사용 
+DATA_E_GMD_NOT = (
+    "drummer1/session2/66_punk_144_fill_4-4",  # 싱크 안 맞음
+    "drummer7/session3/25_hiphop_67_fill_4-4",  # wav 파일 비어있음
+    "drummer7/session3/109_rock_95_beat_4-4",  # 싱크 안 맞음
+    "drummer7/session2/81_country_78_fill_4-4",  # 싱크 안 맞음
+    "drummer3/session2/2_rock_100_beat_4-4",  # 싱크 안 맞음
+    "drummer7/session3/146_soul_105_fill_4-4",  # 싱크 안 맞음
+    "drummer7/session1/15_jazz_112_beat_4-4",  # 싱크 안 맞음
+    "drummer7/session3/149_soul_105_fill_4-4",  # 싱크 안 맞음
+    "drummer7/session3/63_funk_112_fill_4-4",  # 싱크 안 맞음
+    "drummer3/session1/9_rock_105_beat_4-4",  # 싱크 안 맞음
+    "drummer7/session3/25_hiphop_67_fill_4-4",  # 싱크 안 맞음
+    "drummer7/session3/156_soul_98_fill_4-4",  # 싱크 안 맞음
+    "drummer1/session1/5_jazz-funk_116_beat_4-4",  # 싱크 안 맞음
+)
+DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(
+    f"_{i}.wav" for i in range(2, 59)
+)  # acustic kit 만 사용
 
 DATA_ALL = DATA_IDMT + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,) + (ENST,)
 

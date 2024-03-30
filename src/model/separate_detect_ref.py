@@ -22,7 +22,8 @@ from tensorflow.keras.layers import (
     Reshape,
     Dropout,
 )
-from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras.optimizers import RMSprop, Adam
+from tensorflow_addons.optimizers import CyclicalLearningRate
 
 from feature.feature_extractor import FeatureExtractor
 from feature.audio_to_feature import AudioToFeature
@@ -58,7 +59,6 @@ def merge_columns(arr, col1, col2):
     # merge한 배열 col1 자리에 끼워넣기
     result = np.delete(arr, [col1, col2], axis=1)
     result = np.insert(result, col1, merged_column, axis=1)
-    result = result.flatten()
 
     return result
 
@@ -211,7 +211,15 @@ class SeparateDetectRefModel(BaseModel):
         # Model compilation
         self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
-        opt = RMSprop(learning_rate=self.opt_learning_rate)
+
+        cyclical_learning_rate = CyclicalLearningRate(
+            initial_learning_rate=1e-4,
+            maximal_learning_rate=1e-2,
+            step_size=2000,
+            scale_fn=lambda x: 1.0,
+            scale_mode="cycle",
+        )
+        opt = Adam(learning_rate=cyclical_learning_rate)
         self.model.compile(
             loss="binary_crossentropy", optimizer=opt, metrics=["binary_accuracy"]
         )
@@ -336,7 +344,7 @@ class SeparateDetectRefModel(BaseModel):
         cc_oh_label = np.vstack(selected_values_s).T
         merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
         class_5_true_label.pop("CC", None)
-        class_5_true_label["OH"] = merged_cc_oh
+        class_5_true_label["OH"] = merged_cc_oh.flatten()
         class_4_true_label = class_5_true_label  # -- class 4
 
         true_label = class_4_true_label

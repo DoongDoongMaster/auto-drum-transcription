@@ -154,40 +154,40 @@ class SeparateDetectRefModel(BaseModel):
 
         # 1st Convolutional Block
         conv1_1 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(input_layer)
         conv1_2 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(conv1_1)
         pool1 = MaxPooling2D(pool_size=(1, 3))(conv1_2)
         dropout1 = Dropout(0.4)(pool1)
 
         # 2nd Convolutional Block
         conv2_1 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(dropout1)
         conv2_2 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(conv2_1)
         pool2 = MaxPooling2D(pool_size=(1, 3))(conv2_2)
         dropout2 = Dropout(0.4)(pool2)
 
         # 3rd Convolutional Block
         conv3_1 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(dropout2)
         conv3_2 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(conv3_1)
         pool3 = MaxPooling2D(pool_size=(1, 3))(conv3_2)
         dropout3 = Dropout(0.4)(pool3)
 
         # 4th Convolutional Block
         conv4_1 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(dropout3)
         conv4_2 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(conv4_1)
         pool4 = MaxPooling2D(pool_size=(1, 3))(conv4_2)
         dropout4 = Dropout(0.4)(pool4)

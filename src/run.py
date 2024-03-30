@@ -25,6 +25,7 @@ from constant import (
     NEW_PATH,
     PKL,
 )
+from model.separate_detect_ref import SeparateDetectRefModel
 
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
 # FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
@@ -68,39 +69,52 @@ from constant import (
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
 # FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
 
-separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
+# separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
 
-# separate_detect.create_dataset()
-# separate_detect.create()
-# separate_detect.train()
-# separate_detect.evaluate()
-# separate_detect.save()
+# # separate_detect.create_dataset()
+# # separate_detect.create()
+# # separate_detect.train()
+# # separate_detect.evaluate()
+# # separate_detect.save()
+
+# predict_test_datas = [
+#     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+#     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+#     "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
+#     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+#     # "../data/test/record/onlysnare.wav",
+# ]
+# for predict_test_data in predict_test_datas:
+#     print(separate_detect.predict(predict_test_data, 100, 0))
+
+
+separate_detect_ref = SeparateDetectRefModel(40, 0.01, 32, 128)
+
+# separate_detect_ref.create_dataset()
+# separate_detect_ref.create()
+# separate_detect_ref.train()
+# separate_detect_ref.evaluate()
+# separate_detect_ref.save()
 
 predict_test_datas = [
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
     "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
-    "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+    # "../data/test/record/onlysnare.wav",
 ]
 for predict_test_data in predict_test_datas:
-    print(separate_detect.predict(predict_test_data, 100, 0))
+    print(separate_detect_ref.predict(predict_test_data, 100, 0))
 
-# print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
-# print(separate_detect.predict("../data/test/RealDrum01_03#HH#train.wav", 100, 0))
-# print(separate_detect.predict("../data/test/WaveDrum02_31#SD#train.wav", 100, 0))
-# print(separate_detect.predict("../data/test/RealDrum01_02#KD#train.wav", 100, 0))
-# print(
-#     separate_detect.predict("../data/test/3_soul-groove3_86_beat_4-4_out.wav", 100, 0)
-# )
-# print(
-#     separate_detect.predict(
-#         "../data/test/141_MIDI-minus-one_soul-98_sticks.wav", 100, 0
-#     )
-# )
+
 # ---------------------------------------------------------------------------------------
 # import librosa
 # import numpy as np

@@ -244,29 +244,45 @@ class SegmentClassifyModel(BaseModel):
 
         keras.backend.clear_session()
 
-        self.model = keras.Sequential(
-            [
-                layers.Input(shape=(n_steps, n_features)),
-                layers.Conv1D(
-                    filters=64,
-                    kernel_size=8,
-                    padding="same",
-                    data_format="channels_last",
-                    dilation_rate=1,
-                    activation="relu",
-                ),
-                layers.LSTM(
-                    units=32, activation="tanh", name="lstm_1", return_sequences=True
-                ),
-                layers.Dropout(0.2),
-                layers.LSTM(
-                    units=32, activation="tanh", name="lstm_2", return_sequences=True
-                ),
-                layers.Dropout(0.2),
-                layers.Flatten(),
-                layers.Dense(self.n_classes, activation="sigmoid"),
-            ]
+        # Implement model creation logic
+        self.model = keras.Sequential()
+
+        self.model.add(
+            layers.Conv2D(
+                input_shape=(n_steps, n_features, self.n_channels),
+                filters=128,
+                kernel_size=(3, 3),
+                activation="tanh",
+                padding="same",
+            )
         )
+        self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+        self.model.add(
+            layers.Conv2D(
+                filters=128, kernel_size=(3, 3), activation="tanh", padding="same"
+            )
+        )
+        self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+        self.model.add(
+            layers.Conv2D(
+                filters=128, kernel_size=(3, 3), activation="tanh", padding="same"
+            )
+        )
+        self.model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+        self.model.add(layers.GlobalAveragePooling2D())
+
+        self.model.add(layers.Reshape((128, 1), input_shape=(None, 128, 1)))
+        self.model.add(
+            layers.Bidirectional(
+                layers.LSTM(8, input_shape=(None, 128, 1), return_sequences=True)
+            )
+        )
+        self.model.add(layers.Dropout(0.2))
+
+        self.model.add(layers.Flatten())
+        self.model.add(layers.Dense(units=self.n_classes, activation="sigmoid"))
+
         self.model.summary()
         # compile the self.model
         opt = Adam(learning_rate=self.opt_learning_rate)
@@ -289,7 +305,7 @@ class SegmentClassifyModel(BaseModel):
             split_dataset = self.load_dataset(
                 feature_files[i * feature_file_offset : (i + 1) * feature_file_offset]
             )
-            # self.create()
+            self.create()
 
             for data in split_dataset:
                 print("split data length", len(data["x"]))

@@ -373,6 +373,7 @@ FEATURE_PARAM_BASIC = {
     "win_length": 1024,
     "hop_length": 441,
     "n_classes": len(CODE2DRUM),
+    "n_channels": 1,
 }
 FEATURE_PARAM = {
     METHOD_CLASSIFY: {

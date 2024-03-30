@@ -318,15 +318,6 @@ class SeparateDetectRefModel(BaseModel):
         # # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
         result_dict = self.transform_arr_to_dict(predict_data)
 
-        # -- threshold 0.5
-        onsets_arr, drum_instrument, each_instrument_onsets_arr = (
-            self.get_predict_onsets_instrument(predict_data)
-        )
-        threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
-
-        # predict : threshold 둘만 비교
-        # DataLabeling.show_pred_dict_plot_detect(result_dict, threshold_dict, 0, 1200)
-
         # -- 실제 label (merge cc into oh)
         class_6_true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
@@ -353,11 +344,8 @@ class SeparateDetectRefModel(BaseModel):
         # -- 각 라벨마다 peak picking
         true_label = self.transform_peakpick_from_dict(true_label)
         result_dict = self.transform_peakpick_from_dict(result_dict)
-        threshold_dict = self.transform_peakpick_from_dict(threshold_dict)
 
-        DataLabeling.show_label_dict_compare_plot_detect(
-            true_label, result_dict, threshold_dict, 0, 1200
-        )
+        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 
         # # -- rhythm
         # bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)

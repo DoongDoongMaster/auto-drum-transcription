@@ -66,6 +66,30 @@ def preprocess_binary(binary_list):
     return preprocessed_list
 
 
+# def decimal_to_binary(decimal_value, num_bits):
+#     binary_list = [0] * num_bits
+#     binary_str = bin(decimal_value)[2:]
+#     for i in range(len(binary_str)):
+#         binary_list[num_bits - len(binary_str) + i] = int(binary_str[i])
+#     return binary_list
+
+
+def one_hot_to_decimal(one_hot_array):
+    decimal_values = []
+    for row in one_hot_array:
+        decimal_value = np.argmax(row)
+        decimal_values.append(decimal_value)
+    return decimal_values
+
+
+def decimal_to_binary(decimal_values, num_bits):
+    binary_lists = []
+    for decimal_value in decimal_values:
+        binary_list = [int(bit) for bit in bin(decimal_value)[2:].zfill(num_bits)]
+        binary_lists.append(binary_list)
+    return binary_lists
+
+
 class SeparateDetectMultiClassModel(BaseModel):
     def __init__(
         self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16
@@ -274,10 +298,28 @@ class SeparateDetectMultiClassModel(BaseModel):
         # -- predict 결과 -- (#, time, 4 feature)
         predict_data = self.model.predict(audio_feature)
         predict_data = predict_data.reshape((-1, self.n_classes))
-        # # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
-        result_dict = self.transform_arr_to_dict(predict_data)
 
-        # -- threshold 0.5
+        # 각 행에서 최댓값의 인덱스 찾기
+        max_indices = np.argmax(predict_data, axis=1)
+        # 결과 배열 초기화
+        result_data = np.zeros_like(predict_data)
+        # 최댓값 위치에 1 할당
+        for i, idx in enumerate(max_indices):
+            result_data[i, idx] = 1
+        #  = result
+        print("가장 높은 값만 1로: ", result_data.shape)
+        print(result_data)
+
+        # One-hot 벡터를 10진수로 변환한 후에 이를 이진수 리스트로 변환
+        decimal_values = one_hot_to_decimal(predict_data)
+        binary_lists = decimal_to_binary(decimal_values, 4)
+        # decimal_value = one_hot_to_decimal(predict_data)
+
+        # # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
+        result_dict = self.transform_arr_to_dict(binary_lists)
+        # predict_data=
+
+        # -- threshold 0.5 --------------------------------------------------------------
         onsets_arr, drum_instrument, each_instrument_onsets_arr = (
             self.get_predict_onsets_instrument(predict_data)
         )

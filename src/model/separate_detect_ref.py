@@ -1,3 +1,4 @@
+from glob import glob
 from typing import List
 import librosa
 import numpy as np
@@ -22,8 +23,8 @@ from tensorflow.keras.layers import (
     Reshape,
     Dropout,
 )
-from tensorflow.keras.optimizers import RMSprop, Adam
-from tensorflow_addons.optimizers import CyclicalLearningRate
+from tensorflow.keras.optimizers import RMSprop, Adam, SGD
+import tensorflow_addons as tfa
 
 from feature.feature_extractor import FeatureExtractor
 from feature.audio_to_feature import AudioToFeature
@@ -40,6 +41,11 @@ from constant import (
     SAMPLE_RATE,
     DETECT_CODE2DRUM,
 )
+
+# # Register the custom object
+# with custom_object_scope({"CyclicalLearningRate": CyclicalLearningRate}):
+#     # Load or define your model here
+#     model = tf.keras.models.load_model("your_model.h5")
 
 
 def merge_columns(arr, col1, col2):
@@ -82,6 +88,24 @@ class SeparateDetectRefModel(BaseModel):
         self.hop_length = self.feature_param["hop_length"]
         self.win_length = self.feature_param["win_length"]
         self.load_model()
+
+    def load_model(self, model_file=None):
+        """
+        -- method_type과 feature type에 맞는 가장 최근 모델 불러오기
+        """
+        model_files = glob(f"{self.save_path}_*.{self.model_save_type}")
+        if model_files is None or len(model_files) == 0:
+            print("-- ! No pre-trained model ! --")
+            return
+
+        model_files.sort(reverse=True)  # 최신 순으로 정렬
+        load_model_file = model_files[0]  # 가장 최근 모델
+
+        if model_file is not None:  # 불러오고자 하는 특정 모델 파일이 있다면
+            load_model_file = model_file
+
+        print("-- ! load model: ", load_model_file)
+        self.model = tf.keras.models.load_model(load_model_file, compile=False)
 
     def input_reshape(self, data):
         return data
@@ -212,14 +236,18 @@ class SeparateDetectRefModel(BaseModel):
         self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
 
-        cyclical_learning_rate = CyclicalLearningRate(
+        steps_per_epoch = len(self.x_train) // self.batch_size  # Batch size is 32
+
+        cyclical_learning_rate = tfa.optimizers.CyclicalLearningRate(
             initial_learning_rate=1e-4,
             maximal_learning_rate=1e-2,
-            step_size=2000,
-            scale_fn=lambda x: 1.0,
+            step_size=2 * steps_per_epoch,
+            scale_fn=lambda x: 1 / (2.0 ** (x - 1)),
             scale_mode="cycle",
         )
-        opt = Adam(learning_rate=cyclical_learning_rate)
+        opt = tf.keras.optimizers.Adam(cyclical_learning_rate)
+        # opt = Adam(cyclical_learning_rate)
+        # opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
             loss="binary_crossentropy", optimizer=opt, metrics=["binary_accuracy"]
         )
@@ -266,34 +294,6 @@ class SeparateDetectRefModel(BaseModel):
 
         return onsets_arr, drum_instrument, each_instrument_onsets_arr
 
-    # tranform 2D array to dict
-    def transform_arr_to_dict(self, arr_data):
-        result_dict = {}
-        for code, drum in DETECT_CODE2DRUM.items():
-            result_dict[drum] = [row[code] for row in arr_data]
-        return result_dict
-
-    def transform_peakpick_from_dict(self, data_dict):
-        result_dict = {}
-        for key, values in data_dict.items():
-            item_value = np.array(values)
-            peak_value = np.zeros(len(item_value))
-
-            # peak_pick를 통해 몇 번째 인덱스가 peak인지 추출
-            peaks = librosa.util.peak_pick(
-                item_value,
-                pre_max=3,
-                post_max=3,
-                pre_avg=3,
-                post_avg=3,
-                delta=0.1,
-                wait=1,
-            )
-            for idx in peaks:
-                peak_value[idx] = 1
-            result_dict[key] = peak_value
-        return result_dict
-
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
         audio = FeatureExtractor.load_audio(wav_path)
@@ -324,7 +324,7 @@ class SeparateDetectRefModel(BaseModel):
         predict_data = self.model.predict(audio_feature)
         predict_data = predict_data.reshape((-1, self.n_classes))
         # # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
-        result_dict = self.transform_arr_to_dict(predict_data)
+        result_dict = BaseModel.transform_arr_to_dict(predict_data)
 
         # -- 실제 label (merge cc into oh)
         class_6_true_label = DataLabeling.data_labeling(
@@ -350,8 +350,8 @@ class SeparateDetectRefModel(BaseModel):
         true_label = class_4_true_label
 
         # -- 각 라벨마다 peak picking
-        true_label = self.transform_peakpick_from_dict(true_label)
-        result_dict = self.transform_peakpick_from_dict(result_dict)
+        true_label = BaseModel.transform_peakpick_from_dict(true_label)
+        result_dict = BaseModel.transform_peakpick_from_dict(result_dict)
 
         DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 

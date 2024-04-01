@@ -197,8 +197,8 @@ class SegmentClassifyModel(BaseModel):
         """
         -- Implement dataset split feature & label logic
         """
-        # X = self.x_data_1d_reshape(X)
-        # X, y = SegmentClassifyModel.smote_data(X, y)
+        X = self.x_data_1d_reshape(X)
+        X, y = SegmentClassifyModel.smote_data(X, y)
 
         y = FeatureExtractor.number_to_one_hot_label(y)
 

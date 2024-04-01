@@ -81,7 +81,7 @@ from constant import (
 # # predict_test_data = "../data/test/항해_솔로_일부분.wav"
 segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
 # segment_classify.load_dataset()
-# # segment_classify.extract_feature(feature_path)
+segment_classify.extract_feature()
 segment_classify.run()
 # print(segment_classify.predict(predict_test_data, 100, 0))
 

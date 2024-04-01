@@ -16,6 +16,7 @@ from sklearn.metrics import (
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from constant import (
+    DETECT_CODE2DRUM,
     SAMPLE_RATE,
     PKL,
     METHOD_CLASSIFY,
@@ -133,6 +134,48 @@ class BaseModel:
         # reshape을 통해 3D 배열로 변환
         return data.reshape((num_chunks, chunk_size, num_features, 1))
 
+    @staticmethod
+    def transform_peakpick_from_dict(data_dict):
+        result_dict = {}
+        for key, values in data_dict.items():
+            item_value = np.array(values)
+            peak_value = np.zeros(len(item_value))
+
+            # peak_pick를 통해 몇 번째 인덱스가 peak인지 추출
+            peaks = librosa.util.peak_pick(
+                item_value,
+                pre_max=3,
+                post_max=3,
+                pre_avg=3,
+                post_avg=3,
+                delta=0.1,
+                wait=1,
+            )
+            for idx in peaks:
+                peak_value[idx] = 1
+            result_dict[key] = peak_value
+        return result_dict
+
+    # tranform 2D array to dict
+    @staticmethod
+    def transform_arr_to_dict(arr_data):
+        result_dict = {}
+        for code, drum in DETECT_CODE2DRUM.items():
+            result_dict[drum] = [row[code] for row in arr_data]
+        return result_dict
+
+    # tranform dict to 2D array (detect)
+    @staticmethod
+    def transform_dict_to_arr(dict_data):
+        num_rows = len(next(iter(dict_data.values())))
+        result_arr = []
+        for i in range(num_rows):
+            row_dict = {}
+            for key, values in dict_data.items():
+                row_dict[key] = values[i]
+            result_arr.append(row_dict)
+        return result_arr
+
     def create_dataset(self):
         # Implement model
         pass
@@ -170,7 +213,8 @@ class BaseModel:
         return history
 
     def data_2d_reshape(self, data):
-        return tf.reshape(data, [-1, self.n_classes])
+        # return tf.reshape(data, [-1, self.n_classes])
+        return data.reshape((-1, self.n_classes))
 
     def evaluate(self):
         # Implement model evaluation logic
@@ -192,8 +236,19 @@ class BaseModel:
 
             # -- binary
             if self.method_type == METHOD_DETECT:
-                y_test_data = np.where(y_test_data > self.predict_standard, 1.0, 0.0)
-            y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
+                print("----1 !!!!!!!!", type(y_test_data), y_test_data)
+                y_test_data = BaseModel.transform_arr_to_dict(y_test_data)
+                print("----2 !!!!!!!!", type(y_test_data), y_test_data)
+                y_test_data = BaseModel.transform_peakpick_from_dict(y_test_data)
+                print("----3 !!!!!!!!", type(y_test_data), y_test_data)
+                y_test_data = BaseModel.transform_dict_to_arr(y_test_data)
+                print("----4 !!!!!!!!", type(y_test_data), y_test_data)
+
+                y_pred = BaseModel.transform_arr_to_dict(y_pred)
+                y_pred = BaseModel.transform_peakpick_from_dict(y_pred)
+                y_pred = BaseModel.transform_dict_to_arr(y_pred)
+            else:
+                y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
 
             # confusion matrix & precision & recall
             print("-- ! confusion matrix ! --")

@@ -15,6 +15,8 @@ from feature.audio_to_feature import AudioToFeature
 
 from constant import (
     CODE2DRUM,
+    FEATURE_DTYPE_16,
+    FEATURE_DTYPE_32,
     SAMPLE_RATE,
     MFCC,
     STFT,
@@ -436,7 +438,7 @@ class FeatureExtractor:
 
         return pd.DataFrame(
             label_data,
-            dtype="float16",
+            dtype=FEATURE_DTYPE_16,
         )
 
     @staticmethod
@@ -456,7 +458,7 @@ class FeatureExtractor:
             return pd.DataFrame(
                 feature,
                 columns=[feature_type[:8] + str(i + 1) for i in range(n_feature)],
-                dtype="float32",
+                dtype=FEATURE_DTYPE_32,
             )
 
     @staticmethod

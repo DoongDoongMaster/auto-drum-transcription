@@ -136,6 +136,10 @@ class BaseModel:
 
     @staticmethod
     def transform_peakpick_from_dict(data_dict):
+        """
+        peak picking from dict data
+        input : float32 array
+        """
         result_dict = {}
         for key, values in data_dict.items():
             item_value = np.array(values)
@@ -167,13 +171,15 @@ class BaseModel:
     # tranform dict to 2D array (detect)
     @staticmethod
     def transform_dict_to_arr(dict_data):
-        num_rows = len(next(iter(dict_data.values())))
-        result_arr = []
-        for i in range(num_rows):
-            row_dict = {}
-            for key, values in dict_data.items():
-                row_dict[key] = values[i]
-            result_arr.append(row_dict)
+        """
+        {'OH': [0., 0., 0., ..., 0., 0., 0.], 'TT': [0., 0., 0., ..., 0., 0., 0.], 'SD': [0., 0., 0., ..., 0., 0., 0.], 'KK': [0., 0., 0., ..., 0., 0., 0.]}
+        =>
+        [[0,0,0,0],
+        [0,0,0,0],
+        ...
+        [0,0,0,0]]
+        """
+        result_arr = np.stack([dict_data[key] for key in dict_data.keys()], axis=1)
         return result_arr
 
     def create_dataset(self):
@@ -236,13 +242,11 @@ class BaseModel:
 
             # -- binary
             if self.method_type == METHOD_DETECT:
-                print("----1 !!!!!!!!", type(y_test_data), y_test_data)
+                # y array -> y dict -> peakpick dict -> y array
+                y_test_data = DataProcessing.convert_array_dtype_float32(y_test_data)
                 y_test_data = BaseModel.transform_arr_to_dict(y_test_data)
-                print("----2 !!!!!!!!", type(y_test_data), y_test_data)
                 y_test_data = BaseModel.transform_peakpick_from_dict(y_test_data)
-                print("----3 !!!!!!!!", type(y_test_data), y_test_data)
                 y_test_data = BaseModel.transform_dict_to_arr(y_test_data)
-                print("----4 !!!!!!!!", type(y_test_data), y_test_data)
 
                 y_pred = BaseModel.transform_arr_to_dict(y_pred)
                 y_pred = BaseModel.transform_peakpick_from_dict(y_pred)

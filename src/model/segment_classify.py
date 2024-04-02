@@ -271,11 +271,11 @@ class SegmentClassifyModel(BaseModel):
         )
         feature_files = glob(f"{save_folder_path}/*.{self.feature_extension}")
         feature_file_offset = math.ceil(len(feature_files) / float(self.data_cnt))
+        self.create()
         for i in range(self.data_cnt):
             split_dataset = self.load_dataset(
                 feature_files[i * feature_file_offset : (i + 1) * feature_file_offset]
             )
-            # self.create()
 
             for data in split_dataset:
                 print("split data length", len(data["x"]))

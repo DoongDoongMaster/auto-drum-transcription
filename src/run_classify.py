@@ -24,69 +24,8 @@ from constant import (
     METHOD_RHYTHM,
 )
 
-# midi_path = (
-#     "../data/raw/e-gmd-v1.0.0/drummer1/session1/97_neworleans-funk_84_fill_4-4.mid"
-# )
-# print(OnsetDetect.get_onsets_instrument_from_mid(midi_path))
 
-# midi_path = f"../data/raw/{IDMT}/annotation_xml/RealDrum01_00#MIX.xml"
-# OnsetDetect.get_onsets_from_xml(midi_path)
-
-# path = f"../data/raw/{DRUM_KIT}/kick/Bass Sample 1.wav"
-# audio, _ = librosa.load(path, sr=SAMPLE_RATE)
-# OnsetDetect.get_peak_using_librosa(audio, 441)
-# print(DataLabeling.get_onsets_instrument_arr(audio, path))
-
-# midi_path = "../data/raw/drum-kit-sound/kick/Bass Sample 1.wav"
-# # midi_path = "../data/raw/drum-kit-sound/snare/Snare Sample 10.wav"
-# # midi_path = "../data/raw/ddm-own/pattern/P1/08/P1_08_0014.m4a"
-# # audio, _ = librosa.load(midi_path, sr=SAMPLE_RATE)
-# midi_paths = DataProcessing.get_paths(f"../data/raw/{DRUM_KIT}/kick/Bass Sample 1.wav")
-# for path in midi_paths:
-#     print(path)
-#     audio, _ = librosa.load(path, sr=None)
-#     # audio = audio[: 5 * SAMPLE_RATE]
-#     onsets = OnsetDetect.get_onsets_using_librosa(audio)
-#     audio = DataProcessing.trim_audio_first_onset(audio, onsets[0])
-#     DataProcessing.write_wav_audio_one("../data/test", "test_drum_kit", audio)
-# OnsetDetect.onset_detection(audio)
-
-# onsets = OnsetDetect.get_onsets_from_svl(
-#     "../data/raw/IDMT-SMT-DRUMS-V2/annotation_svl/WaveDrum02_01#HH.svl"
-# )
-
-# audio, _ = librosa.load(
-#     f"../data/raw/{E_GMD}/drummer1/session1/1_funk_80_beat_4-4.wav", sr=44100
-# )
-# audio = audio[: 5 * 44100]
-# onsets = OnsetDetect.get_onsets_using_librosa(audio, 441)
-# trimmed = DataProcessing.trim_audio_per_onset(audio, onsets)
-# DataProcessing.write_trimmed_audio(f"{ROOT_PATH}/test", "test", trimmed)
-
-# predict_test_data = (
-#     f"../data/raw/{ENST}/drummer_1/audio/hi-hat/003_hits_medium-tom_sticks_x5.wav"
-# )
-# predict_test_data = f"../data/raw/{DDM_OWN}/pattern/P2/16/P2_16_0001.m4a"
-# feature_path = f"{ROOT_PATH}/{RAW_PATH}"
-# # # # midi_path = "../data/raw/e-gmd-v1.0.0/drummer1/session2/8_jazz-march_176_beat_4-4.mid"
-# # # # OnsetDetect.get_onsets_instrument_from_mid(midi_path, end=5)
-# # predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
-# # # predict_test_data = f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}/per-drum/HH/16/HH_16_0001.m4a"
-# # predict_test_data = (
-# #     "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4_44.wav"
-# # )
-# predict_test_data = (
-#     f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/drummer1/session3/8_rock_135_beat_4-4.wav"
-# )
-# # predict_test_data = "../data/test/항해_솔로_일부분.wav"
-# segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
-# segment_classify.load_dataset()
-# # segment_classify.extract_feature(feature_path)
-# segment_classify.run()
-# print(segment_classify.predict(predict_test_data, 100, 0))
-
-# -------------------
-# Feature Extract
+# ============Feature Extract===================
 # data_paths_ddm = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}")
 # data_paths_kit = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{DRUM_KIT}")
 # data_paths_enst = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{ENST}")
@@ -121,24 +60,28 @@ from constant import (
 # ))
 # AudioToFeature.show_feature_plot(data["feature"][1], METHOD_CLASSIFY, MFCC)
 
-# ----------------------------------------------------------------------------
-# model test
+# ===============Model Train============================
+# segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
+# segment_classify.run()
+
+# ===============Model Predict==========================
 segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
 
 predict_test_datas = [
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
-    "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P1_08_0004.m4a",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P2_16_0001.m4a",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_1.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_2.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_3.wav",
+    "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_4.wav",
 ]
 for predict_test_data in predict_test_datas:
-    print(segment_classify.predict(predict_test_data, 100, 0))
-
-# --- personal test
-# predict_test_data = "../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
-
-# print(segment_classify.predict(predict_test_data, 100, 0))
+    print(segment_classify.predict(predict_test_data, 90, 0))

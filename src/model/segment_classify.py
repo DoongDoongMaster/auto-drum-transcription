@@ -1,15 +1,12 @@
 import math
 import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt
-import tensorflow_addons as tfa
 
 from glob import glob
 from tensorflow import keras
 from tensorflow.keras import layers
 from collections import Counter
 from imblearn.over_sampling import SMOTE
-from imblearn.under_sampling import NearMiss
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from keras.models import Model
@@ -25,7 +22,8 @@ from data.rhythm_detection import RhythmDetection
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
 from constant import (
-    CLASSIFY_DETECT_TYPES,
+    CLASSIFY_TYPES,
+    DRUM2CODE,
     METHOD_CLASSIFY,
     MFCC,
     MILLISECOND,
@@ -53,36 +51,23 @@ class SegmentClassifyModel(BaseModel):
             feature_type=feature_type,
             feature_extension=feature_extension,
         )
-        self.data_cnt = 2
+        self.data_cnt = 1
         self.train_cnt = 1
-        self.predict_standard = 0.8
+        self.predict_standard = 0.5
         self.n_rows = (
             self.feature_param["n_mfcc"]
             if feature_type == MFCC
             else self.feature_param["n_mels"]
-        )
+        )  # feature 개수
         self.n_columns = (
             int(CLASSIFY_DURATION * SAMPLE_RATE) // self.feature_param["hop_length"]
-        )
-        self.n_channels = (
-            self.feature_param["n_channels"] if feature_type == MFCC else 1
-        )
+        )  # timestamp
+        self.n_channels = 1
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
-        # self.load_model("../models/classify_mfcc_2024-02-24_00-53-10_smote_5.h5")
         self.load_model()
 
     def input_reshape(self, data):
-        # cnn data
-        # return tf.reshape(
-        #     data,
-        #     [
-        #         -1,
-        #         self.n_rows,
-        #         self.n_columns,
-        #         self.n_channels,
-        #     ],
-        # )
         # sequence data
         return tf.reshape(
             data,
@@ -163,6 +148,7 @@ class SegmentClassifyModel(BaseModel):
         del feature_df
 
         X = SegmentClassifyModel.x_data_transpose(X)
+        y = BaseModel.grouping_label(y, CLASSIFY_TYPES)
 
         number_y = FeatureExtractor.one_hot_label_to_number(y)
         counter = Counter(number_y)
@@ -382,11 +368,11 @@ class SegmentClassifyModel(BaseModel):
             audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
         )
         l = {}
-        for k, v in CLASSIFY_DETECT_TYPES.items():
+        for k, v in CLASSIFY_TYPES.items():
             temp_label = []
             for drum_idx, origin_key in enumerate(v):
                 if len(temp_label) == 0:  # 초기화
-                    temp_label = true_label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
+                    temp_label = true_label[CLASSIFY_TYPES[k][drum_idx]]
                 else:
                     for frame_idx, frame_value in enumerate(true_label[origin_key]):
                         if temp_label[frame_idx] == 1.0 or frame_value == 0.0:

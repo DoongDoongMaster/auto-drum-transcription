@@ -31,6 +31,14 @@ DRUM_KIT = "drum-kit-sound"
 
 
 """
+-- 우리 데이터랑 연관된 상수
+"""
+# -- dir name
+PATTERN_DIR = "pattern"
+PER_DRUM_DIR = "per-drum"
+
+
+"""
 -- model type
 """
 # -- segment & classify 방식
@@ -53,6 +61,15 @@ SAMPLE_RATE = 44100
 ONSET_DURATION_LEFT = 0.03
 ONSET_DURATION_RIGHT = 0.5
 
+# -- classify method feature duration
+CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
+
+# -- 동시에 친 오디오 구분 초 (단위: sec)
+CLASSIFY_SAME_TIME = 0.035
+
+# -- 너무 짧게 잘린 데이터 버리는 단위 (단위: sec)
+CLASSIFY_SHORT_TIME = 0.16
+
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
 ONSET_OFFSET = 1
 
@@ -73,68 +90,6 @@ CHUNK_TIME_LENGTH = 30
 
 # -- unit (1 sec)
 MILLISECOND = 1000000
-
-# -- classify method feature duration
-CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
-
-
-"""
--- drum mapping
-
--- 파일 이름 형식
--- per_drum : CC_04_9949.wav
--- pattern : P1_08_0001.wav
-"""
-CODE2DRUM = {0: "CC", 1: "OH", 2: "CH", 3: "TT", 4: "SD", 5: "KK"}
-# -- {'CC':0, 'OH':1, ...}
-DRUM2CODE = {v: k for k, v in CODE2DRUM.items()}
-# -- {'CC':[1,0,0,0,0,0], 'OH':[0,1,0,0,0,0], ...}
-ONEHOT_DRUM2CODE = {}
-for code, index in DRUM2CODE.items():
-    drum_mapping = [0] * len(DRUM2CODE)
-    drum_mapping[index] = 1
-    ONEHOT_DRUM2CODE[code] = drum_mapping
-
-PATTERN = {
-    "CH": ONEHOT_DRUM2CODE["CH"],
-    "SD": ONEHOT_DRUM2CODE["SD"],
-    "CH_KK": [0, 0, 1, 0, 0, 1],
-    "CH_SD": [0, 0, 1, 0, 1, 0],
-}
-
-P_HH_KK = PATTERN["CH_KK"]
-P_SD = PATTERN["SD"]
-P_HH = PATTERN["CH"]
-P_HH_SD = PATTERN["CH_SD"]
-
-P1_2CODE = [P_HH_KK, P_HH, P_HH_SD, P_HH, P_HH_KK, P_HH_KK, P_HH_SD, P_HH]
-P2_2CODE = [
-    P_HH_KK,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_SD,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_HH_KK,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_SD,
-    P_HH,
-    P_HH,
-    P_HH,
-]
-PATTERN2CODE = {"P1": P1_2CODE, "P2": P2_2CODE}
-
-
-"""
--- 우리 데이터랑 연관된 상수
-"""
-# -- dir name
-PATTERN_DIR = "pattern"
-PER_DRUM_DIR = "per-drum"
 
 
 """
@@ -313,22 +268,22 @@ for drum_type, values in DRUM_TYPES.items():
         # Add the mapping to the new dictionary
         DRUM_MAP[value] = drum_type
 
+CODE2DRUM = {i: k for i, k in enumerate(DRUM_TYPES.keys())}
+# -- {'CC':0, 'OH':1, ...}
+DRUM2CODE = {v: k for k, v in CODE2DRUM.items()}
+
 
 """
 -- classify 방법에서의 분류 라벨
 """
-CLASSIFY_DETECT_TYPES = {
+CLASSIFY_TYPES = {
     "OH": [
         "CC",
         "OH",
-    ],
-    "CH": [
         "CH",
     ],
-    "TT": [
-        "TT",
-    ],
     "SD": [
+        "TT",
         "SD",
     ],
     "KK": [
@@ -337,7 +292,7 @@ CLASSIFY_DETECT_TYPES = {
 }
 CLASSIFY_MAP = {}
 # Iterate over the DRUM_TYPES
-for drum_type, values in CLASSIFY_DETECT_TYPES.items():
+for drum_type, values in CLASSIFY_TYPES.items():
     # Iterate over the values for each drum_type
     for value in values:
         # Add the mapping to the new dictionary
@@ -345,15 +300,13 @@ for drum_type, values in CLASSIFY_DETECT_TYPES.items():
 """
 -- {0: "OH", 1: "CH", ...}
 """
-CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_DETECT_TYPES.keys())}
-"""
--- {"OH": 0, "CH": 1, ...}
-"""
-CLASSIFY_DRUM2CODE = {v: k for k, v in CLASSIFY_CODE2DRUM.items()}
+CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_TYPES.keys())}
 """
 -- classify 방법에서 불가능한 라벨 값 (십진수)
 """
-CLASSIFY_IMPOSSIBLE_LABEL = {14, 15, 22, 23, 26, 27, 28, 29, 30, 31}
+CLASSIFY_IMPOSSIBLE_LABEL = (
+    {14, 15, 22, 23, 26, 27, 28, 29, 30, 31} if len(CLASSIFY_TYPES) == 5 else {0}
+)
 
 
 """
@@ -379,6 +332,56 @@ for drum_type, values in DETECT_TYPES.items():
 -- {0: "OH", 1: "TT", ...}
 """
 DETECT_CODE2DRUM = {i: k for i, k in enumerate(DETECT_TYPES.keys())}
+
+
+"""
+-- drum mapping
+
+-- 파일 이름 형식
+-- per_drum : CC_04_9949.wav
+-- pattern : P1_08_0001.wav
+"""
+# -- {'CC':[1,0,0,0,0,0], 'OH':[0,1,0,0,0,0], ...}
+ONEHOT_DRUM2CODE = {}
+for code, index in DRUM2CODE.items():
+    drum_mapping = [0] * len(DRUM2CODE)
+    drum_mapping[index] = 1
+    ONEHOT_DRUM2CODE[code] = drum_mapping
+
+PATTERN = {
+    "CH": ONEHOT_DRUM2CODE["CH"],
+    "SD": ONEHOT_DRUM2CODE["SD"],
+    "CH_KK": [0, 0, 1, 0, 0, 1],
+    "CH_SD": [0, 0, 1, 0, 1, 0],
+}
+
+P_HH_KK = PATTERN["CH_KK"]
+P_SD = PATTERN["SD"]
+P_HH = PATTERN["CH"]
+P_HH_SD = PATTERN["CH_SD"]
+
+P1_2CODE = [P_HH_KK, P_HH, P_HH_SD, P_HH, P_HH_KK, P_HH_KK, P_HH_SD, P_HH]
+P2_2CODE = [
+    P_HH_KK,
+    P_HH,
+    P_HH,
+    P_HH,
+    P_SD,
+    P_HH,
+    P_HH,
+    P_HH,
+    P_HH_KK,
+    P_HH,
+    P_HH,
+    P_HH,
+    P_SD,
+    P_HH,
+    P_HH,
+    P_HH,
+]
+PATTERN2CODE = {"P1": P1_2CODE, "P2": P2_2CODE}
+
+
 # ------------------------------------------------------------------------------------
 
 """
@@ -405,7 +408,6 @@ FEATURE_PARAM = {
         MFCC: {
             **FEATURE_PARAM_BASIC,
             "n_mfcc": 40,
-            "n_channels": 1,
             "n_classes": len(CLASSIFY_CODE2DRUM),
         },
         STFT: {
@@ -456,6 +458,19 @@ FEATURE_PARAM = {
         },
     },
 }
+
+"""
+-- classify feature 추출 시, 필요한 상수 (단위: frame)
+"""
+CLASSIFY_DURATION_FRAME = round(
+    CLASSIFY_DURATION * (SAMPLE_RATE // FEATURE_PARAM_BASIC["hop_length"])
+)
+CLASSIFY_SAME_TIME_FRAME = round(
+    CLASSIFY_SAME_TIME * (SAMPLE_RATE // FEATURE_PARAM_BASIC["hop_length"])
+)
+CLASSIFY_SHORT_TIME_FRAME = round(
+    CLASSIFY_SHORT_TIME * (SAMPLE_RATE // FEATURE_PARAM_BASIC["hop_length"])
+)
 
 
 """

@@ -15,6 +15,8 @@ from feature.audio_to_feature import AudioToFeature
 
 
 from constant import (
+    CLASSIFY_SAME_TIME,
+    CLASSIFY_SHORT_TIME,
     CODE2DRUM,
     DATA_ENST_TEST,
     E_GMD,
@@ -40,9 +42,7 @@ from constant import (
     PKL,
     FEATURE_PARAM,
     CLASSIFY_DURATION,
-    CLASSIFY_DETECT_TYPES,
-    CLASSIFY_MAP,
-    CLASSIFY_DRUM2CODE,
+    CLASSIFY_TYPES,
     CLASSIFY_CODE2DRUM,
     CLASSIFY_IMPOSSIBLE_LABEL,
     TEST,
@@ -85,13 +85,14 @@ class FeatureExtractor:
             data_feature_label = FeatureExtractor._load_feature_one_file(
                 feature_file, feature_extension
             )
-
             # 현재 파일의 데이터를 combined_df에 추가
             combined_df = pd.concat(
                 [combined_df, data_feature_label], ignore_index=True
             )
             del data_feature_label
 
+        # row 생략 없이 출력
+        # pd.set_option("display.max_rows", None)
         print(
             "-- ! 로딩 완료 ! --",
             "data shape:",
@@ -296,14 +297,7 @@ class FeatureExtractor:
         )
 
     @staticmethod
-    def _translate_drum_label_to_classify(drum: int) -> int:
-        if drum == -1:
-            return
-        return CLASSIFY_DRUM2CODE[CLASSIFY_MAP[CODE2DRUM[drum]]]
-
-    @staticmethod
     def _get_onsets_label_from_onsets(onsets):
-        OFFSET = 0.035  # 몇 초 차이까지 동시에 친 것으로 볼 것인지
         idx = 0
         result_onsets = []  # [{"onset": onset, "duration": 다음 온셋 사이의 시간}, ...]
         result_label = []  # [{'OH':[], 'CH':[], 'TT':[], 'SD':[], 'KK':[]}, ...]
@@ -316,31 +310,24 @@ class FeatureExtractor:
             if not curr_drum in CODE2DRUM:
                 is_available = False
 
-            curr_drum = FeatureExtractor._translate_drum_label_to_classify(
-                curr_drum
-            )  # 0: 'OH', 1: 'CH', 2: 'TT', 3: 'SD', 4: 'KK'
             temp_label = [curr_drum]
             if (
                 idx + 1 < len(onsets)
-                and onsets[idx + 1]["onset"] - curr_onset <= OFFSET
+                and onsets[idx + 1]["onset"] - curr_onset <= CLASSIFY_SAME_TIME
             ):
                 idx = idx + 1
-                if not onsets[idx]["drum"] in CODE2DRUM:
+                next_drum = onsets[idx]["drum"]
+                if not next_drum in CODE2DRUM:
                     is_available = False
-                next_drum = FeatureExtractor._translate_drum_label_to_classify(
-                    onsets[idx]["drum"]
-                )  # 0: 'OH', 1: 'CH', 2: 'TT', 3: 'SD', 4: 'KK'
                 temp_label.append(next_drum)
                 if (
                     idx + 1 < len(onsets)
-                    and onsets[idx + 1]["onset"] - curr_onset <= OFFSET
+                    and onsets[idx + 1]["onset"] - curr_onset <= CLASSIFY_SAME_TIME
                 ):
                     idx = idx + 1
-                    if not onsets[idx]["drum"] in CODE2DRUM:
+                    next_drum = onsets[idx]["drum"]
+                    if not next_drum in CODE2DRUM:
                         is_available = False
-                    next_drum = FeatureExtractor._translate_drum_label_to_classify(
-                        onsets[idx]["drum"]
-                    )  # 0: 'OH', 1: 'CH', 2: 'TT', 3: 'SD', 4: 'KK'
                     temp_label.append(next_drum)
 
             idx = idx + 1
@@ -352,13 +339,13 @@ class FeatureExtractor:
             if idx < len(onsets):
                 duration = onsets[idx]["onset"] - curr_onset
 
-            if duration < 0.05:  # 너무 짧게 잘린 데이터 버리기
+            if duration < CLASSIFY_SHORT_TIME:  # 너무 짧게 잘린 데이터 버리기
                 continue
 
-            label = {v: [0] for _, v in CLASSIFY_CODE2DRUM.items()}
-            binary_label = [0] * len(CLASSIFY_CODE2DRUM)
+            label = {v: [0] for _, v in CODE2DRUM.items()}
+            binary_label = [0] * len(CODE2DRUM)
             for code in temp_label:
-                label[CLASSIFY_CODE2DRUM[code]] = [1]
+                label[CODE2DRUM[code]] = [1]
                 binary_label[code] = 1
             binary_label = [binary_label]
 
@@ -370,12 +357,6 @@ class FeatureExtractor:
 
             result_onsets.append({"onset": curr_onset, "duration": duration})
             result_label.append(label)
-
-        # print("result_onsets-------------")
-        # for idx, result in enumerate(result_onsets):
-        #     print(idx + 1, result["duration"])
-        # print("result_label-------------")
-        # print(result_label)
 
         return result_onsets, result_label
 
@@ -406,11 +387,11 @@ class FeatureExtractor:
         for _, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
             l = {}
-            for k, v in CLASSIFY_DETECT_TYPES.items():
+            for k, v in CLASSIFY_TYPES.items():
                 temp_label = []
                 for drum_idx, origin_key in enumerate(v):
                     if len(temp_label) == 0:  # 초기화
-                        temp_label = label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
+                        temp_label = label[CLASSIFY_TYPES[k][drum_idx]]
                     else:
                         for frame_idx, frame_value in enumerate(label[origin_key]):
                             if temp_label[frame_idx] == 1.0 or frame_value == 0.0:
@@ -638,22 +619,19 @@ class FeatureExtractor:
 
         if (
             method_type == METHOD_CLASSIFY
-        ):  # label = ['OH', 'CH', 'TT', 'SD', 'KK'] + feature
-            return pd.DataFrame(
-                columns=[key for key in CLASSIFY_DETECT_TYPES.keys()] + ["feature"]
-            )
-        if method_type == METHOD_DETECT:
+        ):  # label = ['CC', 'OH', 'CH', 'TT', 'SD', 'KK'] + feature
+            return pd.DataFrame(columns=[v for _, v in CODE2DRUM.items()] + ["feature"])
+        elif method_type == METHOD_DETECT:
             # ['OH-LABEL_DDM','CH-LABEL_DDM',..., 'KK-LABEL_REF'] + feature
             label_columns = []
             for label, _ in LABEL_TYPE.items():
                 for _, drum_code in CODE2DRUM.items():
                     label_columns.append(f"{drum_code}-{label}")
-
             return pd.DataFrame(
                 columns=label_columns
                 + [f"{feature_type[:8]}{i + 1}" for i in range(n_feature)]
             )
-        if method_type == METHOD_RHYTHM:
+        elif method_type == METHOD_RHYTHM:
             return pd.DataFrame(
                 columns=["label"]
                 + [f"{feature_type[:8]}{i + 1}" for i in range(n_feature)]

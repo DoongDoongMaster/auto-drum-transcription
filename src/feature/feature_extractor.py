@@ -108,7 +108,7 @@ class FeatureExtractor:
         # - idmt : train / test (from path)
         # - enst : train / test (from enst test data)
         # - e-gmd : train / validation / test (from info.csv)
-        # return {e-gmd:{train:[], test:[]}, enst:{train:[], test:[]}, idmt:{train:[], test:[]}}
+        # return {idmt:{train:[], test:[]}, enst:{train:[], test:[]}, e-gmd:{train:[], validation:[], test:[]}}
 
         result_data = {
             IDMT: {TRAIN: [], TEST: []},

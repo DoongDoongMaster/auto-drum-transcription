@@ -509,11 +509,10 @@ class DataLabeling:
             # # offset - 0 0 1 0 0 -> l:[0.5], r:[0.5] -> 0 0.5 1 0.5 0
             idx_offset = 0
             for i in range(soft_start_position, soft_end_position):
-                if labels[i] == 1:  # 이미 1 있으면 지나감
-                    continue
-
                 if i == onset_position:
                     idx_offset = 0
+                    continue
+                if labels[i] == 1:  # 이미 1 있으면 지나감
                     continue
 
                 # -- 왼쪽은 left arr, 오른쪽은 right arr 로부터 라벨링

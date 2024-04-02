@@ -280,10 +280,14 @@ CLASSIFY_TYPES = {
     "OH": [
         "CC",
         "OH",
+    ],
+    "CH": [
         "CH",
     ],
-    "SD": [
+    "TT": [
         "TT",
+    ],
+    "SD": [
         "SD",
     ],
     "KK": [

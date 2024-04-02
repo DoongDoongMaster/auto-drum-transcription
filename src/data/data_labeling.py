@@ -12,6 +12,9 @@ from data.onset_detection import OnsetDetect
 from constant import (
     DATA_ENST_NOT,
     DATA_E_GMD_NOT,
+    LABEL_DDM,
+    LABEL_REF,
+    LABEL_TYPE,
     PATTERN_DIR,
     PER_DRUM_DIR,
     PATTERN2CODE,
@@ -48,6 +51,7 @@ class DataLabeling:
         idx: int = None,
         frame_length: int = 0,
         hop_length: int = 0,
+        label_type: str = LABEL_DDM,
     ):
         """
         -- method type과 data origin에 따른 data labeling 메소드
@@ -60,7 +64,9 @@ class DataLabeling:
             onsets_arr = DataLabeling.get_onsets_instrument_arr(audio, path, idx)
             if DataLabeling._is_dict_all_empty(onsets_arr):
                 return False
-            return DataLabeling._get_label_detect(onsets_arr, frame_length, hop_length)
+            return DataLabeling._get_label_detect(
+                onsets_arr, frame_length, hop_length, label_type
+            )
 
         # -- [only onset] --
         if method_type == METHOD_RHYTHM:
@@ -68,7 +74,7 @@ class DataLabeling:
             if len(onsets_arr) == 0:
                 return False
             return DataLabeling._get_label_rhythm_data(
-                onsets_arr, frame_length, hop_length
+                onsets_arr, frame_length, hop_length, label_type
             )
 
         raise Exception(f"지원하지 않는 모델 방식 {method_type} !!!")
@@ -453,7 +459,10 @@ class DataLabeling:
 
     @staticmethod
     def _get_label_detect(
-        onsets_arr: dict, frame_length: int, hop_length: int
+        onsets_arr: dict,
+        frame_length: int,
+        hop_length: int,
+        label_type: str,  # LABEL_TYPE
     ) -> List[List[int]]:
         label = {v: [] for _, v in CODE2DRUM.items()}
 
@@ -462,7 +471,7 @@ class DataLabeling:
         """
         for drum_type, onset_times in onsets_arr.items():
             drum_label = DataLabeling._get_label_rhythm_data(
-                onset_times, frame_length, hop_length
+                onset_times, frame_length, hop_length, label_type
             )
             label[drum_type] = drum_label
 
@@ -470,10 +479,14 @@ class DataLabeling:
 
     @staticmethod
     def _get_label_rhythm_data(
-        onsets_arr: List[float], frame_length: int, hop_length: int
+        onsets_arr: List[float],
+        frame_length: int,
+        hop_length: int,
+        label_type: str,  # LABEL_TYPE
     ) -> List[float]:
         """
         -- onset 라벨링 (ONSET_OFFSET: onset position 양 옆으로 몇 개씩 붙일지)
+        - label_type 에 따라 1 1 0.5 | 0.5 1 0.5
         """
         labels = [0] * frame_length
 
@@ -482,20 +495,33 @@ class DataLabeling:
             if onset_position >= frame_length:
                 break
 
-            soft_start_position = max((onset_position - 0), 0)  # -- onset - offset
+            offset = LABEL_TYPE[label_type]["offset"]
+            label_l = offset["l"]
+            label_r = offset["r"]
+
+            soft_start_position = max(
+                (onset_position - len(label_l)), 0
+            )  # -- onset - offset
             soft_end_position = min(  # -- onset + offset
-                onset_position + ONSET_OFFSET + 1, frame_length
+                (onset_position + len(label_r) + 1), frame_length
             )
 
-            # offset -> 양 옆으로 0.5 몇 개 붙일지
+            # # offset - 0 0 1 0 0 -> l:[0.5], r:[0.5] -> 0 0.5 1 0.5 0
+            idx_offset = 0
             for i in range(soft_start_position, soft_end_position):
-                if labels[i] == 1:
+                if i == onset_position:
+                    idx_offset = 0
                     continue
-                labels[i] = 1
-            if soft_end_position < frame_length and labels[soft_end_position] != 1:
-                labels[soft_end_position] = 0.5
+                if labels[i] == 1:  # 이미 1 있으면 지나감
+                    continue
 
-            labels[onset_position] = 1
+                # -- 왼쪽은 left arr, 오른쪽은 right arr 로부터 라벨링
+                labels[i] = (
+                    label_l[idx_offset] if i < onset_position else label_r[idx_offset]
+                )
+                idx_offset += 1
+
+            labels[onset_position] = 1  # -- onset에 1
 
         return labels
 

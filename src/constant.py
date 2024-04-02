@@ -13,6 +13,12 @@ RAW_PATH = "raw"
 NEW_PATH = "new"
 PROCESSED_FEATURE = "processed-feature"
 
+"""
+-- split data type
+"""
+TRAIN = "train"
+VALIDATION = "validation"
+TEST = "test"
 
 """
 -- data origin (데이터 출처)
@@ -66,6 +72,15 @@ CLASSIFY_SHORT_TIME = 0.16
 
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
 ONSET_OFFSET = 1
+
+
+# -- labeling type
+LABEL_REF = "LABEL_REF"
+LABEL_DDM = "LABEL_DDM"
+LABEL_TYPE = {
+    LABEL_REF: {"labeled": "[0.5_1.0_0.5]", "offset": {"l": [0.5], "r": [0.5]}},
+    LABEL_DDM: {"labeled": "[1.0_1.0_0.5]", "offset": {"l": [], "r": [1.0, 0.5]}},
+}
 
 # -- chunk time - feature 추출 시
 CHUNK_LENGTH = 12
@@ -152,6 +167,16 @@ DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(
 DATA_ALL = DATA_IDMT + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,) + (ENST,)
 
 # -------------------------------------------------------------------------------------
+
+"""
+train/test split info
+"""
+# 'wet_mix' 폴더 내에 'minus-one'이 포함되어 있는지 확인
+DATA_ENST_TEST = {"directory": "wet_mix", "test": "_minus-one_"}
+E_GMD_INFO = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/info.csv"
+
+# -------------------------------------------------------------------------------------
+
 """
 -- Mapping drum_type
 DRUM_TYPES에 추가하기

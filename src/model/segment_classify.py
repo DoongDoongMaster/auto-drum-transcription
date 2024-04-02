@@ -25,7 +25,8 @@ from data.rhythm_detection import RhythmDetection
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
 from constant import (
-    CLASSIFY_DETECT_TYPES,
+    CLASSIFY_TYPES,
+    DRUM2CODE,
     METHOD_CLASSIFY,
     MFCC,
     MILLISECOND,
@@ -53,36 +54,23 @@ class SegmentClassifyModel(BaseModel):
             feature_type=feature_type,
             feature_extension=feature_extension,
         )
-        self.data_cnt = 2
+        self.data_cnt = 1
         self.train_cnt = 1
-        self.predict_standard = 0.8
+        self.predict_standard = 0.5
         self.n_rows = (
             self.feature_param["n_mfcc"]
             if feature_type == MFCC
             else self.feature_param["n_mels"]
-        )
+        )  # feature 개수
         self.n_columns = (
             int(CLASSIFY_DURATION * SAMPLE_RATE) // self.feature_param["hop_length"]
-        )
-        self.n_channels = (
-            self.feature_param["n_channels"] if feature_type == MFCC else 1
-        )
+        )  # timestamp
+        self.n_channels = 1
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
-        # self.load_model("../models/classify_mfcc_2024-02-24_00-53-10_smote_5.h5")
         self.load_model()
 
     def input_reshape(self, data):
-        # cnn data
-        # return tf.reshape(
-        #     data,
-        #     [
-        #         -1,
-        #         self.n_rows,
-        #         self.n_columns,
-        #         self.n_channels,
-        #     ],
-        # )
         # sequence data
         return tf.reshape(
             data,
@@ -149,6 +137,33 @@ class SegmentClassifyModel(BaseModel):
 
         return x_1d, number_y
 
+    @staticmethod
+    def grouping_label(y_data, group_dict):
+        """
+        -- label을 grouping하는 함수
+        -- y_data: 원래 label data
+        -- group_dict: 라벨링을 그룹핑한 객체
+        -- ex) {
+                 "OH": ["CC", "OH", "CH"],
+                 "SD": ["TT", "SD",],
+                 "KK": ["KK",]
+               }
+        """
+        new_y = np.zeros((y_data.shape[0], len(group_dict)))
+        for l_idx, l_arr in enumerate(y_data):
+            temp_label = np.zeros(len(group_dict))
+            for idx, (_, labels) in enumerate(group_dict.items()):
+                label_value = 0  # 0 or 1
+                for l in labels:
+                    origin_col = DRUM2CODE[l]
+                    if l_arr[origin_col] == 1:
+                        label_value = 1
+                        break
+                temp_label[idx] = label_value
+            new_y[l_idx] = temp_label
+
+        return new_y
+
     def load_dataset(self, feature_files: list[str] = None):
         """
         -- load data from data file
@@ -163,6 +178,12 @@ class SegmentClassifyModel(BaseModel):
         del feature_df
 
         X = SegmentClassifyModel.x_data_transpose(X)
+        y = SegmentClassifyModel.grouping_label(y, CLASSIFY_TYPES)
+
+        # row 생략 없이 출력
+        np.set_printoptions(threshold=np.inf, linewidth=np.inf)  # inf = infinity
+        print("=======라벨링 그룹핑 후=======")
+        print(y)
 
         number_y = FeatureExtractor.one_hot_label_to_number(y)
         counter = Counter(number_y)
@@ -382,11 +403,11 @@ class SegmentClassifyModel(BaseModel):
             audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
         )
         l = {}
-        for k, v in CLASSIFY_DETECT_TYPES.items():
+        for k, v in CLASSIFY_TYPES.items():
             temp_label = []
             for drum_idx, origin_key in enumerate(v):
                 if len(temp_label) == 0:  # 초기화
-                    temp_label = true_label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
+                    temp_label = true_label[CLASSIFY_TYPES[k][drum_idx]]
                 else:
                     for frame_idx, frame_value in enumerate(true_label[origin_key]):
                         if temp_label[frame_idx] == 1.0 or frame_value == 0.0:

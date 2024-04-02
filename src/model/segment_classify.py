@@ -1,15 +1,12 @@
 import math
 import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt
-import tensorflow_addons as tfa
 
 from glob import glob
 from tensorflow import keras
 from tensorflow.keras import layers
 from collections import Counter
 from imblearn.over_sampling import SMOTE
-from imblearn.under_sampling import NearMiss
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from keras.models import Model
@@ -137,33 +134,6 @@ class SegmentClassifyModel(BaseModel):
 
         return x_1d, number_y
 
-    @staticmethod
-    def grouping_label(y_data, group_dict):
-        """
-        -- label을 grouping하는 함수
-        -- y_data: 원래 label data
-        -- group_dict: 라벨링을 그룹핑한 객체
-        -- ex) {
-                 "OH": ["CC", "OH", "CH"],
-                 "SD": ["TT", "SD",],
-                 "KK": ["KK",]
-               }
-        """
-        new_y = np.zeros((y_data.shape[0], len(group_dict)))
-        for l_idx, l_arr in enumerate(y_data):
-            temp_label = np.zeros(len(group_dict))
-            for idx, (_, labels) in enumerate(group_dict.items()):
-                label_value = 0  # 0 or 1
-                for l in labels:
-                    origin_col = DRUM2CODE[l]
-                    if l_arr[origin_col] == 1:
-                        label_value = 1
-                        break
-                temp_label[idx] = label_value
-            new_y[l_idx] = temp_label
-
-        return new_y
-
     def load_dataset(self, feature_files: list[str] = None):
         """
         -- load data from data file
@@ -178,12 +148,7 @@ class SegmentClassifyModel(BaseModel):
         del feature_df
 
         X = SegmentClassifyModel.x_data_transpose(X)
-        y = SegmentClassifyModel.grouping_label(y, CLASSIFY_TYPES)
-
-        # row 생략 없이 출력
-        np.set_printoptions(threshold=np.inf, linewidth=np.inf)  # inf = infinity
-        print("=======라벨링 그룹핑 후=======")
-        print(y)
+        y = BaseModel.grouping_label(y, CLASSIFY_TYPES)
 
         number_y = FeatureExtractor.one_hot_label_to_number(y)
         counter = Counter(number_y)

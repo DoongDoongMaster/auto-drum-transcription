@@ -72,13 +72,14 @@ class FeatureExtractor:
             data_feature_label = FeatureExtractor._load_feature_one_file(
                 feature_file, feature_extension
             )
-
             # 현재 파일의 데이터를 combined_df에 추가
             combined_df = pd.concat(
                 [combined_df, data_feature_label], ignore_index=True
             )
             del data_feature_label
 
+        # row 생략 없이 출력
+        # pd.set_option("display.max_rows", None)
         print(
             "-- ! 로딩 완료 ! --",
             "data shape:",

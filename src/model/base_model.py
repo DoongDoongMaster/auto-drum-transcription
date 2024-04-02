@@ -1,9 +1,8 @@
+import os
 import librosa
 import numpy as np
-from sklearn.discriminant_analysis import StandardScaler
-from sklearn.preprocessing import MinMaxScaler
-import tensorflow as tf
 import pandas as pd
+import tensorflow as tf
 
 from glob import glob
 from datetime import datetime
@@ -17,6 +16,7 @@ from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from constant import (
     DETECT_CODE2DRUM,
+    DRUM2CODE,
     SAMPLE_RATE,
     PKL,
     METHOD_CLASSIFY,
@@ -26,7 +26,6 @@ from constant import (
     ROOT_PATH,
     RAW_PATH,
     CODE2DRUM,
-    CLASSIFY_CODE2DRUM,
 )
 
 
@@ -39,6 +38,7 @@ class BaseModel:
         method_type,
         feature_type,
         feature_extension=PKL,
+        compile_mode=True,
     ):
         self.model = None
         self.training_epochs = training_epochs
@@ -47,6 +47,7 @@ class BaseModel:
         self.method_type = method_type
         self.feature_type = feature_type
         self.feature_extension = feature_extension
+        self.compile_mode = compile_mode
         self.feature_param = FEATURE_PARAM[method_type][feature_type]
         self.sample_rate = SAMPLE_RATE
         self.x_train: np.ndarray = None
@@ -55,7 +56,8 @@ class BaseModel:
         self.y_val: np.ndarray = None
         self.x_test: np.ndarray = None
         self.y_test: np.ndarray = None
-        self.save_path = f"../models/{method_type}_{feature_type}"
+        self.save_folder_path = f"../models/{method_type}"
+        self.save_path = f"{self.save_folder_path}/{method_type}_{feature_type}"
         self.model_save_type = "h5"
 
     def save(self):
@@ -64,6 +66,8 @@ class BaseModel:
         """
         # 현재 날짜와 시간 가져오기
         date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        # 폴더 생성
+        os.makedirs(self.save_folder_path, exist_ok=True)
         # 모델 저장
         model_path = f"{self.save_path}_{date_time}.{self.model_save_type}"
         self.model.save(model_path)
@@ -85,11 +89,34 @@ class BaseModel:
             load_model_file = model_file
 
         print("-- ! load model: ", load_model_file)
-        self.model = tf.keras.models.load_model(load_model_file)
+        self.model = tf.keras.models.load_model(
+            load_model_file, compile=self.compile_mode
+        )
 
-    def input_reshape(self, data) -> np.ndarray:
-        # Implement input reshaping logic
-        pass
+    @staticmethod
+    def grouping_label(y_data, group_dict):
+        """
+        -- label을 grouping하는 함수
+        -- y_data: 원래 label data
+        -- group_dict: 라벨링을 그룹핑한 객체
+        -- ex) {
+                 "OH": ["CC", "OH", "CH"],
+                 "SD": ["TT", "SD",],
+                 "KK": ["KK",]
+               }
+        """
+        new_y = np.zeros((y_data.shape[0], len(group_dict)))
+        for l_idx, l_arr in enumerate(y_data):
+            temp_label = np.zeros(len(group_dict))
+            for idx, (_, labels) in enumerate(group_dict.items()):
+                # 우선순위: 1 > 0.5 > 0
+                label_value = max(l_arr[DRUM2CODE[l]] for l in labels)
+                temp_label[idx] = label_value
+            new_y[l_idx] = temp_label
+
+        # np.set_printoptions(threshold=np.inf, linewidth=np.inf)  # inf = infinity
+        # print("-- ! 그룹핑 후 라벨 ! --\n", new_y)
+        return new_y
 
     @staticmethod
     def _get_x_y(method_type: str, feature_df: pd.DataFrame):

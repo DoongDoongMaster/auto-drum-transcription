@@ -1,7 +1,7 @@
+import numpy as np
+
 from glob import glob
 from typing import List
-import librosa
-import numpy as np
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -34,6 +34,7 @@ from data.data_labeling import DataLabeling
 from model.base_model import BaseModel
 from constant import (
     CHUNK_TIME_LENGTH,
+    DETECT_TYPES,
     DRUM2CODE,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
@@ -48,30 +49,13 @@ from constant import (
 #     model = tf.keras.models.load_model("your_model.h5")
 
 
-def merge_columns(arr, col1, col2):
-    # merge col2 into col1
-    # -- 둘 중 하나라도 1이면 1
-    # -- else, 둘 중 하나라도 0.5이면 0.5
-    # -- else, 0
-    merged_column = np.zeros(arr.shape[0])
-    for i in range(arr.shape[0]):
-        if 1 in arr[i, [col1, col2]]:
-            merged_column[i] = 1
-        elif 0.5 in arr[i, [col1, col2]]:
-            merged_column[i] = 0.5
-        else:
-            merged_column[i] = 0
-
-    # merge한 배열 col1 자리에 끼워넣기
-    result = np.delete(arr, [col1, col2], axis=1)
-    result = np.insert(result, col1, merged_column, axis=1)
-
-    return result
-
-
 class SeparateDetectRefModel(BaseModel):
     def __init__(
-        self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16
+        self,
+        training_epochs=40,
+        opt_learning_rate=0.001,
+        batch_size=20,
+        unit_number=16,
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -79,6 +63,7 @@ class SeparateDetectRefModel(BaseModel):
             batch_size=batch_size,
             method_type=METHOD_DETECT,
             feature_type=MEL_SPECTROGRAM,
+            compile_mode=False,
         )
         self.unit_number = unit_number
         self.predict_standard = 0.5
@@ -88,24 +73,6 @@ class SeparateDetectRefModel(BaseModel):
         self.hop_length = self.feature_param["hop_length"]
         self.win_length = self.feature_param["win_length"]
         self.load_model()
-
-    def load_model(self, model_file=None):
-        """
-        -- method_type과 feature type에 맞는 가장 최근 모델 불러오기
-        """
-        model_files = glob(f"{self.save_path}_*.{self.model_save_type}")
-        if model_files is None or len(model_files) == 0:
-            print("-- ! No pre-trained model ! --")
-            return
-
-        model_files.sort(reverse=True)  # 최신 순으로 정렬
-        load_model_file = model_files[0]  # 가장 최근 모델
-
-        if model_file is not None:  # 불러오고자 하는 특정 모델 파일이 있다면
-            load_model_file = model_file
-
-        print("-- ! load model: ", load_model_file)
-        self.model = tf.keras.models.load_model(load_model_file, compile=False)
 
     def input_reshape(self, data):
         return data
@@ -130,15 +97,7 @@ class SeparateDetectRefModel(BaseModel):
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
-        # ------------------------------------------------------------------
-        # y: 0 CC, 1 OH, 2 CH 합치기
-        col2 = DRUM2CODE["CH"]
-        col1 = DRUM2CODE["OH"]
-        col0 = DRUM2CODE["CC"]
-        result = merge_columns(y, col1, col2)
-        result = merge_columns(result, col0, col1)
-        y = result
-        del result
+        y = BaseModel.grouping_label(y, DETECT_TYPES)
 
         # ------------------------------------------------------------------
         scaler = StandardScaler()

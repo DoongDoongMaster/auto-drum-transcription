@@ -219,7 +219,6 @@ class BaseModel:
         return history
 
     def data_2d_reshape(self, data):
-        # return tf.reshape(data, [-1, self.n_classes])
         return data.reshape((-1, self.n_classes))
 
     def evaluate(self):

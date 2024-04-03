@@ -37,7 +37,7 @@ def model_predict(file: UploadFile = File(...)):
     # -- cut delay
     new_audio = DataProcessing.trim_audio_first_onset(audio, 0)
     audio = new_audio
-    drum_instrument, onsets_arr = model_serving_detect_lstm.predict_model_from_server(
+    drum_instrument, onsets_arr = model_serving_classify_lstm.predict_model_from_server(
         audio
     )
 

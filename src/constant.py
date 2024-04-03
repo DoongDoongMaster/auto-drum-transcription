@@ -96,14 +96,10 @@ MILLISECOND = 1000000
 -- data origin별로 사용하는 data path와 관련된 상수
 """
 DATA_IDMT = (
-    "MIX",
     "RealDrum",
     "WaveDrum",
 )
-DATA_IDMT_NOT = (
-    "train",
-    "TechnoDrum",
-)
+DATA_IDMT_NOT = ("TechnoDrum",)
 DATA_ENST_NOT = (
     "accompaniment",
     "cowbell",
@@ -290,8 +286,10 @@ CLASSIFY_TYPES = {
         "OH",
         "CH",
     ],
-    "SD": [
+    "TT": [
         "TT",
+    ],
+    "SD": [
         "SD",
     ],
     "KK": [

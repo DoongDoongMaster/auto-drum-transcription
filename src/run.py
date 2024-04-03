@@ -13,6 +13,7 @@ from constant import (
     CSV,
     DETECT_TYPES,
     E_GMD,
+    ENST,
     IDMT,
     LABEL_DDM,
     LABEL_REF,
@@ -34,6 +35,7 @@ from constant import (
     VALIDATION,
 )
 from model.separate_detect_ref import SeparateDetectRefModel
+from model.separate_detect_b import SeparateDetectBModel
 
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
 # FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
@@ -105,17 +107,29 @@ from model.separate_detect_ref import SeparateDetectRefModel
 #     print(separate_detect.predict(predict_test_data, 100, 0))
 
 
-separate_detect_ref = SeparateDetectRefModel(40, 0.001, 32, 128)
+# separate_detect_ref = SeparateDetectRefModel(40, 0.001, 32, 128)
+
+# # == split_data, label_type 매개변수 바꿔서 사용!
+# split_data = {TRAIN: [E_GMD], VALIDATION: [ENST], TEST: [IDMT]}
+# label_type = LABEL_DDM
+
+# separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
+# separate_detect_ref.create()
+# separate_detect_ref.train()
+# separate_detect_ref.evaluate()
+# separate_detect_ref.save()
+
+separate_detect_b = SeparateDetectBModel(40, 0.001, 32, 128)
 
 # == split_data, label_type 매개변수 바꿔서 사용!
-split_data = {TRAIN: [IDMT]}
+split_data = {TRAIN: [E_GMD], VALIDATION: [E_GMD], TEST: [E_GMD]}
 label_type = LABEL_DDM
 
-separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
-separate_detect_ref.create()
-separate_detect_ref.train()
-separate_detect_ref.evaluate()
-separate_detect_ref.save()
+separate_detect_b.create_dataset(split_data, label_type, DETECT_TYPES)
+# separate_detect_b.create()
+separate_detect_b.train()
+separate_detect_b.evaluate()
+separate_detect_b.save()
 
 # predict_test_datas = [
 # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
@@ -134,7 +148,7 @@ separate_detect_ref.save()
 # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_4.wav",
 # ]
 # for predict_test_data in predict_test_datas:
-#     print(separate_detect_ref.predict(predict_test_data, 100, 0))
+#     print(separate_detect_ref.predict(predict_test_data, 100, 0, label_type))
 
 
 # ---------------------------------------------------------------------------------------

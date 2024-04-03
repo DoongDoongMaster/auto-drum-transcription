@@ -226,31 +226,37 @@ class SegmentClassifyModel(BaseModel):
 
         keras.backend.clear_session()
 
-        self.model = keras.Sequential(
-            [
-                layers.Input(shape=(n_steps, n_features)),
-                layers.Conv1D(
-                    filters=64,
-                    kernel_size=8,
-                    padding="same",
-                    data_format="channels_last",
-                    dilation_rate=1,
-                    activation="relu",
-                ),
-                layers.LSTM(
-                    units=32, activation="tanh", name="lstm_1", return_sequences=True
-                ),
-                layers.Dropout(0.2),
-                layers.LSTM(
-                    units=32, activation="tanh", name="lstm_2", return_sequences=True
-                ),
-                layers.Dropout(0.2),
-                layers.Flatten(),
-                layers.Dense(self.n_classes, activation="sigmoid"),
-            ]
+        input_layer = Input(shape=(n_steps, n_features, self.n_channels))
+
+        # 1st Convolutional Block
+        conv1_1 = layers.Conv2D(
+            filters=128, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(input_layer)
+        pool1 = layers.MaxPooling2D(pool_size=(1, 2))(conv1_1)
+
+        # 2st Convolutional Block
+        conv2_1 = layers.Conv2D(
+            filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(pool1)
+        pool2 = layers.MaxPooling2D(pool_size=(1, 2))(conv2_1)
+
+        # Reshape for RNN
+        reshape = layers.Reshape((pool2.shape[1], pool2.shape[2] * pool2.shape[3]))(
+            pool2
         )
+
+        # BiLSTM layers
+        lstm1 = layers.Bidirectional(LSTM(8, return_sequences=True))(reshape)
+        last_dropout = layers.Dropout(0.2)(lstm1)
+        last_flatten = layers.Flatten()(last_dropout)
+
+        # Output layer
+        output_layer = Dense(self.n_classes, activation="sigmoid")(last_flatten)
+
+        # model compile
+        self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
-        # compile the self.model
+
         opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
             loss="binary_crossentropy",

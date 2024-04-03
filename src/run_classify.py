@@ -63,7 +63,7 @@ from constant import (
 # ===============Model Train============================
 segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
 # segment_classify.extract_feature()
-# segment_classify.run()
+segment_classify.run()
 
 # ===============Model Predict==========================
 segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)

@@ -43,11 +43,6 @@ from constant import (
     DETECT_CODE2DRUM,
 )
 
-# # Register the custom object
-# with custom_object_scope({"CyclicalLearningRate": CyclicalLearningRate}):
-#     # Load or define your model here
-#     model = tf.keras.models.load_model("your_model.h5")
-
 
 class SeparateDetectRefModel(BaseModel):
     def __init__(
@@ -83,19 +78,21 @@ class SeparateDetectRefModel(BaseModel):
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
 
-    def create_dataset(self):
+    def create_dataset(self, split_data: dict[str], label_type: str):
         """
         -- load data from data file
         -- Implement dataset split feature & label logic
         """
         # Implement dataset split feature & label logic
-        feature_df = FeatureExtractor.load_feature_file(
-            self.method_type, self.feature_type, self.feature_extension
+        feature_df = FeatureExtractor.load_dataset_from_split_data_file(
+            self.method_type, self.feature_type, self.feature_extension, split_data
         )
 
         # -- get X, y
-        X, y = BaseModel._get_x_y(self.method_type, feature_df)
+        X, y = BaseModel._get_x_y(self.method_type, feature_df, label_type)
         del feature_df
+
+        print("asdfsfa!!!!!", y)
 
         y = BaseModel.grouping_label(y, DETECT_TYPES)
 

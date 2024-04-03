@@ -74,14 +74,6 @@ CLASSIFY_SHORT_TIME = 0.16
 ONSET_OFFSET = 1
 
 
-# -- labeling type
-LABEL_REF = "LABEL_REF"
-LABEL_DDM = "LABEL_DDM"
-LABEL_TYPE = {
-    LABEL_REF: {"labeled": "[0.5_1.0_0.5]", "offset": {"l": [0.5], "r": [0.5]}},
-    LABEL_DDM: {"labeled": "[1.0_1.0_0.5]", "offset": {"l": [], "r": [1.0, 0.5]}},
-}
-
 # -- chunk time - feature 추출 시
 CHUNK_LENGTH = 12
 
@@ -272,6 +264,33 @@ CODE2DRUM = {i: k for i, k in enumerate(DRUM_TYPES.keys())}
 # -- {'CC':0, 'OH':1, ...}
 DRUM2CODE = {v: k for k, v in CODE2DRUM.items()}
 
+
+"""
+-- labeling type
+"""
+LABEL_REF = "LABEL_REF"
+LABEL_DDM = "LABEL_DDM"
+LABEL_REF_COLUMN = []  # -- HH-LABEL_REF, ST-LABEL_REF, SD-LABEL_REF, KK-LABEL_REF
+LABEL_DDM_COLUMN = []  # -- HH-LABEL_DDM, ST-LABEL_DDM, SD-LABEL_DDM, KK-LABEL_DDM
+for _, drum_code in CODE2DRUM.items():
+    LABEL_REF_COLUMN.append(f"{drum_code}-{LABEL_REF}")
+    LABEL_DDM_COLUMN.append(f"{drum_code}-{LABEL_DDM}")
+LABEL_TYPE = {
+    LABEL_REF: {
+        "labeled": "[0.5_1.0_0.5]",
+        "offset": {"l": [0.5], "r": [0.5]},
+        "column": LABEL_REF_COLUMN,
+    },
+    LABEL_DDM: {
+        "labeled": "[1.0_1.0_0.5]",
+        "offset": {"l": [], "r": [1.0, 0.5]},
+        "column": LABEL_DDM_COLUMN,
+    },
+}
+LABEL_COLUMN = []
+for label, _ in LABEL_TYPE.items():
+    for _, drum_code in CODE2DRUM.items():
+        LABEL_COLUMN.append(f"{drum_code}-{label}")
 
 """
 -- classify 방법에서의 분류 라벨

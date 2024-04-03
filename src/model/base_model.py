@@ -17,6 +17,9 @@ from feature.feature_extractor import FeatureExtractor
 from constant import (
     DETECT_CODE2DRUM,
     DRUM2CODE,
+    LABEL_COLUMN,
+    LABEL_DDM,
+    LABEL_TYPE,
     SAMPLE_RATE,
     PKL,
     METHOD_CLASSIFY,
@@ -119,17 +122,17 @@ class BaseModel:
         return new_y
 
     @staticmethod
-    def _get_x_y(method_type: str, feature_df: pd.DataFrame):
+    def _get_x_y(
+        method_type: str, feature_df: pd.DataFrame, label_type: str = LABEL_DDM
+    ):
         if method_type == METHOD_CLASSIFY:
             X = np.array(feature_df.feature.tolist())
             y = feature_df[[drum for _, drum in CODE2DRUM.items()]].to_numpy()
             return X, y
         if method_type in METHOD_DETECT:
-            # label(HH, ST, SD, KK onset 여부) | mel-1, mel-2, mel-3, ...
-            X = feature_df.drop(
-                [drum for _, drum in CODE2DRUM.items()], axis=1
-            ).to_numpy()
-            y = feature_df[[drum for _, drum in CODE2DRUM.items()]].to_numpy()
+            # Y: HH-LABEL_REF..., ST, SD, KK-LABEL_DDM | X: mel-1, mel-2, mel-3, ...
+            X = feature_df.drop(LABEL_COLUMN, axis=1).to_numpy()
+            y = feature_df[LABEL_TYPE[label_type]["column"]].to_numpy()
             return X, y
         if method_type in METHOD_RHYTHM:
             # label(onset 여부) | mel-1, mel-2, mel-3, ...

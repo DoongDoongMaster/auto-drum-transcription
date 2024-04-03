@@ -135,6 +135,14 @@ DATA_ENST_NOT = (
     "134_minus-one_bossa_sticks",  # cs
     "140_MIDI-minus-one_bigband_sticks",  # cs
     "160_MIDI-minus-one_soul-98_sticks",  # cs
+    # -- hi-hat data만 사용
+    "dry_mix/",
+    "kick/",
+    "overhead_L/",
+    "overhead_R/",
+    "snare/",
+    "tom_1/",
+    "tom_2/",
 )  # ENST dataset에서 제외할 데이터
 DATA_DDM_OWN = (
     "per-drum/CC",
@@ -280,14 +288,10 @@ CLASSIFY_TYPES = {
     "OH": [
         "CC",
         "OH",
-    ],
-    "CH": [
         "CH",
     ],
-    "TT": [
-        "TT",
-    ],
     "SD": [
+        "TT",
         "SD",
     ],
     "KK": [

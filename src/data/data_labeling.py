@@ -146,30 +146,33 @@ class DataLabeling:
             #         path, 3, "txt", "annotation"
             #     )
 
-        if DRUM_KIT in path:
+        elif (DRUM_KIT in path) or (IDMT in path and "train" in path):
             label = OnsetDetect.get_onsets_instrument_from_wav(
                 audio, path, start, end, label_init
             )
 
-        # label path 구하기
-        label_path = DataLabeling._get_label_path_by_audio_path(path)
+        else:
+            # label path 구하기
+            label_path = DataLabeling._get_label_path_by_audio_path(path)
 
-        onset_detection_methods = {
-            IDMT: (
-                OnsetDetect.get_onsets_instrument_from_xml
-                if "MIX" in path
-                else OnsetDetect.get_onsets_instrument_from_svl
-            ),
-            ENST: OnsetDetect.get_onsets_instrument_from_txt,
-            E_GMD: OnsetDetect.get_onsets_instrument_from_mid,
-        }
+            onset_detection_methods = {
+                IDMT: (
+                    OnsetDetect.get_onsets_instrument_from_xml
+                    if "MIX" in path
+                    else OnsetDetect.get_onsets_instrument_from_svl
+                ),
+                ENST: OnsetDetect.get_onsets_instrument_from_txt,
+                E_GMD: OnsetDetect.get_onsets_instrument_from_mid,
+            }
 
-        data_own = path.split("/")[3]
-        if data_own in onset_detection_methods:
-            print("[", data_own, "] onset method: ", onset_detection_methods[data_own])
-            label = onset_detection_methods[data_own](
-                label_path, start, end, label_init
-            )
+            data_own = path.split("/")[3]
+            if data_own in onset_detection_methods:
+                print(
+                    "[", data_own, "] onset method: ", onset_detection_methods[data_own]
+                )
+                label = onset_detection_methods[data_own](
+                    label_path, start, end, label_init
+                )
 
         return label
 

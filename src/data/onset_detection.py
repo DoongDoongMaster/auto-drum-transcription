@@ -21,6 +21,7 @@ from constant import (
     DDM_OWN,
     DRUM_KIT,
     DRUM_MAP,
+    IDMT,
     SAMPLE_RATE,
     IMAGE_PATH,
     DRUM2CODE,
@@ -407,6 +408,8 @@ class OnsetDetect:
         elif DRUM_KIT in wav_path:  # drum kit
             is_drum_kit = True
             drum_type = wav_path.split("/")[-2]
+        elif IDMT in wav_path:  # idmt
+            drum_type = wav_path.split("#")[1]  # 'KD', 'SD', 'HH'
 
         if drum_type in DRUM_MAP:
             if is_drum_kit:
@@ -415,6 +418,8 @@ class OnsetDetect:
                 onsets = [onsets[(onsets >= 2.0) & (onsets < 3.0)][0]]
             elif is_ddm:
                 onsets = onsets[(onsets >= 2.0) & (onsets < 5.1)]
+            else:
+                onsets = onsets
             onset_dict[DRUM_MAP[drum_type]] = onsets
 
         onset_dict = OnsetDetect._get_filtering_onsets_instrument(

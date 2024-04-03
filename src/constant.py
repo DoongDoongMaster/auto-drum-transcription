@@ -88,16 +88,12 @@ MILLISECOND = 1000000
 -- data origin별로 사용하는 data path와 관련된 상수
 """
 DATA_IDMT = (
-    "MIX",
     "RealDrum",
     "WaveDrum",
 )
-DATA_IDMT_NOT = (
-    "train",
-    "TechnoDrum",
-)
+DATA_IDMT_NOT = ("TechnoDrum",)
 DATA_ENST_NOT = (
-    "accompaniment",
+    "accompaniment/",
     "cowbell",
     "brushes",
     "no-snare",
@@ -127,6 +123,14 @@ DATA_ENST_NOT = (
     "134_minus-one_bossa_sticks",  # cs
     "140_MIDI-minus-one_bigband_sticks",  # cs
     "160_MIDI-minus-one_soul-98_sticks",  # cs
+    # -- hi-hat data만 사용
+    "dry_mix/",
+    "kick/",
+    "overhead_L/",
+    "overhead_R/",
+    "snare/",
+    "tom_1/",
+    "tom_2/",
 )  # ENST dataset에서 제외할 데이터
 DATA_DDM_OWN = (
     "per-drum/CC",
@@ -300,8 +304,6 @@ CLASSIFY_TYPES = {
     "OH": [
         "CC",
         "OH",
-    ],
-    "CH": [
         "CH",
     ],
     "TT": [

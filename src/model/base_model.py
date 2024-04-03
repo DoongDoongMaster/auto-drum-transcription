@@ -2,6 +2,7 @@ import os
 import librosa
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 import tensorflow as tf
 
 from glob import glob
@@ -17,6 +18,9 @@ from feature.feature_extractor import FeatureExtractor
 from constant import (
     DETECT_CODE2DRUM,
     DRUM2CODE,
+    LABEL_COLUMN,
+    LABEL_DDM,
+    LABEL_TYPE,
     SAMPLE_RATE,
     PKL,
     METHOD_CLASSIFY,
@@ -26,6 +30,9 @@ from constant import (
     ROOT_PATH,
     RAW_PATH,
     CODE2DRUM,
+    TEST,
+    TRAIN,
+    VALIDATION,
 )
 
 
@@ -119,17 +126,17 @@ class BaseModel:
         return new_y
 
     @staticmethod
-    def _get_x_y(method_type: str, feature_df: pd.DataFrame):
+    def _get_x_y(
+        method_type: str, feature_df: pd.DataFrame, label_type: str = LABEL_DDM
+    ):
         if method_type == METHOD_CLASSIFY:
             X = np.array(feature_df.feature.tolist())
             y = feature_df[[drum for _, drum in CODE2DRUM.items()]].to_numpy()
             return X, y
         if method_type in METHOD_DETECT:
-            # label(HH, ST, SD, KK onset 여부) | mel-1, mel-2, mel-3, ...
-            X = feature_df.drop(
-                [drum for _, drum in CODE2DRUM.items()], axis=1
-            ).to_numpy()
-            y = feature_df[[drum for _, drum in CODE2DRUM.items()]].to_numpy()
+            # Y: HH-LABEL_REF..., ST, SD, KK-LABEL_DDM | X: mel-1, mel-2, mel-3, ...
+            X = feature_df.drop(LABEL_COLUMN, axis=1).to_numpy()
+            y = feature_df[LABEL_TYPE[label_type]["column"]].to_numpy()
             return X, y
         if method_type in METHOD_RHYTHM:
             # label(onset 여부) | mel-1, mel-2, mel-3, ...
@@ -209,17 +216,72 @@ class BaseModel:
         result_arr = np.stack([dict_data[key] for key in dict_data.keys()], axis=1)
         return result_arr
 
-    def create_dataset(self):
+    def create_model_dataset(self):
         # Implement model
         pass
 
+    def create_dataset(self, split_data: dict[str], label_type: str, group_dict: str):
+        # -- load train, validation, test
+        split_data_df = FeatureExtractor.load_dataset_from_split_data_file(
+            self.method_type, self.feature_type, self.feature_extension, split_data
+        )
+
+        # -- get X, y
+        for split_type, data in split_data_df.items():
+            X, y = BaseModel._get_x_y(self.method_type, data, label_type)
+            y = BaseModel.grouping_label(y, group_dict)
+            # 각 model마다 create dataset
+            self.create_model_dataset(X, y, split_type)
+        self.fill_all_dataset()
+
+        # -- print shape
+        self.print_dataset_shape()
+
+    def split_dataset(self, X, y, split_type):
+        if split_type == TRAIN:
+            self.x_train = X
+            self.y_train = y
+        elif split_type == VALIDATION:
+            self.x_val = X
+            self.y_val = y
+        elif split_type == TEST:
+            self.x_test = X
+            self.y_test = y
+        return
+
+    def fill_all_dataset(self):
+        # test 없으면 train에서
+        if self.x_test is None:
+            x_train, x_test, y_train, y_test = train_test_split(
+                self.x_train,
+                self.y_train,
+                test_size=0.2,
+                random_state=42,
+            )
+            self.split_dataset(x_train, y_train, TRAIN)
+            self.split_dataset(x_test, y_test, TEST)
+
+        # validation 없으면 train에서
+        if self.x_val is None:
+            x_train, x_val, y_train, y_val = train_test_split(
+                self.x_train,
+                self.y_train,
+                test_size=0.2,
+                random_state=42,
+            )
+            self.split_dataset(x_train, y_train, TRAIN)
+            self.split_dataset(x_val, y_val, VALIDATION)
+
     def print_dataset_shape(self):
-        print("x_train : ", self.x_train.shape)
-        print("y_train : ", self.y_train.shape)
-        print("x_val : ", self.x_val.shape)
-        print("y_val : ", self.y_val.shape)
-        print("x_test : ", self.x_test.shape)
-        print("y_test : ", self.y_test.shape)
+        if not self.x_train is None:
+            print("x_train : ", self.x_train.shape)
+            print("y_train : ", self.y_train.shape)
+        if not self.x_val is None:
+            print("x_val : ", self.x_val.shape)
+            print("y_val : ", self.y_val.shape)
+        if not self.x_test is None:
+            print("x_test : ", self.x_test.shape)
+            print("y_test : ", self.y_test.shape)
 
     def create(self):
         # Implement model creation logic

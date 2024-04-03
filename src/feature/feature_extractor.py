@@ -25,6 +25,8 @@ from constant import (
     FEATURE_DTYPE_16,
     FEATURE_DTYPE_32,
     IDMT,
+    LABEL_COLUMN,
+    LABEL_INIT_DATA,
     LABEL_DDM,
     LABEL_REF,
     LABEL_TYPE,
@@ -61,6 +63,8 @@ class FeatureExtractor:
         method_type: str,
         feature_type: str,
         feature_extension: str,
+        data_type: str = E_GMD,  # E-GMD | IDMT | ENST
+        split_type: str = TRAIN,  # TRAIN | VALIDATION | TEST
         feature_files: list[str] = None,
     ) -> pd.DataFrame:
         """
@@ -70,8 +74,10 @@ class FeatureExtractor:
             feature_files is None
         ):  # 피쳐 파일 리스트가 비어있다면 -> 피쳐 저장된 경로 통해서 접근
             save_folder_path = FeatureExtractor._get_save_folder_path(
-                method_type, feature_type
+                method_type, feature_type, data_type, split_type
             )
+
+            print("--------", save_folder_path)
             if not os.path.exists(save_folder_path):
                 raise Exception(
                     f"모델: {method_type}, 피쳐: {feature_type} 에 해당하는 피쳐가 없습니다!!!"
@@ -93,15 +99,49 @@ class FeatureExtractor:
 
         # row 생략 없이 출력
         # pd.set_option("display.max_rows", None)
+        print("-- 추출 : ", feature_files)
         print(
             "-- ! 로딩 완료 ! --",
             "data shape:",
             combined_df.shape,
         )
-        print("-- ! features ! -- ")
-        print(combined_df)
+        # print("-- ! features ! -- ")
+        # print(combined_df)
 
         return combined_df
+
+    @staticmethod
+    def load_dataset_from_split_data_file(
+        method_type: str,
+        feature_type: str,
+        feature_extension: str,
+        split_data: dict[str],
+        feature_files: list[str] = None,
+    ) -> pd.DataFrame:
+        """
+        -- feature 추출한 파일 불러오기
+        input: {train: [] / validation:[] / test:[]} 각 split type에 가져오고 싶은 데이터별로 array에 담아서
+        - split_type: TRAIN | VALIDATION | TEST
+        - data_type:  E-GMD | IDMT | ENST
+
+        result_data: {train: [df, ...] / validation:[] / test:[df, ...]}
+        """
+        result_data = {}
+        for split_type, data_type in split_data.items():
+            print("-- !! split type >> ", split_type)
+            print("-- !! data types >> ", data_type)
+            for dt in data_type:
+                combined_df = FeatureExtractor.load_feature_file(
+                    method_type,
+                    feature_type,
+                    feature_extension,
+                    dt,
+                    split_type,
+                    feature_files,
+                )
+                result_data.update({split_type: combined_df})
+
+        return result_data
 
     @staticmethod
     def split_train_test_from_path(audio_paths: List[str]):
@@ -110,11 +150,7 @@ class FeatureExtractor:
         # - e-gmd : train / validation / test (from info.csv)
         # return {idmt:{train:[], test:[]}, enst:{train:[], test:[]}, e-gmd:{train:[], validation:[], test:[]}}
 
-        result_data = {
-            IDMT: {TRAIN: [], TEST: []},
-            ENST: {TRAIN: [], TEST: []},
-            E_GMD: {TRAIN: [], VALIDATION: [], TEST: []},
-        }
+        result_data = LABEL_INIT_DATA
 
         for path in audio_paths:
             # idmt 인 경우 path에서 읽기
@@ -623,12 +659,8 @@ class FeatureExtractor:
             return pd.DataFrame(columns=[v for _, v in CODE2DRUM.items()] + ["feature"])
         elif method_type == METHOD_DETECT:
             # ['OH-LABEL_DDM','CH-LABEL_DDM',..., 'KK-LABEL_REF'] + feature
-            label_columns = []
-            for label, _ in LABEL_TYPE.items():
-                for _, drum_code in CODE2DRUM.items():
-                    label_columns.append(f"{drum_code}-{label}")
             return pd.DataFrame(
-                columns=label_columns
+                columns=LABEL_COLUMN
                 + [f"{feature_type[:8]}{i + 1}" for i in range(n_feature)]
             )
         elif method_type == METHOD_RHYTHM:

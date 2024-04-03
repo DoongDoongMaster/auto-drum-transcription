@@ -41,12 +41,10 @@ from constant import (
     MILLISECOND,
     SAMPLE_RATE,
     DETECT_CODE2DRUM,
+    TEST,
+    TRAIN,
+    VALIDATION,
 )
-
-# # Register the custom object
-# with custom_object_scope({"CyclicalLearningRate": CyclicalLearningRate}):
-#     # Load or define your model here
-#     model = tf.keras.models.load_model("your_model.h5")
 
 
 class SeparateDetectRefModel(BaseModel):
@@ -83,56 +81,13 @@ class SeparateDetectRefModel(BaseModel):
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
 
-    def create_dataset(self):
-        """
-        -- load data from data file
-        -- Implement dataset split feature & label logic
-        """
-        # Implement dataset split feature & label logic
-        feature_df = FeatureExtractor.load_feature_file(
-            self.method_type, self.feature_type, self.feature_extension
-        )
-
-        # -- get X, y
-        X, y = BaseModel._get_x_y(self.method_type, feature_df)
-        del feature_df
-
-        y = BaseModel.grouping_label(y, DETECT_TYPES)
-
-        # ------------------------------------------------------------------
+    def create_model_dataset(self, X, y, split_type):
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
         X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
         y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
 
-        # -- split train, val, test
-        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X,
-            y,
-            test_size=0.2,
-            random_state=42,
-        )
-        del X
-        del y
-
-        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
-            x_train_temp,
-            y_train_temp,
-            test_size=0.2,
-            random_state=42,
-        )
-        del x_train_temp
-        del y_train_temp
-
-        self.x_train = x_train_final
-        self.x_val = x_val_final
-        self.x_test = x_test
-        self.y_train = y_train_final
-        self.y_val = y_val_final
-        self.y_test = y_test
-
-        # -- print shape
-        self.print_dataset_shape()
+        self.split_dataset(X, y, split_type)
 
     def create(self):
         input_layer = Input(shape=(self.n_rows, self.n_columns, 1))

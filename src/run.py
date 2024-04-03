@@ -11,6 +11,11 @@ from model.rhythm_detect_model import RhythmDetectModel
 
 from constant import (
     CSV,
+    DETECT_TYPES,
+    E_GMD,
+    IDMT,
+    LABEL_DDM,
+    LABEL_REF,
     SAMPLE_RATE,
     MFCC,
     STFT,
@@ -24,6 +29,9 @@ from constant import (
     RAW_PATH,
     NEW_PATH,
     PKL,
+    TEST,
+    TRAIN,
+    VALIDATION,
 )
 from model.separate_detect_ref import SeparateDetectRefModel
 
@@ -71,11 +79,11 @@ from model.separate_detect_ref import SeparateDetectRefModel
 
 # separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
 
-# # separate_detect.create_dataset()
-# # separate_detect.create()
-# # separate_detect.train()
-# # separate_detect.evaluate()
-# # separate_detect.save()
+# separate_detect.create_dataset()
+# separate_detect.create()
+# separate_detect.train()
+# separate_detect.evaluate()
+# separate_detect.save()
 
 # predict_test_datas = [
 # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
@@ -99,7 +107,11 @@ from model.separate_detect_ref import SeparateDetectRefModel
 
 separate_detect_ref = SeparateDetectRefModel(40, 0.001, 32, 128)
 
-separate_detect_ref.create_dataset()
+# == split_data, label_type 매개변수 바꿔서 사용!
+split_data = {TRAIN: [IDMT]}
+label_type = LABEL_DDM
+
+separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
 separate_detect_ref.create()
 separate_detect_ref.train()
 separate_detect_ref.evaluate()

@@ -105,11 +105,15 @@ from model.separate_detect_ref import SeparateDetectRefModel
 
 separate_detect_ref = SeparateDetectRefModel(40, 0.001, 32, 128)
 
-separate_detect_ref.create_dataset({TEST: [E_GMD], VALIDATION: [E_GMD]}, LABEL_REF)
-# separate_detect_ref.create()
-# separate_detect_ref.train()
-# separate_detect_ref.evaluate()
-# separate_detect_ref.save()
+# == split_data, label_type 매개변수 바꿔서 사용!
+split_data = {TRAIN: [E_GMD], VALIDATION: [E_GMD], TEST: [E_GMD]}
+label_type = LABEL_DDM
+
+separate_detect_ref.create_dataset(split_data, label_type)
+separate_detect_ref.create()
+separate_detect_ref.train()
+separate_detect_ref.evaluate()
+separate_detect_ref.save()
 
 # predict_test_datas = [
 # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",

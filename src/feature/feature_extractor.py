@@ -26,6 +26,7 @@ from constant import (
     FEATURE_DTYPE_32,
     IDMT,
     LABEL_COLUMN,
+    LABEL_INIT_DATA,
     LABEL_DDM,
     LABEL_REF,
     LABEL_TYPE,
@@ -122,10 +123,13 @@ class FeatureExtractor:
         input: {train: [] / validation:[] / test:[]} 각 split type에 가져오고 싶은 데이터별로 array에 담아서
         - split_type: TRAIN | VALIDATION | TEST
         - data_type:  E-GMD | IDMT | ENST
+
+        result_data: {train: [df, ...] / validation:[] / test:[df, ...]}
         """
+        result_data = {}
         for split_type, data_type in split_data.items():
-            print("split_type--", split_type)
-            print("data_type--", data_type)
+            print("-- !! split type >> ", split_type)
+            print("-- !! data types >> ", data_type)
             for dt in data_type:
                 combined_df = FeatureExtractor.load_feature_file(
                     method_type,
@@ -135,8 +139,9 @@ class FeatureExtractor:
                     split_type,
                     feature_files,
                 )
+                result_data.update({split_type: combined_df})
 
-        return combined_df
+        return result_data
 
     @staticmethod
     def split_train_test_from_path(audio_paths: List[str]):
@@ -145,11 +150,7 @@ class FeatureExtractor:
         # - e-gmd : train / validation / test (from info.csv)
         # return {idmt:{train:[], test:[]}, enst:{train:[], test:[]}, e-gmd:{train:[], validation:[], test:[]}}
 
-        result_data = {
-            IDMT: {TRAIN: [], TEST: []},
-            ENST: {TRAIN: [], TEST: []},
-            E_GMD: {TRAIN: [], VALIDATION: [], TEST: []},
-        }
+        result_data = LABEL_INIT_DATA
 
         for path in audio_paths:
             # idmt 인 경우 path에서 읽기

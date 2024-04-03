@@ -217,12 +217,15 @@ class BaseModel:
         pass
 
     def print_dataset_shape(self):
-        print("x_train : ", self.x_train.shape)
-        print("y_train : ", self.y_train.shape)
-        print("x_val : ", self.x_val.shape)
-        print("y_val : ", self.y_val.shape)
-        print("x_test : ", self.x_test.shape)
-        print("y_test : ", self.y_test.shape)
+        if not self.x_train is None:
+            print("x_train : ", self.x_train.shape)
+            print("y_train : ", self.y_train.shape)
+        if not self.x_val is None:
+            print("x_val : ", self.x_val.shape)
+            print("y_val : ", self.y_val.shape)
+        if not self.x_test is None:
+            print("x_test : ", self.x_test.shape)
+            print("y_test : ", self.y_test.shape)
 
     def create(self):
         # Implement model creation logic

@@ -41,6 +41,9 @@ from constant import (
     MILLISECOND,
     SAMPLE_RATE,
     DETECT_CODE2DRUM,
+    TEST,
+    TRAIN,
+    VALIDATION,
 )
 
 
@@ -83,50 +86,59 @@ class SeparateDetectRefModel(BaseModel):
         -- load data from data file
         -- Implement dataset split feature & label logic
         """
-        # Implement dataset split feature & label logic
-        feature_df = FeatureExtractor.load_dataset_from_split_data_file(
+
+        def split_dataset(dataset_X, dataset_y, split_type):
+            if split_type == TRAIN:
+                self.x_train = dataset_X
+                self.y_train = dataset_y
+            elif split_type == VALIDATION:
+                self.x_val = dataset_X
+                self.y_val = dataset_y
+            elif split_type == TEST:
+                self.x_test = dataset_X
+                self.y_test = dataset_y
+            return
+
+        def fill_all_dataset():
+            # test 없으면 train에서
+            if self.x_test is None:
+                x_train, x_test, y_train, y_test = train_test_split(
+                    self.x_train,
+                    self.y_train,
+                    test_size=0.2,
+                    random_state=42,
+                )
+                split_dataset(x_train, y_train, TRAIN)
+                split_dataset(x_test, y_test, TEST)
+
+            # validation 없으면 train에서
+            if self.x_val is None:
+                x_train, x_val, y_train, y_val = train_test_split(
+                    self.x_train,
+                    self.y_train,
+                    test_size=0.2,
+                    random_state=42,
+                )
+                split_dataset(x_train, y_train, TRAIN)
+                split_dataset(x_val, y_val, VALIDATION)
+
+        # -- load train, validation, test
+        split_data_df = FeatureExtractor.load_dataset_from_split_data_file(
             self.method_type, self.feature_type, self.feature_extension, split_data
         )
 
         # -- get X, y
-        X, y = BaseModel._get_x_y(self.method_type, feature_df, label_type)
-        del feature_df
+        for split_type, data in split_data_df.items():
+            X, y = BaseModel._get_x_y(self.method_type, data, label_type)
+            y = BaseModel.grouping_label(y, DETECT_TYPES)
 
-        print("asdfsfa!!!!!", y)
+            scaler = StandardScaler()
+            X = scaler.fit_transform(X)
+            X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
+            y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
 
-        y = BaseModel.grouping_label(y, DETECT_TYPES)
-
-        # ------------------------------------------------------------------
-        scaler = StandardScaler()
-        X = scaler.fit_transform(X)
-        X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
-        y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
-
-        # -- split train, val, test
-        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X,
-            y,
-            test_size=0.2,
-            random_state=42,
-        )
-        del X
-        del y
-
-        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
-            x_train_temp,
-            y_train_temp,
-            test_size=0.2,
-            random_state=42,
-        )
-        del x_train_temp
-        del y_train_temp
-
-        self.x_train = x_train_final
-        self.x_val = x_val_final
-        self.x_test = x_test
-        self.y_train = y_train_final
-        self.y_val = y_val_final
-        self.y_test = y_test
+            split_dataset(X, y, split_type)
+        fill_all_dataset()
 
         # -- print shape
         self.print_dataset_shape()

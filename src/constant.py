@@ -291,7 +291,11 @@ LABEL_COLUMN = []
 for label, _ in LABEL_TYPE.items():
     for _, drum_code in CODE2DRUM.items():
         LABEL_COLUMN.append(f"{drum_code}-{label}")
-
+LABEL_INIT_DATA = {
+    IDMT: {TRAIN: [], TEST: []},
+    ENST: {TRAIN: [], TEST: []},
+    E_GMD: {TRAIN: [], VALIDATION: [], TEST: []},
+}
 """
 -- classify 방법에서의 분류 라벨
 """

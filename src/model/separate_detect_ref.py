@@ -290,23 +290,9 @@ class SeparateDetectRefModel(BaseModel):
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
         # -- OH - CH
-        keys_to_extract = ["OH", "CH"]
-        selected_values = [class_6_true_label[key] for key in keys_to_extract]
-        oh_ch_label = np.vstack(selected_values).T
-        merged_cc_oh = merge_columns(oh_ch_label, 0, 1)
-        class_6_true_label.pop("CH", None)
-        class_6_true_label["OH"] = merged_cc_oh.flatten()
-        class_5_true_label = class_6_true_label  # -- class 5
-        # -- CC - OH
-        keys_to_extract_s = ["CC", "OH"]
-        selected_values_s = [class_5_true_label[key] for key in keys_to_extract_s]
-        cc_oh_label = np.vstack(selected_values_s).T
-        merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
-        class_5_true_label.pop("CC", None)
-        class_5_true_label["OH"] = merged_cc_oh.flatten()
-        class_4_true_label = class_5_true_label  # -- class 4
-
-        true_label = class_4_true_label
+        class_6_true_label_arr = BaseModel.transform_dict_to_arr(class_6_true_label)
+        grouping_true_label_arr = BaseModel.grouping_label(class_6_true_label_arr, DETECT_TYPES)
+        true_label = BaseModel.transform_arr_to_dict(grouping_true_label_arr)
 
         # -- 각 라벨마다 peak picking
         true_label = BaseModel.transform_peakpick_from_dict(true_label)

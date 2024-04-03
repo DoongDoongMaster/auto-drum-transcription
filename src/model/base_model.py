@@ -2,6 +2,7 @@ import os
 import librosa
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 import tensorflow as tf
 
 from glob import glob
@@ -29,6 +30,9 @@ from constant import (
     ROOT_PATH,
     RAW_PATH,
     CODE2DRUM,
+    TEST,
+    TRAIN,
+    VALIDATION,
 )
 
 
@@ -212,9 +216,61 @@ class BaseModel:
         result_arr = np.stack([dict_data[key] for key in dict_data.keys()], axis=1)
         return result_arr
 
-    def create_dataset(self):
+    def create_model_dataset(self):
         # Implement model
         pass
+
+    def create_dataset(self, split_data: dict[str], label_type: str, group_dict: str):
+        # -- load train, validation, test
+        split_data_df = FeatureExtractor.load_dataset_from_split_data_file(
+            self.method_type, self.feature_type, self.feature_extension, split_data
+        )
+
+        # -- get X, y
+        for split_type, data in split_data_df.items():
+            X, y = BaseModel._get_x_y(self.method_type, data, label_type)
+            y = BaseModel.grouping_label(y, group_dict)
+            # 각 model마다 create dataset
+            self.create_model_dataset(X, y, split_type)
+        self.fill_all_dataset()
+
+        # -- print shape
+        self.print_dataset_shape()
+
+    def split_dataset(self, X, y, split_type):
+        if split_type == TRAIN:
+            self.x_train = X
+            self.y_train = y
+        elif split_type == VALIDATION:
+            self.x_val = X
+            self.y_val = y
+        elif split_type == TEST:
+            self.x_test = X
+            self.y_test = y
+        return
+
+    def fill_all_dataset(self):
+        # test 없으면 train에서
+        if self.x_test is None:
+            x_train, x_test, y_train, y_test = train_test_split(
+                self.x_train,
+                self.y_train,
+                test_size=0.2,
+                random_state=42,
+            )
+            self.split_dataset(x_train, y_train, TRAIN)
+            self.split_dataset(x_test, y_test, TEST)
+
+        # validation 없으면 train에서
+        if self.x_val is None:
+            x_train, x_val, y_train, y_val = train_test_split(
+                self.x_train,
+                self.y_train,
+                test_size=0.2,
+                random_state=42,
+            )
+            self.split_dataset(x_train, y_train, TRAIN)
+            self.split_dataset(x_val, y_val, VALIDATION)
 
     def print_dataset_shape(self):
         if not self.x_train is None:

@@ -81,67 +81,13 @@ class SeparateDetectRefModel(BaseModel):
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
 
-    def create_dataset(self, split_data: dict[str], label_type: str):
-        """
-        -- load data from data file
-        -- Implement dataset split feature & label logic
-        """
+    def create_model_dataset(self, X, y, split_type):
+        scaler = StandardScaler()
+        X = scaler.fit_transform(X)
+        X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
+        y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
 
-        def split_dataset(dataset_X, dataset_y, split_type):
-            if split_type == TRAIN:
-                self.x_train = dataset_X
-                self.y_train = dataset_y
-            elif split_type == VALIDATION:
-                self.x_val = dataset_X
-                self.y_val = dataset_y
-            elif split_type == TEST:
-                self.x_test = dataset_X
-                self.y_test = dataset_y
-            return
-
-        def fill_all_dataset():
-            # test 없으면 train에서
-            if self.x_test is None:
-                x_train, x_test, y_train, y_test = train_test_split(
-                    self.x_train,
-                    self.y_train,
-                    test_size=0.2,
-                    random_state=42,
-                )
-                split_dataset(x_train, y_train, TRAIN)
-                split_dataset(x_test, y_test, TEST)
-
-            # validation 없으면 train에서
-            if self.x_val is None:
-                x_train, x_val, y_train, y_val = train_test_split(
-                    self.x_train,
-                    self.y_train,
-                    test_size=0.2,
-                    random_state=42,
-                )
-                split_dataset(x_train, y_train, TRAIN)
-                split_dataset(x_val, y_val, VALIDATION)
-
-        # -- load train, validation, test
-        split_data_df = FeatureExtractor.load_dataset_from_split_data_file(
-            self.method_type, self.feature_type, self.feature_extension, split_data
-        )
-
-        # -- get X, y
-        for split_type, data in split_data_df.items():
-            X, y = BaseModel._get_x_y(self.method_type, data, label_type)
-            y = BaseModel.grouping_label(y, DETECT_TYPES)
-
-            scaler = StandardScaler()
-            X = scaler.fit_transform(X)
-            X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
-            y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
-
-            split_dataset(X, y, split_type)
-        fill_all_dataset()
-
-        # -- print shape
-        self.print_dataset_shape()
+        self.split_dataset(X, y, split_type)
 
     def create(self):
         input_layer = Input(shape=(self.n_rows, self.n_columns, 1))

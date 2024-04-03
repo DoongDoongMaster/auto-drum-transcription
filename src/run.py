@@ -11,7 +11,9 @@ from model.rhythm_detect_model import RhythmDetectModel
 
 from constant import (
     CSV,
+    DETECT_TYPES,
     E_GMD,
+    IDMT,
     LABEL_DDM,
     LABEL_REF,
     SAMPLE_RATE,
@@ -106,10 +108,10 @@ from model.separate_detect_ref import SeparateDetectRefModel
 separate_detect_ref = SeparateDetectRefModel(40, 0.001, 32, 128)
 
 # == split_data, label_type 매개변수 바꿔서 사용!
-split_data = {TRAIN: [E_GMD], VALIDATION: [E_GMD], TEST: [E_GMD]}
+split_data = {TRAIN: [IDMT]}
 label_type = LABEL_DDM
 
-separate_detect_ref.create_dataset(split_data, label_type)
+separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
 separate_detect_ref.create()
 separate_detect_ref.train()
 separate_detect_ref.evaluate()

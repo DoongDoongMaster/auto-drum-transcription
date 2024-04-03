@@ -274,6 +274,9 @@ class SegmentClassifyModel(BaseModel):
         save_folder_path_test_enst = FeatureExtractor._get_save_folder_path(
             self.method_type, self.feature_type, ENST, "test"
         )
+        save_folder_path_train_idmt = FeatureExtractor._get_save_folder_path(
+            self.method_type, self.feature_type, IDMT, "train"
+        )
         save_folder_path_test = FeatureExtractor._get_save_folder_path(
             self.method_type, self.feature_type, IDMT, "test"
         )
@@ -284,7 +287,14 @@ class SegmentClassifyModel(BaseModel):
         feature_files_test_enst = glob(
             f"{save_folder_path_test_enst}/*.{self.feature_extension}"
         )
-        feature_files_train = feature_files_train_enst + feature_files_test_enst
+        feature_files_train_idmt = glob(
+            f"{save_folder_path_train_idmt}/*.{self.feature_extension}"
+        )
+        feature_files_train = (
+            feature_files_train_enst
+            + feature_files_test_enst
+            + feature_files_train_idmt
+        )
         feature_files_test = glob(f"{save_folder_path_test}/*.{self.feature_extension}")
         feature_file_offset_train = math.ceil(
             len(feature_files_train) / float(self.data_cnt)

@@ -101,7 +101,7 @@ DATA_IDMT = (
 )
 DATA_IDMT_NOT = ("TechnoDrum",)
 DATA_ENST_NOT = (
-    "accompaniment",
+    "accompaniment/",
     "cowbell",
     "brushes",
     "no-snare",

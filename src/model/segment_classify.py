@@ -193,7 +193,7 @@ class SegmentClassifyModel(BaseModel):
             x_train, x_val, y_train, y_val = train_test_split(
                 X,
                 y,
-                test_size=0.2,
+                test_size=0.4,
                 random_state=42,
                 stratify=y,
             )

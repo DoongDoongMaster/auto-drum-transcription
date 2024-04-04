@@ -102,7 +102,7 @@ class FeatureExtractor:
 
         # row 생략 없이 출력
         # pd.set_option("display.max_rows", None)
-        print("-- 추출 : ", feature_files)
+        # print("-- 추출 : ", feature_files)
         print(
             "-- ! 로딩 완료 ! --",
             "data shape:",

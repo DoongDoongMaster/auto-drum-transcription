@@ -1,33 +1,40 @@
 import librosa
-from model.separate_detect import SeparateDetectModel
-from data.onset_detection import OnsetDetect
-from data.data_processing import DataProcessing
-from data.data_labeling import DataLabeling
+import numpy as np
 from feature.audio_to_feature import AudioToFeature
+from data.data_labeling import DataLabeling
+from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
+from data.onset_detection import OnsetDetect
+from model.segment_classify import SegmentClassifyModel
+from model.rhythm_detect_model import RhythmDetectModel
+
 from constant import (
+    CSV,
+    SAMPLE_RATE,
+    MFCC,
+    STFT,
+    MEL_SPECTROGRAM,
+    METHOD_CLASSIFY,
+    METHOD_DETECT,
+    METHOD_RHYTHM,
+    FEATURE_PARAM,
+    CHUNK_LENGTH,
     ROOT_PATH,
     RAW_PATH,
-    IDMT,
-    ENST,
-    E_GMD,
-    SAMPLE_RATE,
-    DDM_OWN,
-    DRUM_KIT,
-    METHOD_CLASSIFY,
-    MFCC,
+    NEW_PATH,
     PKL,
-    METHOD_DETECT,
-    MEL_SPECTROGRAM,
-    CSV,
-    METHOD_RHYTHM,
 )
+from model.separate_detect_multiclass import SeparateDetectMultiClassModel
 
-# predict_test_data = (
-#     f"../data/raw/{ENST}/drummer_1/audio/hi-hat/003_hits_medium-tom_sticks_x5.wav"
-# )
-# predict_test_data = f"../data/raw/{DDM_OWN}/pattern/P2/16/P2_16_0001.m4a"
-data_paths = [
+separate_detect_multiclass = SeparateDetectMultiClassModel(40, 0.01, 32, 128)
+
+# separate_detect_multiclass.create_dataset()
+# separate_detect_multiclass.create()
+# separate_detect_multiclass.train()
+# separate_detect_multiclass.evaluate()
+# separate_detect_multiclass.save()
+
+predict_test_datas = [
     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
     # "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
@@ -42,15 +49,8 @@ data_paths = [
     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_2.wav",
     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_3.wav",
     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_4.wav",
+    # "../data/test/record/dot.m4a",
+    # "../data/test/record/vari.m4a",
 ]
-# FeatureExtractor.feature_extractor(data_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
-# FeatureExtractor.load_feature_file(METHOD_DETECT, MEL_SPECTROGRAM, PKL)
-# predict_test_data = f"../data/raw/IDMT-SMT-DRUMS-V2/audio/RealDrum01_01#MIX.wav"
-# predict_test_data = f"{ROOT_PATH}/{RAW_PATH}/{DDM_OWN}/per-drum/HH/16/HH_16_0001.m4a"
-# predict_test_data = (
-#     "../data/new/e-gmd-v1.0.0/drummer6/session3/5_rock_180_beat_4-4_44.wav"
-# )
-predict_test_data = "../data/test/항해_솔로_일부분.wav"
-separate_detect = SeparateDetectModel()
-# separate_detect.run()
-print(separate_detect.predict(predict_test_data, 100, 0))
+for predict_test_data in predict_test_datas:
+    print(separate_detect_multiclass.predict(predict_test_data, 100, 0))

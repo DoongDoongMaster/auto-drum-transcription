@@ -3,6 +3,7 @@ import numpy as np
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder
 from keras.models import Model
 
 import tensorflow as tf
@@ -27,9 +28,51 @@ from constant import (
 )
 
 
-class SeparateDetectModel(BaseModel):
+def binary_to_decimal(binary_list):
+    decimal_value = 0
+    for i in range(len(binary_list)):
+        decimal_value += binary_list[i] * (2 ** (len(binary_list) - 1 - i))
+    return decimal_value
+
+
+def decimal_to_one_hot(decimal_value, num_classes):
+    one_hot_vector = [0] * num_classes
+    one_hot_vector[decimal_value] = 1
+    return one_hot_vector
+
+
+def preprocess_binary(binary_list):
+    preprocessed_list = [1 if bit >= 0.5 else 0 for bit in binary_list]
+    return preprocessed_list
+
+
+# def decimal_to_binary(decimal_value, num_bits):
+#     binary_list = [0] * num_bits
+#     binary_str = bin(decimal_value)[2:]
+#     for i in range(len(binary_str)):
+#         binary_list[num_bits - len(binary_str) + i] = int(binary_str[i])
+#     return binary_list
+
+
+def one_hot_to_decimal(one_hot_array):
+    decimal_values = []
+    for row in one_hot_array:
+        decimal_value = np.argmax(row)
+        decimal_values.append(decimal_value)
+    return decimal_values
+
+
+def decimal_to_binary(decimal_values, num_bits):
+    binary_lists = []
+    for decimal_value in decimal_values:
+        binary_list = [int(bit) for bit in bin(decimal_value)[2:].zfill(num_bits)]
+        binary_lists.append(binary_list)
+    return binary_lists
+
+
+class SeparateDetectMultiClassModel(BaseModel):
     def __init__(
-        self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16, load_model_flag=True,
+        self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -42,22 +85,13 @@ class SeparateDetectModel(BaseModel):
         self.predict_standard = 0.5
         self.n_rows = CHUNK_TIME_LENGTH
         self.n_columns = self.feature_param["n_mels"]
-        self.n_classes = self.feature_param["n_classes"]
+        self.n_classes = 16
         self.hop_length = self.feature_param["hop_length"]
         self.win_length = self.feature_param["win_length"]
-        if load_model_flag:
-            self.load_model()
+        self.load_model()
 
     def input_reshape(self, data):
-        return np.reshape(
-            data,
-            [
-                -1,
-                self.n_rows,
-                self.n_columns,
-                1,
-            ],
-        )
+        return data
 
     def input_label_reshape(self, data):
         return data
@@ -81,6 +115,25 @@ class SeparateDetectModel(BaseModel):
 
         y = BaseModel.grouping_label(y, DETECT_TYPES)
 
+        # ------------------------------------------------------------------
+        # # 각 행마다 binary list -> decimal num
+        # # [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0] -> [32]
+        # decimal_y = FeatureExtractor.one_hot_label_to_number(y).reshape((-1, 1))
+        # # print("decimal_y: ", decimal_y)
+
+        # onehot_encoder = OneHotEncoder()
+        # onehot_label_df = onehot_encoder.fit_transform(decimal_y)
+        # onehot_label_df = onehot_label_df.toarray()
+        binary_sequences = [preprocess_binary(seq) for seq in y]
+
+        onehot_label_df = [
+            decimal_to_one_hot(binary_to_decimal(seq), self.n_classes)
+            for seq in binary_sequences
+        ]
+
+        y = np.array(onehot_label_df)
+        print("one hot y: ", y)
+        del onehot_label_df
         # ------------------------------------------------------------------
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
@@ -131,12 +184,12 @@ class SeparateDetectModel(BaseModel):
         lstm2 = LSTM(32, return_sequences=True)(lstm1)
         lstm3 = LSTM(32, return_sequences=True)(lstm2)
 
-        output_layer = Dense(self.n_classes, activation="sigmoid")(lstm3)
+        output_layer = Dense(self.n_classes, activation="softmax")(lstm3)
         self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
         opt = RMSprop(learning_rate=self.opt_learning_rate)
         self.model.compile(
-            loss="binary_crossentropy", optimizer=opt, metrics=["binary_accuracy"]
+            loss="categorical_crossentropy", optimizer=opt, metrics=["binary_accuracy"]
         )
 
     """
@@ -177,7 +230,7 @@ class SeparateDetectModel(BaseModel):
 
             if is_onset:
                 onsets_arr.append(i * self.hop_length / SAMPLE_RATE)
-                drum_instrument.append([len(onsets_arr) - 1, drums])
+                drum_instrument.append([len(onsets_arr), drums])
 
         return onsets_arr, drum_instrument, each_instrument_onsets_arr
 
@@ -217,10 +270,28 @@ class SeparateDetectModel(BaseModel):
         # -- predict 결과 -- (#, time, 4 feature)
         predict_data = self.model.predict(audio_feature)
         predict_data = predict_data.reshape((-1, self.n_classes))
-        # # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
-        result_dict = self.transform_arr_to_dict(predict_data)
 
-        # -- threshold 0.5
+        # 각 행에서 최댓값의 인덱스 찾기
+        max_indices = np.argmax(predict_data, axis=1)
+        # 결과 배열 초기화
+        result_data = np.zeros_like(predict_data)
+        # 최댓값 위치에 1 할당
+        for i, idx in enumerate(max_indices):
+            result_data[i, idx] = 1
+        #  = result
+        print("가장 높은 값만 1로: ", result_data.shape)
+        print(result_data)
+
+        # One-hot 벡터를 10진수로 변환한 후에 이를 이진수 리스트로 변환
+        decimal_values = one_hot_to_decimal(predict_data)
+        binary_lists = decimal_to_binary(decimal_values, 4)
+        # decimal_value = one_hot_to_decimal(predict_data)
+
+        # # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
+        result_dict = self.transform_arr_to_dict(binary_lists)
+        # predict_data=
+
+        # -- threshold 0.5 --------------------------------------------------------------
         onsets_arr, drum_instrument, each_instrument_onsets_arr = (
             self.get_predict_onsets_instrument(predict_data)
         )
@@ -262,52 +333,3 @@ class SeparateDetectModel(BaseModel):
 
         # return {"instrument": drum_instrument, "rhythm": bar_rhythm}
         # return NULL
-
-    @staticmethod
-    def data_pre_processing_reshpae(data, chunk_size):
-        num_samples, num_features = data.shape
-        num_chunks = num_samples // chunk_size
-
-        # 나머지 부분을 제외한 데이터만 사용
-        data = data[: num_chunks * chunk_size, :]
-
-        # reshape을 통해 3D 배열로 변환
-        return np.reshape(data, [-1, chunk_size, num_features])
-
-    def data_pre_processing(self, audio: np.array) -> np.array:
-        audio_feature = np.zeros((0, self.n_columns))
-
-        # 12s chunk하면서 audio feature추출 후 이어붙이기 -> 함수로 뽑을 예정
-        audios = DataProcessing.cut_chunk_audio(audio)
-        for i, ao in enumerate(audios):
-            # audio to feature
-            feature = AudioToFeature.extract_feature(
-                ao, self.method_type, self.feature_type
-            )
-            audio_feature = np.vstack([audio_feature, feature])
-
-        scaler = StandardScaler()
-        audio_feature = scaler.fit_transform(audio_feature)
-
-        # -- input (#, time, 128 feature)
-        # [TODO] redisAI not work BaseModel func. So, create new func (data_pre_processing_reshape) in this class
-        audio_feature = SeparateDetectModel.data_pre_processing_reshpae(
-            audio_feature, CHUNK_TIME_LENGTH
-        )
-        audio_feature = audio_feature.astype(np.float32)
-
-        return audio_feature
-
-    def data_post_processing(self, predict_data: np.array, _: np.array = None, label_cnt: int = 4):
-        predict_data = predict_data.reshape((-1, self.n_classes))
-        predict_data = predict_data.copy()
-
-        # -- threshold 0.5
-        onsets_arr, drum_instrument, each_instrument_onsets_arr = (
-            self.get_predict_onsets_instrument(predict_data)
-        )
-
-        threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
-        # DataLabeling.show_label_dict_plot(threshold_dict, 0, 2000)
-
-        return drum_instrument, onsets_arr

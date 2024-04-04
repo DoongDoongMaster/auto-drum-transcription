@@ -1,15 +1,12 @@
 import math
 import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt
-import tensorflow_addons as tfa
 
 from glob import glob
 from tensorflow import keras
 from tensorflow.keras import layers
 from collections import Counter
 from imblearn.over_sampling import SMOTE
-from imblearn.under_sampling import NearMiss
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from keras.models import Model
@@ -25,7 +22,10 @@ from data.rhythm_detection import RhythmDetection
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
 from constant import (
-    CLASSIFY_DETECT_TYPES,
+    CLASSIFY_TYPES,
+    DRUM2CODE,
+    ENST,
+    IDMT,
     METHOD_CLASSIFY,
     MFCC,
     MILLISECOND,
@@ -33,6 +33,7 @@ from constant import (
     CLASSIFY_DURATION,
     PKL,
     CLASSIFY_CODE2DRUM,
+    LABEL_DDM,
 )
 
 
@@ -54,37 +55,24 @@ class SegmentClassifyModel(BaseModel):
             feature_type=feature_type,
             feature_extension=feature_extension,
         )
-        self.data_cnt = 2
+        self.data_cnt = 1
         self.train_cnt = 1
-        self.predict_standard = 0.8
+        self.predict_standard = 0.5
         self.n_rows = (
             self.feature_param["n_mfcc"]
             if feature_type == MFCC
             else self.feature_param["n_mels"]
-        )
+        )  # feature 개수
         self.n_columns = (
             int(CLASSIFY_DURATION * SAMPLE_RATE) // self.feature_param["hop_length"]
-        )
-        self.n_channels = (
-            self.feature_param["n_channels"] if feature_type == MFCC else 1
-        )
+        )  # timestamp
+        self.n_channels = 1
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
-        # self.load_model("../models/classify_mfcc_2024-02-24_00-53-10_smote_5.h5")
         if load_model_flag:
             self.load_model()
 
     def input_reshape(self, data):
-        # cnn data
-        # return tf.reshape(
-        #     data,
-        #     [
-        #         -1,
-        #         self.n_rows,
-        #         self.n_columns,
-        #         self.n_channels,
-        #     ],
-        # )
         # sequence data
         return np.reshape(
             data,
@@ -166,6 +154,7 @@ class SegmentClassifyModel(BaseModel):
         del feature_df
 
         X = SegmentClassifyModel.x_data_transpose(X)
+        y = BaseModel.grouping_label(y, CLASSIFY_TYPES)
 
         number_y = FeatureExtractor.one_hot_label_to_number(y)
         counter = Counter(number_y)
@@ -196,47 +185,40 @@ class SegmentClassifyModel(BaseModel):
 
         return split_data
 
-    def create_dataset(self, X, y):
+    def create_dataset(self, train_data, test_data):
         """
         -- Implement dataset split feature & label logic
         """
-        # X = self.x_data_1d_reshape(X)
-        # X, y = SegmentClassifyModel.smote_data(X, y)
-
-        y = FeatureExtractor.number_to_one_hot_label(y)
-
-        # -- split train, val, test
-        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X,
-            y,
+        # -- split train, val
+        x_train, x_val, y_train, y_val = train_test_split(
+            train_data["x"],
+            train_data["y"],
             test_size=0.2,
             random_state=42,
-            stratify=y,
+            stratify=train_data["y"],
         )
-        del X
-        del y
+        del train_data
 
-        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
-            x_train_temp,
-            y_train_temp,
-            test_size=0.2,
-            random_state=42,
-            stratify=y_train_temp,
-        )
-        del x_train_temp
-        del y_train_temp
+        # train data smote
+        x_train = self.x_data_1d_reshape(x_train)
+        x_train, y_train = SegmentClassifyModel.smote_data(x_train, y_train)
+
+        # decimal to multi-hot-encoding
+        y_train_final = FeatureExtractor.number_to_one_hot_label(y_train)
+        y_val_final = FeatureExtractor.number_to_one_hot_label(y_val)
+        y_test_final = FeatureExtractor.number_to_one_hot_label(test_data["y"])
 
         # input shape 조정
-        x_train_final = self.input_reshape(x_train_final)
-        x_val_final = self.input_reshape(x_val_final)
-        x_test = self.input_reshape(x_test)
+        x_train_final = self.input_reshape(x_train)
+        x_val_final = self.input_reshape(x_val)
+        x_test = self.input_reshape(test_data["x"])
 
         self.x_train = x_train_final
         self.x_val = x_val_final
         self.x_test = x_test
         self.y_train = y_train_final
         self.y_val = y_val_final
-        self.y_test = y_test
+        self.y_test = y_test_final
 
         # -- print shape
         self.print_dataset_shape()
@@ -247,31 +229,37 @@ class SegmentClassifyModel(BaseModel):
 
         keras.backend.clear_session()
 
-        self.model = keras.Sequential(
-            [
-                layers.Input(shape=(n_steps, n_features)),
-                layers.Conv1D(
-                    filters=64,
-                    kernel_size=8,
-                    padding="same",
-                    data_format="channels_last",
-                    dilation_rate=1,
-                    activation="relu",
-                ),
-                layers.LSTM(
-                    units=32, activation="tanh", name="lstm_1", return_sequences=True
-                ),
-                layers.Dropout(0.2),
-                layers.LSTM(
-                    units=32, activation="tanh", name="lstm_2", return_sequences=True
-                ),
-                layers.Dropout(0.2),
-                layers.Flatten(),
-                layers.Dense(self.n_classes, activation="sigmoid"),
-            ]
+        input_layer = Input(shape=(n_steps, n_features, self.n_channels))
+
+        # 1st Convolutional Block
+        conv1_1 = layers.Conv2D(
+            filters=128, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(input_layer)
+        pool1 = layers.MaxPooling2D(pool_size=(1, 2))(conv1_1)
+
+        # 2st Convolutional Block
+        conv2_1 = layers.Conv2D(
+            filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(pool1)
+        pool2 = layers.MaxPooling2D(pool_size=(1, 2))(conv2_1)
+
+        # Reshape for RNN
+        reshape = layers.Reshape((pool2.shape[1], pool2.shape[2] * pool2.shape[3]))(
+            pool2
         )
+
+        # BiLSTM layers
+        lstm1 = layers.Bidirectional(LSTM(8, return_sequences=True))(reshape)
+        last_dropout = layers.Dropout(0.2)(lstm1)
+        last_flatten = layers.Flatten()(last_dropout)
+
+        # Output layer
+        output_layer = Dense(self.n_classes, activation="sigmoid")(last_flatten)
+
+        # model compile
+        self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
-        # compile the self.model
+
         opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
             loss="binary_crossentropy",
@@ -283,20 +271,56 @@ class SegmentClassifyModel(BaseModel):
         """
         데이터셋 생성, 모델 생성, 학습, 평가, 모델 저장 파이프라인
         """
-        save_folder_path = FeatureExtractor._get_save_folder_path(
-            self.method_type, self.feature_type
+        save_folder_path_train_enst = FeatureExtractor._get_save_folder_path(
+            self.method_type, self.feature_type, ENST, "train"
         )
-        feature_files = glob(f"{save_folder_path}/*.{self.feature_extension}")
-        feature_file_offset = math.ceil(len(feature_files) / float(self.data_cnt))
-        for i in range(self.data_cnt):
-            split_dataset = self.load_dataset(
-                feature_files[i * feature_file_offset : (i + 1) * feature_file_offset]
-            )
-            # self.create()
+        save_folder_path_test_enst = FeatureExtractor._get_save_folder_path(
+            self.method_type, self.feature_type, ENST, "test"
+        )
+        save_folder_path_train_idmt = FeatureExtractor._get_save_folder_path(
+            self.method_type, self.feature_type, IDMT, "train"
+        )
+        save_folder_path_test = FeatureExtractor._get_save_folder_path(
+            self.method_type, self.feature_type, IDMT, "test"
+        )
 
-            for data in split_dataset:
-                print("split data length", len(data["x"]))
-                self.create_dataset(data["x"], data["y"])
+        feature_files_train_enst = glob(
+            f"{save_folder_path_train_enst}/*.{self.feature_extension}"
+        )
+        feature_files_test_enst = glob(
+            f"{save_folder_path_test_enst}/*.{self.feature_extension}"
+        )
+        feature_files_train_idmt = glob(
+            f"{save_folder_path_train_idmt}/*.{self.feature_extension}"
+        )
+        feature_files_train = (
+            feature_files_train_enst
+            + feature_files_test_enst
+            + feature_files_train_idmt
+        )
+        feature_files_test = glob(f"{save_folder_path_test}/*.{self.feature_extension}")
+        feature_file_offset_train = math.ceil(
+            len(feature_files_train) / float(self.data_cnt)
+        )
+        feature_file_offset_test = math.ceil(
+            len(feature_files_test) / float(self.data_cnt)
+        )
+        self.create()
+        for i in range(self.data_cnt):
+            split_dataset_train = self.load_dataset(
+                feature_files_train[
+                    i * feature_file_offset_train : (i + 1) * feature_file_offset_train
+                ]
+            )
+            split_dataset_test = self.load_dataset(
+                feature_files_test[
+                    i * feature_file_offset_test : (i + 1) * feature_file_offset_test
+                ]
+            )
+
+            for idx, train_data in enumerate(split_dataset_train):
+                print("split data length", len(train_data["x"]))
+                self.create_dataset(train_data, split_dataset_test[idx])
                 self.train()
                 self.evaluate()
         self.save()
@@ -382,14 +406,17 @@ class SegmentClassifyModel(BaseModel):
 
         # -- 원래 정답 라벨
         true_label = DataLabeling.data_labeling(
-            audio, wav_path, METHOD_CLASSIFY, hop_length=self.hop_length
+            audio,
+            wav_path,
+            METHOD_CLASSIFY,
+            hop_length=self.hop_length,
         )
         l = {}
-        for k, v in CLASSIFY_DETECT_TYPES.items():
+        for k, v in CLASSIFY_TYPES.items():
             temp_label = []
             for drum_idx, origin_key in enumerate(v):
                 if len(temp_label) == 0:  # 초기화
-                    temp_label = true_label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
+                    temp_label = true_label[CLASSIFY_TYPES[k][drum_idx]]
                 else:
                     for frame_idx, frame_value in enumerate(true_label[origin_key]):
                         if temp_label[frame_idx] == 1.0 or frame_value == 0.0:
@@ -409,7 +436,7 @@ class SegmentClassifyModel(BaseModel):
                 onset_dict[CLASSIFY_CODE2DRUM[inst]].append(onsets_arr[idx])
         frame_length = len(audio) // self.hop_length
         frame_onset = DataLabeling._get_label_detect(
-            onset_dict, frame_length, self.hop_length
+            onset_dict, frame_length, self.hop_length, LABEL_DDM
         )
         new_frame_onset = {}
         for k, v in frame_onset.items():

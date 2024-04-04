@@ -10,16 +10,25 @@ current_model_num = 0
 
 model_serving_class = []
 for data in SERVED_MODEL_ALL:
-    temp_class = ModelServing(data.get("method_type"), data.get("feature_type"), data.get("model_name"), data.get("label_cnt"))
+    temp_class = ModelServing(
+        data.get("method_type"),
+        data.get("feature_type"),
+        data.get("model_name"),
+        data.get("label_cnt"),
+    )
     model_serving_class.append(temp_class)
     if not data.get("is_frozen"):
-        ModelServing.convert_model_to_frozen(data.get("method_type"), data.get("model_name"))
+        ModelServing.convert_model_to_frozen(
+            data.get("method_type"), data.get("model_name")
+        )
     if not data.get("is_stored"):
         temp_class.store_model_to_server()
     model_serving_class.append(temp_class)
 
 # ============= predict test ====================================================
-wav_path = "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_1.wav"
+wav_path = (
+    "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_1.wav"
+)
 # # Implement model predict logic
 audio = FeatureExtractor.load_audio(wav_path)
 # -- cut delay

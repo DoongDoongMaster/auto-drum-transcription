@@ -476,10 +476,14 @@ class SegmentClassifyModel(BaseModel):
         predict_data = SegmentClassifyModel.x_data_transpose(predict_data)
         return predict_data
 
-    def data_post_processing(self, predict_data: np.array, audio: np.array, label_cnt: int = 4):
+    def data_post_processing(
+        self, predict_data: np.array, audio: np.array, label_cnt: int = 4
+    ):
         predict_data_result = []
         if label_cnt == 3:
-            predict_data_result = np.insert(predict_data, 1, np.zeros((1, len(predict_data))), axis=1)
+            predict_data_result = np.insert(
+                predict_data, 1, np.zeros((1, len(predict_data))), axis=1
+            )
         elif label_cnt == 5:
             for data in predict_data:
                 data_0 = max(data[0], data[1])

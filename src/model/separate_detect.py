@@ -29,7 +29,12 @@ from constant import (
 
 class SeparateDetectModel(BaseModel):
     def __init__(
-        self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16, load_model_flag=True,
+        self,
+        training_epochs=40,
+        opt_learning_rate=0.001,
+        batch_size=20,
+        unit_number=16,
+        load_model_flag=True,
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -298,7 +303,9 @@ class SeparateDetectModel(BaseModel):
 
         return audio_feature
 
-    def data_post_processing(self, predict_data: np.array, _: np.array = None, label_cnt: int = 4):
+    def data_post_processing(
+        self, predict_data: np.array, _: np.array = None, label_cnt: int = 4
+    ):
         predict_data = predict_data.reshape((-1, self.n_classes))
         predict_data = predict_data.copy()
 

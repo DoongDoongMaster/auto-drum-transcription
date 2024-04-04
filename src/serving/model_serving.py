@@ -28,7 +28,7 @@ class ModelServing:
         method_type: str,
         feature_type: str,
         model_name: str,
-        label_cnt: int = 4, 
+        label_cnt: int = 4,
     ) -> None:
         self.redisai_client = Client(host=REDIS_AI_HOST, port=REDIS_AI_PORT)
         self.method_type = method_type
@@ -83,7 +83,9 @@ class ModelServing:
             print("========== find model! ==============")
             model_class = None
             if self.method_type == METHOD_CLASSIFY:
-                model_class = SegmentClassifyModel(feature_type=self.feature_type, load_model_flag=False)
+                model_class = SegmentClassifyModel(
+                    feature_type=self.feature_type, load_model_flag=False
+                )
             elif self.method_type == METHOD_DETECT:
                 model_class = SeparateDetectModel(load_model_flag=False)
 
@@ -113,7 +115,9 @@ class ModelServing:
 
             # post-processing
             drum_instrument, onsets_arr = model_class.data_post_processing(
-                predict_result, audio, self.label_cnt,
+                predict_result,
+                audio,
+                self.label_cnt,
             )
 
             print("drum_instrument", drum_instrument)

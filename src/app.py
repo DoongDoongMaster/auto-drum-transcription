@@ -16,16 +16,19 @@ def model_predict(file: UploadFile = File(...)):
     # ============ sercved model class create ========================
     curr_model_num = 5
     data = SERVED_MODEL_ALL[curr_model_num]
-    model_serving_class = ModelServing(data.get("method_type"), data.get("feature_type"), data.get("model_name"), data.get("label_cnt"))
+    model_serving_class = ModelServing(
+        data.get("method_type"),
+        data.get("feature_type"),
+        data.get("model_name"),
+        data.get("label_cnt"),
+    )
 
     # # Implement model predict logic
     audio = FeatureExtractor.load_audio(file.file)
     # -- cut delay
     new_audio = DataProcessing.trim_audio_first_onset(audio, 0)
     audio = new_audio
-    drum_instrument, onsets_arr = model_serving_class.predict_model_from_server(
-        audio
-    )
+    drum_instrument, onsets_arr = model_serving_class.predict_model_from_server(audio)
 
     # total wav file time (sec)
     audio_total_sec = len(audio) / SAMPLE_RATE

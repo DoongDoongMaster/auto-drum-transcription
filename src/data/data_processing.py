@@ -178,3 +178,8 @@ class DataProcessing:
         """
         for i, audio in enumerate(trimmed_audios, start=1):
             DataProcessing.write_wav_audio_one(root_path, f"/{name}_{i:04}", audio)
+
+    @staticmethod
+    def convert_array_dtype_float32(data):
+        data_float32 = data.astype(np.float32)
+        return data_float32

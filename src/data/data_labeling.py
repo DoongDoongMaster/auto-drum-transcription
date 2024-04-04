@@ -12,6 +12,9 @@ from data.onset_detection import OnsetDetect
 from constant import (
     DATA_ENST_NOT,
     DATA_E_GMD_NOT,
+    LABEL_DDM,
+    LABEL_REF,
+    LABEL_TYPE,
     PATTERN_DIR,
     PER_DRUM_DIR,
     PATTERN2CODE,
@@ -48,6 +51,7 @@ class DataLabeling:
         idx: int = None,
         frame_length: int = 0,
         hop_length: int = 0,
+        label_type: str = LABEL_DDM,
     ):
         """
         -- method type과 data origin에 따른 data labeling 메소드
@@ -60,7 +64,9 @@ class DataLabeling:
             onsets_arr = DataLabeling.get_onsets_instrument_arr(audio, path, idx)
             if DataLabeling._is_dict_all_empty(onsets_arr):
                 return False
-            return DataLabeling._get_label_detect(onsets_arr, frame_length, hop_length)
+            return DataLabeling._get_label_detect(
+                onsets_arr, frame_length, hop_length, label_type
+            )
 
         # -- [only onset] --
         if method_type == METHOD_RHYTHM:
@@ -68,7 +74,7 @@ class DataLabeling:
             if len(onsets_arr) == 0:
                 return False
             return DataLabeling._get_label_rhythm_data(
-                onsets_arr, frame_length, hop_length
+                onsets_arr, frame_length, hop_length, label_type
             )
 
         raise Exception(f"지원하지 않는 모델 방식 {method_type} !!!")
@@ -140,30 +146,33 @@ class DataLabeling:
             #         path, 3, "txt", "annotation"
             #     )
 
-        if DRUM_KIT in path:
+        elif (DRUM_KIT in path) or (IDMT in path and "train" in path):
             label = OnsetDetect.get_onsets_instrument_from_wav(
                 audio, path, start, end, label_init
             )
 
-        # label path 구하기
-        label_path = DataLabeling._get_label_path_by_audio_path(path)
+        else:
+            # label path 구하기
+            label_path = DataLabeling._get_label_path_by_audio_path(path)
 
-        onset_detection_methods = {
-            IDMT: (
-                OnsetDetect.get_onsets_instrument_from_xml
-                if "MIX" in path
-                else OnsetDetect.get_onsets_instrument_from_svl
-            ),
-            ENST: OnsetDetect.get_onsets_instrument_from_txt,
-            E_GMD: OnsetDetect.get_onsets_instrument_from_mid,
-        }
+            onset_detection_methods = {
+                IDMT: (
+                    OnsetDetect.get_onsets_instrument_from_xml
+                    if "MIX" in path
+                    else OnsetDetect.get_onsets_instrument_from_svl
+                ),
+                ENST: OnsetDetect.get_onsets_instrument_from_txt,
+                E_GMD: OnsetDetect.get_onsets_instrument_from_mid,
+            }
 
-        data_own = path.split("/")[3]
-        if data_own in onset_detection_methods:
-            print("[", data_own, "] onset method: ", onset_detection_methods[data_own])
-            label = onset_detection_methods[data_own](
-                label_path, start, end, label_init
-            )
+            data_own = path.split("/")[3]
+            if data_own in onset_detection_methods:
+                print(
+                    "[", data_own, "] onset method: ", onset_detection_methods[data_own]
+                )
+                label = onset_detection_methods[data_own](
+                    label_path, start, end, label_init
+                )
 
         return label
 
@@ -286,84 +295,6 @@ class DataLabeling:
         plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
         plt.show()
         plt.clf()
-
-    @staticmethod
-    def show_label_dict_compare_plot_detect(
-        y_true: dict[str, List[float]],
-        y_pred: dict[str, List[float]],
-        y_threshold: dict[str, List[float]],
-        start=0,
-        end=None,
-    ):
-        """
-        -- label 그래프
-        {
-            "HH": [1, 0, 0, ...],
-            "ST": [0, 0, 0, ...],
-            ...
-        }
-        """
-        if end is None:  # end가 none이라면 y_true 끝까지
-            end = len(y_true[list(y_true.keys())[0]])  # 첫 번째 value의 길이
-
-        leng = len(DRUM2CODE) * 3
-
-        for key, label_arr in y_true.items():
-            true_data = np.array(label_arr)
-            plt.subplot(leng, 1, 3 * DRUM2CODE[key] + 1)
-            plt.plot(true_data, color="b")
-            plt.axis([start, end, 0, 1])
-
-            pred_data = np.array(y_threshold[key])
-            plt.subplot(leng, 1, 3 * DRUM2CODE[key] + 2)
-            plt.plot(pred_data, color="g")
-            plt.axis([start, end, 0, 1])
-
-            pred_data = np.array(y_pred[key])
-            plt.subplot(leng, 1, 3 * DRUM2CODE[key] + 3)
-            plt.plot(pred_data, color="r")
-            plt.axis([start, end, 0, 1])
-
-        plt.title("Model Label")
-        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        date_time = datetime.now().strftime(
-            "%Y-%m-%d_%H-%M-%S"
-        )  # 현재 날짜와 시간 가져오기
-        plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
-        plt.show()
-        plt.clf()  # 그래프 초기화하는ㄴ 거
-
-    @staticmethod
-    def show_pred_dict_plot_detect(
-        y_pred: dict[str, List[float]],
-        y_threshold: dict[str, List[float]],
-        start=0,
-        end=None,
-    ):
-        if end is None:  # end가 none이라면 y_pred 끝까지
-            end = len(y_pred[list(y_pred.keys())[0]])  # 첫 번째 value의 길이
-
-        leng = len(DRUM2CODE) * 2
-
-        for key in y_pred.keys():
-            pred_data = np.array(y_threshold[key])
-            plt.subplot(leng, 1, 2 * DRUM2CODE[key] + 1)
-            plt.plot(pred_data, color="g")
-            plt.axis([start, end, 0, 1])
-
-            pred_data = np.array(y_pred[key])
-            plt.subplot(leng, 1, 2 * DRUM2CODE[key] + 2)
-            plt.plot(pred_data, color="r")
-            plt.axis([start, end, 0, 1])
-
-        plt.title("Model Label")
-        os.makedirs(IMAGE_PATH, exist_ok=True)  # 이미지 폴더 생성
-        date_time = datetime.now().strftime(
-            "%Y-%m-%d_%H-%M-%S"
-        )  # 현재 날짜와 시간 가져오기
-        plt.savefig(f"{IMAGE_PATH}/label-{date_time}.png")
-        plt.show()
-        plt.clf()  # 그래프 초기화하는 거
 
     @staticmethod
     def show_label_onset_plot(label: List[float], onset: List[int]):
@@ -531,7 +462,10 @@ class DataLabeling:
 
     @staticmethod
     def _get_label_detect(
-        onsets_arr: dict, frame_length: int, hop_length: int
+        onsets_arr: dict,
+        frame_length: int,
+        hop_length: int,
+        label_type: str,  # LABEL_TYPE
     ) -> List[List[int]]:
         label = {v: [] for _, v in CODE2DRUM.items()}
 
@@ -540,7 +474,7 @@ class DataLabeling:
         """
         for drum_type, onset_times in onsets_arr.items():
             drum_label = DataLabeling._get_label_rhythm_data(
-                onset_times, frame_length, hop_length
+                onset_times, frame_length, hop_length, label_type
             )
             label[drum_type] = drum_label
 
@@ -548,10 +482,14 @@ class DataLabeling:
 
     @staticmethod
     def _get_label_rhythm_data(
-        onsets_arr: List[float], frame_length: int, hop_length: int
+        onsets_arr: List[float],
+        frame_length: int,
+        hop_length: int,
+        label_type: str,  # LABEL_TYPE
     ) -> List[float]:
         """
         -- onset 라벨링 (ONSET_OFFSET: onset position 양 옆으로 몇 개씩 붙일지)
+        - label_type 에 따라 1 1 0.5 | 0.5 1 0.5
         """
         labels = [0] * frame_length
 
@@ -560,20 +498,33 @@ class DataLabeling:
             if onset_position >= frame_length:
                 break
 
-            soft_start_position = max((onset_position - 0), 0)  # -- onset - offset
+            offset = LABEL_TYPE[label_type]["offset"]
+            label_l = offset["l"]
+            label_r = offset["r"]
+
+            soft_start_position = max(
+                (onset_position - len(label_l)), 0
+            )  # -- onset - offset
             soft_end_position = min(  # -- onset + offset
-                onset_position + ONSET_OFFSET + 1, frame_length
+                (onset_position + len(label_r) + 1), frame_length
             )
 
-            # offset -> 양 옆으로 0.5 몇 개 붙일지
+            # # offset - 0 0 1 0 0 -> l:[0.5], r:[0.5] -> 0 0.5 1 0.5 0
+            idx_offset = 0
             for i in range(soft_start_position, soft_end_position):
-                if labels[i] == 1:
+                if i == onset_position:
+                    idx_offset = 0
                     continue
-                labels[i] = 1
-            if soft_end_position < frame_length and labels[soft_end_position] != 1:
-                labels[soft_end_position] = 0.5
+                if labels[i] == 1:  # 이미 1 있으면 지나감
+                    continue
 
-            labels[onset_position] = 1
+                # -- 왼쪽은 left arr, 오른쪽은 right arr 로부터 라벨링
+                labels[i] = (
+                    label_l[idx_offset] if i < onset_position else label_r[idx_offset]
+                )
+                idx_offset += 1
+
+            labels[onset_position] = 1  # -- onset에 1
 
         return labels
 

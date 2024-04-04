@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from numpy.core.multiarray import array as array
 import tensorflow as tf
 
 from glob import glob
@@ -34,6 +35,7 @@ from constant import (
     PKL,
     CLASSIFY_CODE2DRUM,
     LABEL_DDM,
+    TRAIN,
 )
 
 
@@ -72,7 +74,7 @@ class SegmentClassifyModel(BaseModel):
 
     def input_reshape(self, data):
         # sequence data
-        return tf.reshape(
+        return np.reshape(
             data,
             [
                 -1,
@@ -82,7 +84,7 @@ class SegmentClassifyModel(BaseModel):
         )
 
     def x_data_1d_reshape(self, data):
-        return tf.reshape(
+        return np.reshape(
             data,
             [
                 -1,
@@ -91,7 +93,7 @@ class SegmentClassifyModel(BaseModel):
         )
 
     def x_data_2d_reshape(self, data):
-        return tf.reshape(data, [-1, self.n_columns])
+        return np.reshape(data, [-1, self.n_columns])
 
     @staticmethod
     def x_data_transpose(data):
@@ -182,43 +184,25 @@ class SegmentClassifyModel(BaseModel):
 
         return split_data
 
-    def create_dataset(self, train_data, test_data):
-        """
-        -- Implement dataset split feature & label logic
-        """
-        # -- split train, val
-        x_train, x_val, y_train, y_val = train_test_split(
-            train_data["x"],
-            train_data["y"],
-            test_size=0.2,
-            random_state=42,
-            stratify=train_data["y"],
-        )
-        del train_data
+    def create_model_dataset(self, X: np.array, y: np.array, split_type: str):
+        X = SegmentClassifyModel.x_data_transpose(X)
 
-        # train data smote
-        x_train = self.x_data_1d_reshape(x_train)
-        x_train, y_train = SegmentClassifyModel.smote_data(x_train, y_train)
+        if split_type == TRAIN:
+            # train data smote
+            X = self.x_data_1d_reshape(X)
+            y = FeatureExtractor.one_hot_label_to_number(y)
 
-        # decimal to multi-hot-encoding
-        y_train_final = FeatureExtractor.number_to_one_hot_label(y_train)
-        y_val_final = FeatureExtractor.number_to_one_hot_label(y_val)
-        y_test_final = FeatureExtractor.number_to_one_hot_label(test_data["y"])
+            # 라벨 비율 확인
+            counter = Counter(y)
+            print("변경 전", counter)
+
+            X, y = SegmentClassifyModel.smote_data(X, y)
+            # decimal to multi-hot-encoding
+            y = FeatureExtractor.number_to_one_hot_label(y)
 
         # input shape 조정
-        x_train_final = self.input_reshape(x_train)
-        x_val_final = self.input_reshape(x_val)
-        x_test = self.input_reshape(test_data["x"])
-
-        self.x_train = x_train_final
-        self.x_val = x_val_final
-        self.x_test = x_test
-        self.y_train = y_train_final
-        self.y_val = y_val_final
-        self.y_test = y_test_final
-
-        # -- print shape
-        self.print_dataset_shape()
+        X = self.input_reshape(X)
+        self.split_dataset(X, y, split_type)
 
     def create(self):
         n_steps = self.n_columns
@@ -230,19 +214,25 @@ class SegmentClassifyModel(BaseModel):
 
         # 1st Convolutional Block
         conv1_1 = layers.Conv2D(
-            filters=128, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
         )(input_layer)
-        pool1 = layers.MaxPooling2D(pool_size=(1, 2))(conv1_1)
+        pool1 = layers.MaxPooling2D(pool_size=(2, 2))(conv1_1)
 
         # 2st Convolutional Block
         conv2_1 = layers.Conv2D(
             filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
         )(pool1)
-        pool2 = layers.MaxPooling2D(pool_size=(1, 2))(conv2_1)
+        pool2 = layers.MaxPooling2D(pool_size=(2, 2))(conv2_1)
+
+        # 3st Convolutional Block
+        conv3_1 = layers.Conv2D(
+            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(pool2)
+        pool3 = layers.MaxPooling2D(pool_size=(2, 2))(conv3_1)
 
         # Reshape for RNN
-        reshape = layers.Reshape((pool2.shape[1], pool2.shape[2] * pool2.shape[3]))(
-            pool2
+        reshape = layers.Reshape((pool3.shape[1], pool3.shape[2] * pool3.shape[3]))(
+            pool3
         )
 
         # BiLSTM layers
@@ -364,7 +354,7 @@ class SegmentClassifyModel(BaseModel):
 
     def get_drum_instrument(self, audio, bpm):
         # -- trimmed audio
-        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+        onsets_arr = OnsetDetect.onset_detection(audio)
         trimmed_audios = DataProcessing.trim_audio_per_onset(audio, onsets_arr)
 
         # -- trimmed feature
@@ -399,7 +389,7 @@ class SegmentClassifyModel(BaseModel):
         # -- instrument
         drum_instrument = self.get_drum_instrument(audio, bpm)
         # -- rhythm
-        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+        onsets_arr = OnsetDetect.onset_detection(audio)
 
         # -- 원래 정답 라벨
         true_label = DataLabeling.data_labeling(

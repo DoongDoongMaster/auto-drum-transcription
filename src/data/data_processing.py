@@ -99,7 +99,9 @@ class DataProcessing:
             end = int((onsets[i] + ONSET_DURATION_RIGHT) * SAMPLE_RATE)
 
             if i + 1 < len(onsets):
-                end_by_onset = int((onsets[i + 1] - ONSET_DURATION_LEFT) * SAMPLE_RATE)
+                end_by_onset = int(
+                    (onsets[i + 1] - ONSET_DURATION_RIGHT_MINUS) * SAMPLE_RATE
+                )
                 end = min(end, end_by_onset)
 
             trimmed = audio[start:end]

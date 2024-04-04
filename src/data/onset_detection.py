@@ -41,6 +41,7 @@ class OnsetDetect:
         """
         # 1. Compute the onset detection function (ODF).
         od_hfc = OnsetDetection(method="hfc")
+        od_complex = OnsetDetection(method="complex")
 
         # We need the auxilary algorithms to compute magnitude and phase.
         w = Windowing(type="hann")
@@ -54,6 +55,7 @@ class OnsetDetect:
         for frame in FrameGenerator(audio, frameSize=1024, hopSize=512):
             magnitude, phase = c2p(fft(w(frame)))
             pool.add("odf.hfc", od_hfc(magnitude, phase))
+            pool.add("odf.complex", od_complex(magnitude, phase))
 
         # 2. Detect onset locations.
         onsets = Onsets()
@@ -63,26 +65,27 @@ class OnsetDetect:
             # it doesn't actually matter which weight to give it
             [1],
         )
+        onsets_complex = onsets(array([pool["odf.complex"]]), [1])
 
-        n_frames = len(pool["odf.hfc"])
+        n_frames = len(pool["odf.complex"])
         frames_position_samples = np.array(range(n_frames)) * 512
 
         fig, ((ax1, ax3)) = plt.subplots(
             2, 1, sharex=True, sharey=False, figsize=(15, 16)
         )
 
-        ax1.set_title("HFC ODF")
-        ax1.plot(frames_position_samples, pool["odf.hfc"], color="magenta")
+        ax1.set_title("complex ODF")
+        ax1.plot(frames_position_samples, pool["odf.complex"], color="magenta")
 
-        ax3.set_title("Audio waveform and the estimated onset positions (HFC ODF)")
+        ax3.set_title("Audio waveform and the estimated onset positions (complex ODF)")
         ax3.plot(audio)
-        for onset in onsets_hfc:
+        for onset in onsets_complex:
             ax3.axvline(x=onset * SAMPLE_RATE, color="magenta")
 
-        plt.show()
+        # plt.show()
 
-        print("-- ! onset ! --", onsets_hfc)
-        return onsets_hfc
+        # print("-- ! onset ! --", onsets_complex)
+        return onsets_complex
 
     @staticmethod
     def _get_filtering_onsets(

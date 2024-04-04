@@ -18,6 +18,7 @@ from feature.feature_extractor import FeatureExtractor
 from constant import (
     DETECT_CODE2DRUM,
     DRUM2CODE,
+    DRUM_TYPES_3,
     LABEL_COLUMN,
     LABEL_DDM,
     LABEL_TYPE,
@@ -216,11 +217,16 @@ class BaseModel:
         result_arr = np.stack([dict_data[key] for key in dict_data.keys()], axis=1)
         return result_arr
 
-    def create_model_dataset(self):
+    def create_model_dataset(self, X: np.array, y: np.array, split_type: str):
         # Implement model
         pass
 
-    def create_dataset(self, split_data: dict[str], label_type: str, group_dict: str):
+    def create_dataset(
+        self,
+        split_data: dict[str],
+        label_type: str = LABEL_DDM,
+        group_dict: str = DRUM_TYPES_3,
+    ):
         # -- load train, validation, test
         split_data_df = FeatureExtractor.load_dataset_from_split_data_file(
             self.method_type, self.feature_type, self.feature_extension, split_data

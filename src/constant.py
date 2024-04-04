@@ -1,3 +1,4 @@
+import os
 import re
 
 """
@@ -182,15 +183,19 @@ train/test split info
 DATA_ENST_TEST = {"directory": "wet_mix", "test": "_minus-one_"}
 E_GMD_INFO = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/info.csv"
 MDB_INFO = f"{ROOT_PATH}/{RAW_PATH}/{MDB}/MIREX2017.md"
-with open(MDB_INFO, "r") as f:
-    content = f.read()
+MDB_TRAIN_SET = []
+if os.path.exists(MDB_INFO):  # 파일 존재 여부 확인
+    with open(MDB_INFO, "r") as f:
+        content = f.read()
 
-    # Extracting training set
-    train_matches = re.findall(r"### Training Set\n([\s\S]*?)\n### Test Set", content)
-    if train_matches:
-        train_tracks = train_matches[0].strip().split("\n")
-        MDB_TRAIN_SET = (track.strip() for track in train_tracks)
-MDB_TRAIN_SET = list(MDB_TRAIN_SET)
+        # Extracting training set
+        train_matches = re.findall(
+            r"### Training Set\n([\s\S]*?)\n### Test Set", content
+        )
+        if train_matches:
+            train_tracks = train_matches[0].strip().split("\n")
+            MDB_TRAIN_SET = (track.strip() for track in train_tracks)
+    MDB_TRAIN_SET = list(MDB_TRAIN_SET)
 
 
 # -------------------------------------------------------------------------------------
@@ -350,10 +355,26 @@ for label, data in LABEL_TYPE.items():
     LABEL_COLUMN += data["column"]
 
 LABEL_INIT_DATA = {
-    IDMT: {TRAIN: [], TEST: []},
-    ENST: {TRAIN: [], TEST: []},
-    E_GMD: {TRAIN: [], VALIDATION: [], TEST: []},
-    MDB: {TRAIN: [], TEST: []},
+    IDMT: {
+        TRAIN: [],
+        TEST: [],
+    },
+    ENST: {
+        TRAIN: [],
+        TEST: [],
+    },
+    E_GMD: {
+        TRAIN: [],
+        VALIDATION: [],
+        TEST: [],
+    },
+    MDB: {
+        TRAIN: [],
+        TEST: [],
+    },
+    DRUM_KIT: {
+        TRAIN: [],
+    },
 }
 
 
@@ -365,10 +386,12 @@ DRUM_TYPES_3 = {
         CC,
         OH,
         CH,
+        RD,
     ],
     SD: [
         TT,
         SD,
+        RS,
     ],
     KK: [
         KK,
@@ -379,12 +402,14 @@ DRUM_TYPES_4 = {
         CC,
         OH,
         CH,
+        RD,
     ],
     TT: [
         TT,
     ],
     SD: [
         SD,
+        RS,
     ],
     KK: [
         KK,
@@ -412,18 +437,7 @@ CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_TYPES.keys())}
 """
 -- detect 방법에서의 분류 라벨
 """
-DETECT_TYPES = {
-    OH: [CC, OH, CH],
-    TT: [
-        TT,
-    ],
-    SD: [
-        SD,
-    ],
-    KK: [
-        KK,
-    ],
-}
+DETECT_TYPES = DRUM_TYPES_4
 DETECT_MAP = {}
 for drum_type, values in DETECT_TYPES.items():
     for value in values:

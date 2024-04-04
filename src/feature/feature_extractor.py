@@ -20,6 +20,7 @@ from constant import (
     CLASSIFY_SHORT_TIME,
     CODE2DRUM,
     DATA_ENST_TEST,
+    DRUM_KIT,
     E_GMD,
     E_GMD_INFO,
     ENST,
@@ -107,8 +108,8 @@ class FeatureExtractor:
             "data shape:",
             combined_df.shape,
         )
-        # print("-- ! features ! -- ")
-        # print(combined_df)
+        print("-- ! features ! -- ")
+        print(combined_df)
 
         return combined_df
 
@@ -189,6 +190,9 @@ class FeatureExtractor:
                     result_data[MDB][TRAIN].append(path)
                 else:  # -- test
                     result_data[MDB][TEST].append(path)
+            # drum_kit 인 경우 모두 train으로
+            elif DRUM_KIT in path:
+                result_data[DRUM_KIT][TRAIN].append(path)
 
         return result_data
 

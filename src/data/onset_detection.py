@@ -97,9 +97,10 @@ class OnsetDetect:
 
         end = filter_onset[-1] + 1 if end == None else end
         filter_onset = filter_onset[(filter_onset >= start) & (filter_onset < end)]
+
         result = filter_onset - start  # start 빼서 0초부터 시작으로 맞추기
 
-        np.set_printoptions(precision=2)
+        np.set_printoptions(precision=3, suppress=True)
         print(f"-- ! {start} sec ~ {end} sec 파생한 onsets: ", result)
         return result
 
@@ -393,7 +394,7 @@ class OnsetDetect:
         drum_kit : 실제로 둥 한 번 치는 데이터인데, librosa에서 onset이 여러 개 추출돼서 onset[0]만 데이터로 사용
         ddm : librosa에서 추출된 그대로 데이터로 사용
         """
-        onsets = OnsetDetect.get_onsets_using_librosa(audio)
+        onsets = OnsetDetect.onset_detection(audio)
 
         drum_type = ""
         is_drum_kit = False
@@ -413,7 +414,7 @@ class OnsetDetect:
 
         if drum_type in DRUM_MAP:
             if is_drum_kit:
-                onsets = [0.0]
+                onsets = [0.01]
             elif is_ddm_cc_08:
                 onsets = [onsets[(onsets >= 2.0) & (onsets < 3.0)][0]]
             elif is_ddm:

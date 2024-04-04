@@ -12,8 +12,11 @@ from data.onset_detection import OnsetDetect
 from constant import (
     DATA_ENST_NOT,
     DATA_E_GMD_NOT,
+    DATA_MDB_NOT,
     LABEL_DDM,
     LABEL_TYPE,
+    MDB,
+    MDB_LABEL_TYPE,
     PER_DRUM_DIR,
     SAMPLE_RATE,
     DRUM2CODE,
@@ -79,7 +82,7 @@ class DataLabeling:
         # 우리가 사용할 데이터 형태 아닌 경우
         if not any(p in path for p in DATA_ALL):
             return False
-        # IDMT: train 들어가면 x
+        # IDMT: technodrum x
         if IDMT in path and any(p in path for p in DATA_IDMT_NOT):
             return False
         # ENST: accompaniment 들어가면 x
@@ -87,6 +90,9 @@ class DataLabeling:
             return False
         # E-GMD
         if E_GMD in path and any(p in path for p in DATA_E_GMD_NOT):
+            return False
+        # MDB
+        if MDB in path and any(p in path for p in DATA_MDB_NOT):
             return False
         return True
 
@@ -112,6 +118,7 @@ class DataLabeling:
             ),
             ENST: OnsetDetect.get_onsets_from_txt,
             E_GMD: OnsetDetect.get_onsets_from_mid,
+            MDB: OnsetDetect.get_onsets_from_txt,
         }
 
         data_own = path.split("/")[3]
@@ -154,6 +161,7 @@ class DataLabeling:
                 ),
                 ENST: OnsetDetect.get_onsets_instrument_from_txt,
                 E_GMD: OnsetDetect.get_onsets_instrument_from_mid,
+                MDB: OnsetDetect.get_onsets_instrument_from_txt,
             }
 
             data_own = path.split("/")[3]
@@ -183,6 +191,7 @@ class DataLabeling:
         onset_detection_methods = {
             ENST: OnsetDetect.get_onsets_instrument_all_from_txt,
             E_GMD: OnsetDetect.get_onsets_instrument_all_from_mid,
+            MDB: OnsetDetect.get_onsets_instrument_all_from_txt,
         }
 
         data_own = path.split("/")[3]
@@ -191,8 +200,6 @@ class DataLabeling:
             result = onset_detection_methods[data_own](label_path)
 
         sorted_result = sorted(result, key=lambda data: (data["onset"], data["drum"]))
-        # print("-- ! {onset, drum} data ! --")
-        # print(sorted_result)
         return sorted_result
 
     @staticmethod
@@ -342,17 +349,32 @@ class DataLabeling:
                 )
             return DataLabeling._get_label_path(audio_path, 2, "svl", "annotation_svl")
 
-        if ENST in audio_path:
+        elif ENST in audio_path:
             return DataLabeling._get_label_path(audio_path, 3, "txt", "annotation")
 
-        if E_GMD in audio_path:
+        elif E_GMD in audio_path:
             label_path = ""
             try:
                 label_path = DataLabeling._get_label_path(audio_path, 1, "mid")
-                midi_data = pretty_midi.PrettyMIDI(label_path)
+                _ = pretty_midi.PrettyMIDI(label_path)  # test if is mid
             except:
                 label_path = DataLabeling._get_label_path(audio_path, 1, "midi")
             return label_path
+
+        elif MDB in audio_path:
+            # 파일 이름과 디렉토리 경로 추출
+            directory_path, file_name = os.path.split(audio_path)
+            # 파일 이름에서 ".wav" 이전의 문자열 찾기
+            index = file_name.find(".wav")
+            # ".wav" 이전의 문자열을 "Drum"에서 "subclass"로 변경
+            new_file_name = (
+                file_name[:index].replace("Drum", MDB_LABEL_TYPE) + file_name[index:]
+            )
+            # 변경된 파일 경로 생성
+            new_audio_path = os.path.join(directory_path, new_file_name)
+            return DataLabeling._get_label_path(
+                new_audio_path, 3, "txt", f"annotations/{MDB_LABEL_TYPE}"
+            )
 
     @staticmethod
     def _get_label_path(

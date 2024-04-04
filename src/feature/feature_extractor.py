@@ -1,5 +1,6 @@
-import csv
 import os
+import csv
+import copy
 import librosa
 import numpy as np
 import pandas as pd
@@ -30,6 +31,8 @@ from constant import (
     LABEL_DDM,
     LABEL_REF,
     LABEL_TYPE,
+    MDB,
+    MDB_TRAIN_SET,
     ONSET_DURATION_RIGHT,
     RAW_PATH,
     SAMPLE_RATE,
@@ -149,7 +152,8 @@ class FeatureExtractor:
         # - e-gmd : train / validation / test (from info.csv)
         # return {idmt:{train:[], test:[]}, enst:{train:[], test:[]}, e-gmd:{train:[], validation:[], test:[]}}
 
-        result_data = LABEL_INIT_DATA
+        # 그냥 복사하면 주소값이 복사되어, LABEL_INIT_DATA에 값이 쌓이므로, 깊은 복사로 값만 가져가기
+        result_data = copy.deepcopy(LABEL_INIT_DATA)
 
         for path in audio_paths:
             # idmt 인 경우 path에서 읽기
@@ -159,7 +163,7 @@ class FeatureExtractor:
                 else:  # -- test
                     result_data[IDMT][TEST].append(path)
             # enst 인 경우 임의로 지정한 test set으로 분기
-            if ENST in path:
+            elif ENST in path:
                 dn = os.path.dirname(path)
                 bn = os.path.basename(path)
                 if DATA_ENST_TEST["directory"] in dn:
@@ -168,7 +172,7 @@ class FeatureExtractor:
                     else:
                         result_data[ENST][TRAIN].append(path)
             # e-gmd 인 경우 csv에서 읽기
-            if E_GMD in path:
+            elif E_GMD in path:
                 # CSV 파일 열고 읽기 모드로 연 후, DictReader를 사용하여 데이터 읽어오기
                 with open(E_GMD_INFO, newline="") as csvfile:
                     reader = csv.DictReader(csvfile)
@@ -179,6 +183,12 @@ class FeatureExtractor:
                         find_path = path.replace(substring_to_remove, "")
                         if find_path in row["audio_filename"]:
                             result_data[E_GMD][row["split"]].append(path)
+            # MDB 인 경우 md에서 읽기
+            elif MDB in path:
+                if any(train_set in path for train_set in MDB_TRAIN_SET):
+                    result_data[MDB][TRAIN].append(path)
+                else:  # -- test
+                    result_data[MDB][TEST].append(path)
 
         return result_data
 
@@ -205,8 +215,8 @@ class FeatureExtractor:
             split_data = FeatureExtractor.split_train_test_from_path(batch_audio_paths)
             del batch_audio_paths
 
-            for data_type, split_data in split_data.items():
-                for split_type, split_value in split_data.items():
+            for data_type, split_data_all in split_data.items():
+                for split_type, split_value in split_data_all.items():
                     print(
                         f"!! --- data_type: {data_type} -- {split_type} : {split_value}"
                     )
@@ -279,9 +289,9 @@ class FeatureExtractor:
         onsets, label = FeatureExtractor._get_onsets_label_from_onsets(onsets_arr)
 
         audios = DataProcessing.trim_audio_per_onset_with_duration(audio, onsets)
-        DataProcessing.write_trimmed_audio(
-            "../data/classify-test", "classify_test", audios
-        )
+        # DataProcessing.write_trimmed_audio(
+        #     "../data/classify-test", "classify_test", audios
+        # )
 
         for i, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)

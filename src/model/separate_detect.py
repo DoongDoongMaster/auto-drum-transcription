@@ -49,7 +49,7 @@ def merge_columns(arr, col1, col2):
 
 class SeparateDetectModel(BaseModel):
     def __init__(
-        self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16
+        self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16, load_model_flag=True,
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -65,10 +65,19 @@ class SeparateDetectModel(BaseModel):
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
         self.win_length = self.feature_param["win_length"]
-        self.load_model()
+        if load_model_flag:
+            self.load_model()
 
     def input_reshape(self, data):
-        return data
+        return np.reshape(
+            data,
+            [
+                -1,
+                self.n_rows,
+                self.n_columns,
+                1,
+            ],
+        )
 
     def input_label_reshape(self, data):
         return data
@@ -317,7 +326,7 @@ class SeparateDetectModel(BaseModel):
 
         return audio_feature
 
-    def data_post_processing(self, predict_data: np.array, _: np.array = None):
+    def data_post_processing(self, predict_data: np.array, _: np.array = None, label_cnt: int = 4):
         predict_data = predict_data.reshape((-1, self.n_classes))
         predict_data = predict_data.copy()
 

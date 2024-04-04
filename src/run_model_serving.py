@@ -1,39 +1,30 @@
 from constant import (
-    METHOD_CLASSIFY,
-    METHOD_DETECT,
-    SERVED_MODEL_CLASSIFY_BI_LSTM,
-    SERVED_MODEL_CLASSIFY_LSTM,
-    SERVED_MODEL_CLASSIFY_MFCC,
-    SERVED_MODEl_DETECT_LSTM,
+    SERVED_MODEL_ALL,
 )
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from serving.model_serving import ModelServing
 
-# ============ sercved model class create ========================
-model_serving_classify_lstm = ModelServing(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_LSTM)
-model_serving_classify_bi_lstm = ModelServing(
-    METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_BI_LSTM
-)
-model_serving_classify_mfcc = ModelServing(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_MFCC)
-model_serving_detect_lstm = ModelServing(METHOD_DETECT, SERVED_MODEl_DETECT_LSTM)
+# ============ sercved model class create & model save ========================
+current_model_num = 0
 
-# ============ model save ========================
-# ModelServing.convert_model_to_frozen(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_LSTM)
-# ModelServing.convert_model_to_frozen(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_BI_LSTM)
-# ModelServing.convert_model_to_frozen(METHOD_CLASSIFY, SERVED_MODEL_CLASSIFY_MFCC)
-# ModelServing.convert_model_to_frozen(METHOD_DETECT, SERVED_MODEl_DETECT_LSTM)
+model_serving_class = []
+for data in SERVED_MODEL_ALL:
+    temp_class = ModelServing(data.get("method_type"), data.get("feature_type"), data.get("model_name"), data.get("label_cnt"))
+    model_serving_class.append(temp_class)
+    if not data.get("is_frozen"):
+        ModelServing.convert_model_to_frozen(data.get("method_type"), data.get("model_name"))
+    if not data.get("is_stored"):
+        temp_class.store_model_to_server()
+    model_serving_class.append(temp_class)
 
-# model_serving_classify_lstm.store_model_to_server()
-# model_serving_classify_bi_lstm.store_model_to_server()
-# model_serving_classify_mfcc.store_model_to_server()
-# model_serving_detect_lstm.store_model_to_server()
-
-# ============= predict test =======================
-wav_path = "../data/test/e-gmd-v1.0.0/drummer1/session1/voyage_solo.wav"
+# ============= predict test ====================================================
+wav_path = "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_1.wav"
 # # Implement model predict logic
 audio = FeatureExtractor.load_audio(wav_path)
 # -- cut delay
 new_audio = DataProcessing.trim_audio_first_onset(audio, 0)
 audio = new_audio
-model_serving_detect_lstm.predict_model_from_server(audio)
+
+for c in model_serving_class:
+    c.predict_model_from_server(audio)

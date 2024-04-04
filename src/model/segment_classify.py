@@ -44,6 +44,7 @@ class SegmentClassifyModel(BaseModel):
         batch_size=20,
         feature_type=MFCC,
         feature_extension=PKL,
+        load_model_flag=True,
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -70,7 +71,8 @@ class SegmentClassifyModel(BaseModel):
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
         # self.load_model("../models/classify_mfcc_2024-02-24_00-53-10_smote_5.h5")
-        self.load_model()
+        if load_model_flag:
+            self.load_model()
 
     def input_reshape(self, data):
         # cnn data
@@ -84,12 +86,13 @@ class SegmentClassifyModel(BaseModel):
         #     ],
         # )
         # sequence data
-        return tf.reshape(
+        return np.reshape(
             data,
             [
                 -1,
                 self.n_columns,
                 self.n_rows,
+                self.n_channels,
             ],
         )
 
@@ -434,8 +437,6 @@ class SegmentClassifyModel(BaseModel):
         onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
         trimmed_audios = DataProcessing.trim_audio_per_onset(audio, onsets_arr)
 
-        print("onsets_arr", onsets_arr)
-
         # -- trimmed feature
         predict_data = []
         for _, taudio in enumerate(trimmed_audios):
@@ -444,17 +445,20 @@ class SegmentClassifyModel(BaseModel):
             )
             predict_data.append(trimmed_feature)
 
-        print(predict_data)
-
         # -- reshape
         predict_data = SegmentClassifyModel.x_data_transpose(predict_data)
         return predict_data
 
-    def data_post_processing(self, predict_data: np.array, audio: np.array):
+    def data_post_processing(self, predict_data: np.array, audio: np.array, label_cnt: int = 4):
         predict_data_result = []
-        for data in predict_data:
-            data_0 = max(data[0], data[1])
-            predict_data_result.append([data_0, data[2], data[3], data[4]])
+        if label_cnt == 3:
+            predict_data_result = np.insert(predict_data, 1, np.zeros((1, len(predict_data))), axis=1)
+        elif label_cnt == 5:
+            for data in predict_data:
+                data_0 = max(data[0], data[1])
+                predict_data_result.append([data_0, data[2], data[3], data[4]])
+        elif label_cnt == 4:
+            predict_data_result = predict_data
 
         predict_data_result = np.array(predict_data_result)
         drum_instrument = self.get_predict_result(predict_data_result)

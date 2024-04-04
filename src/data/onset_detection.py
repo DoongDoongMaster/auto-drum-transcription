@@ -78,7 +78,7 @@ class OnsetDetect:
         for onset in onsets_hfc:
             ax3.axvline(x=onset * SAMPLE_RATE, color="magenta")
 
-        plt.show()
+        # plt.show()
 
         print("-- ! onset ! --", onsets_hfc)
         return onsets_hfc

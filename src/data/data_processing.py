@@ -7,6 +7,7 @@ import numpy as np
 from typing import List
 
 from constant import (
+    ONSET_DURATION_RIGHT_MINUS,
     SAMPLE_RATE,
     RAW_PATH,
     NEW_PATH,
@@ -119,7 +120,7 @@ class DataProcessing:
                 int((onsets[i]["onset"] - ONSET_DURATION_LEFT) * SAMPLE_RATE), 0
             )
             end_duration = min(
-                onsets[i]["duration"] + ONSET_DURATION_LEFT, ONSET_DURATION_RIGHT
+                onsets[i]["duration"] - ONSET_DURATION_RIGHT_MINUS, ONSET_DURATION_RIGHT
             )
             end = int(float(onsets[i]["onset"] + end_duration) * SAMPLE_RATE)
 

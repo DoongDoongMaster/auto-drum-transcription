@@ -30,6 +30,7 @@ from constant import (
     LABEL_DDM,
     LABEL_REF,
     LABEL_TYPE,
+    ONSET_DURATION_RIGHT,
     RAW_PATH,
     SAMPLE_RATE,
     MFCC,
@@ -43,10 +44,8 @@ from constant import (
     CSV,
     PKL,
     FEATURE_PARAM,
-    CLASSIFY_DURATION,
     CLASSIFY_TYPES,
     CLASSIFY_CODE2DRUM,
-    CLASSIFY_IMPOSSIBLE_LABEL,
     TEST,
     TRAIN,
     VALIDATION,
@@ -397,7 +396,7 @@ class FeatureExtractor:
             if not is_available:
                 continue
 
-            duration = CLASSIFY_DURATION
+            duration = ONSET_DURATION_RIGHT
             if idx < onsets_len:
                 duration = onsets[idx]["onset"] - curr_onset
 

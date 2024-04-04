@@ -58,17 +58,18 @@ METHOD_RHYTHM = "rhythm"
 SAMPLE_RATE = 44100
 
 # -- 오디오 자를 시, onset 기준 왼쪽, 오른쪽으로 몇 초 자를지 (단위: sec)
-ONSET_DURATION_LEFT = 0.03
-ONSET_DURATION_RIGHT = 0.5
+ONSET_DURATION_LEFT = 0
+ONSET_DURATION_RIGHT_MINUS = 0.04
+ONSET_DURATION_RIGHT = 0.4
 
 # -- classify method feature duration
 CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
 
 # -- 동시에 친 오디오 구분 초 (단위: sec)
-CLASSIFY_SAME_TIME = 0.035
+CLASSIFY_SAME_TIME = 0.04
 
 # -- 너무 짧게 잘린 데이터 버리는 단위 (단위: sec)
-CLASSIFY_SHORT_TIME = 0.16
+CLASSIFY_SHORT_TIME = 0.2
 
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
 ONSET_OFFSET = 1
@@ -361,9 +362,6 @@ for drum_type, values in CLASSIFY_TYPES.items():
 -- {0: "OH", 1: "CH", ...}
 """
 CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_TYPES.keys())}
-CLASSIFY_IMPOSSIBLE_LABEL = (
-    {14, 15, 22, 23, 26, 27, 28, 29, 30, 31} if len(CLASSIFY_TYPES) == 5 else {0}
-)
 
 
 """

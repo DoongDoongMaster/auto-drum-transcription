@@ -173,6 +173,18 @@ E_GMD_INFO = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/info.csv"
 
 # -------------------------------------------------------------------------------------
 
+
+"""
+-- drum name
+"""
+CC = "CC"
+OH = "OH"
+CH = "CH"
+TT = "TT"
+SD = "SD"
+KK = "KK"
+
+
 """
 -- Mapping drum_type
 DRUM_TYPES에 추가하기
@@ -180,7 +192,7 @@ DRUM_TYPES에 추가하기
 => DRUM_MAP을 접근해서 사용 {"sd": "SD", "mt": "TT", "bd": "KK", "chh": "CH", "ohh": "OH"}
 """
 DRUM_TYPES = {
-    "CC": [
+    CC: [
         27,  # -- china 1
         28,  # -- cymbal 1
         30,  # -- cymbal 3
@@ -206,7 +218,7 @@ DRUM_TYPES = {
         "ch1",  # china ride cymbal (enst/drummer3)
         "spl2",  # splash cymbal (enst/drummer2)
     ],  # crash
-    "OH": [
+    OH: [
         23,  # -- open pedal
         24,  # -- open 1
         25,  # -- open 2
@@ -215,7 +227,7 @@ DRUM_TYPES = {
         46,  # hi-hat open
         "overheads",  # drum kit data
     ],  # hi-hat open
-    "CH": [
+    CH: [
         21,  # -- closed pedal
         22,  # -- closed Edge
         "chh",
@@ -223,7 +235,7 @@ DRUM_TYPES = {
         44,  # hi-hat pedal
         "HH",  # closed hi-hat (ddm-own)
     ],  # hi-hat closed
-    "TT": [
+    TT: [
         "mt",
         41,  # -- low tom 2
         43,  # -- low tom 1
@@ -238,7 +250,7 @@ DRUM_TYPES = {
         "lt",  # low-tom (enst)
         "lft",  # low-tom-2 (enst/drummer3)
     ],  # tom
-    "SD": [
+    SD: [
         "sd",
         37,  # rimshot
         38,  # snare drum
@@ -247,7 +259,7 @@ DRUM_TYPES = {
         "SD",  # snare (ddm-own)
         "rs",  # rim shot (enst)
     ],  # snare
-    "KK": [
+    KK: [
         "bd",
         35,  # bass drum
         36,  # kick drum
@@ -297,25 +309,47 @@ LABEL_INIT_DATA = {
     ENST: {TRAIN: [], TEST: []},
     E_GMD: {TRAIN: [], VALIDATION: [], TEST: []},
 }
+
+
+"""
+-- 라벨 개수에 따른 drum_types
+"""
+DRUM_TYPES_3 = {
+    OH: [
+        CC,
+        OH,
+        CH,
+    ],
+    SD: [
+        TT,
+        SD,
+    ],
+    KK: [
+        KK,
+    ],
+}
+DRUM_TYPES_4 = {
+    OH: [
+        CC,
+        OH,
+        CH,
+    ],
+    TT: [
+        TT,
+    ],
+    SD: [
+        SD,
+    ],
+    KK: [
+        KK,
+    ],
+}
+
+
 """
 -- classify 방법에서의 분류 라벨
 """
-CLASSIFY_TYPES = {
-    "OH": [
-        "CC",
-        "OH",
-        "CH",
-    ],
-    "TT": [
-        "TT",
-    ],
-    "SD": [
-        "SD",
-    ],
-    "KK": [
-        "KK",
-    ],
-}
+CLASSIFY_TYPES = DRUM_TYPES_3
 CLASSIFY_MAP = {}
 # Iterate over the DRUM_TYPES
 for drum_type, values in CLASSIFY_TYPES.items():
@@ -327,9 +361,6 @@ for drum_type, values in CLASSIFY_TYPES.items():
 -- {0: "OH", 1: "CH", ...}
 """
 CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_TYPES.keys())}
-"""
--- classify 방법에서 불가능한 라벨 값 (십진수)
-"""
 CLASSIFY_IMPOSSIBLE_LABEL = (
     {14, 15, 22, 23, 26, 27, 28, 29, 30, 31} if len(CLASSIFY_TYPES) == 5 else {0}
 )
@@ -339,15 +370,15 @@ CLASSIFY_IMPOSSIBLE_LABEL = (
 -- detect 방법에서의 분류 라벨
 """
 DETECT_TYPES = {
-    "OH": ["CC", "OH", "CH"],
-    "TT": [
-        "TT",
+    OH: [CC, OH, CH],
+    TT: [
+        TT,
     ],
-    "SD": [
-        "SD",
+    SD: [
+        SD,
     ],
-    "KK": [
-        "KK",
+    KK: [
+        KK,
     ],
 }
 DETECT_MAP = {}
@@ -359,56 +390,6 @@ for drum_type, values in DETECT_TYPES.items():
 """
 DETECT_CODE2DRUM = {i: k for i, k in enumerate(DETECT_TYPES.keys())}
 
-
-"""
--- drum mapping
-
--- 파일 이름 형식
--- per_drum : CC_04_9949.wav
--- pattern : P1_08_0001.wav
-"""
-# -- {'CC':[1,0,0,0,0,0], 'OH':[0,1,0,0,0,0], ...}
-ONEHOT_DRUM2CODE = {}
-for code, index in DRUM2CODE.items():
-    drum_mapping = [0] * len(DRUM2CODE)
-    drum_mapping[index] = 1
-    ONEHOT_DRUM2CODE[code] = drum_mapping
-
-PATTERN = {
-    "CH": ONEHOT_DRUM2CODE["CH"],
-    "SD": ONEHOT_DRUM2CODE["SD"],
-    "CH_KK": [0, 0, 1, 0, 0, 1],
-    "CH_SD": [0, 0, 1, 0, 1, 0],
-}
-
-P_HH_KK = PATTERN["CH_KK"]
-P_SD = PATTERN["SD"]
-P_HH = PATTERN["CH"]
-P_HH_SD = PATTERN["CH_SD"]
-
-P1_2CODE = [P_HH_KK, P_HH, P_HH_SD, P_HH, P_HH_KK, P_HH_KK, P_HH_SD, P_HH]
-P2_2CODE = [
-    P_HH_KK,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_SD,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_HH_KK,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_SD,
-    P_HH,
-    P_HH,
-    P_HH,
-]
-PATTERN2CODE = {"P1": P1_2CODE, "P2": P2_2CODE}
-
-
-# ------------------------------------------------------------------------------------
 
 """
 -- feature type

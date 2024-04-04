@@ -280,7 +280,9 @@ class FeatureExtractor:
         onsets, label = FeatureExtractor._get_onsets_label_from_onsets(onsets_arr)
 
         audios = DataProcessing.trim_audio_per_onset_with_duration(audio, onsets)
-        # DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
+        DataProcessing.write_trimmed_audio(
+            "../data/classify-test", "classify_test", audios
+        )
 
         for i, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
@@ -333,38 +335,62 @@ class FeatureExtractor:
         )
 
     @staticmethod
+    def _validate_possible_label(label_dict):
+        # 'KK' 키를 제외한 나머지 키에서 [1] 값을 가지는 키의 개수를 카운트합니다.
+        count = sum(
+            1
+            for key, value in label_dict.items()
+            if key != "KK" and key != "CH" and value == [1]
+        )
+
+        # [1] 값을 가지는 키의 개수가 3개 이상이면 False를 반환합니다.
+        return count < 3
+
+    @staticmethod
+    def _validate_same_time_data(curr_onset, next_onset):
+        return (next_onset - curr_onset) <= CLASSIFY_SAME_TIME
+
+    @staticmethod
+    def _is_available_drum_code(drum_code):
+        return drum_code in CODE2DRUM
+
+    @staticmethod
+    def _get_same_time_label(idx, onsets, curr_onset, is_available, label_dict):
+        if idx + 1 >= len(onsets):
+            return idx, is_available, label_dict
+
+        next_onset, next_drum = onsets[idx + 1].values()
+        if FeatureExtractor._validate_same_time_data(curr_onset, next_onset):
+            idx = idx + 1
+            is_available = FeatureExtractor._is_available_drum_code(next_drum)
+            label_dict[CODE2DRUM[next_drum]] = [1]
+
+        return idx, is_available, label_dict
+
+    @staticmethod
     def _get_onsets_label_from_onsets(onsets):
         idx = 0
+        onsets_len = len(onsets)
         result_onsets = []  # [{"onset": onset, "duration": 다음 온셋 사이의 시간}, ...]
         result_label = []  # [{'OH':[], 'CH':[], 'TT':[], 'SD':[], 'KK':[]}, ...]
         while True:
-            if idx >= len(onsets):
+            if idx >= onsets_len:  # onsets 길이 초과하면 종료
                 break
 
-            is_available = True  # 우리가 다루는 악기인지 여부
+            # 현재 onset 음
             curr_onset, curr_drum = onsets[idx].values()
-            if not curr_drum in CODE2DRUM:
-                is_available = False
+            is_available = FeatureExtractor._is_available_drum_code(
+                curr_drum
+            )  # 우리가 다루는 악기인지 여부
+            # labeling
+            label_dict = {v: [0] for _, v in CODE2DRUM.items()}
+            label_dict[CODE2DRUM[curr_drum]] = [1]
 
-            temp_label = [curr_drum]
-            if (
-                idx + 1 < len(onsets)
-                and onsets[idx + 1]["onset"] - curr_onset <= CLASSIFY_SAME_TIME
-            ):
-                idx = idx + 1
-                next_drum = onsets[idx]["drum"]
-                if not next_drum in CODE2DRUM:
-                    is_available = False
-                temp_label.append(next_drum)
-                if (
-                    idx + 1 < len(onsets)
-                    and onsets[idx + 1]["onset"] - curr_onset <= CLASSIFY_SAME_TIME
-                ):
-                    idx = idx + 1
-                    next_drum = onsets[idx]["drum"]
-                    if not next_drum in CODE2DRUM:
-                        is_available = False
-                    temp_label.append(next_drum)
+            # 현재 음 제외 최대 2개까지 동시에 친 음으로 판단
+            for _ in range(2):
+                idx, is_available, label_dict = FeatureExtractor._get_same_time_label(
+                    idx, onsets, curr_onset, is_available, label_dict
+                )
 
             idx = idx + 1
 
@@ -372,27 +398,19 @@ class FeatureExtractor:
                 continue
 
             duration = CLASSIFY_DURATION
-            if idx < len(onsets):
+            if idx < onsets_len:
                 duration = onsets[idx]["onset"] - curr_onset
 
             if duration < CLASSIFY_SHORT_TIME:  # 너무 짧게 잘린 데이터 버리기
                 continue
 
-            label = {v: [0] for _, v in CODE2DRUM.items()}
-            binary_label = [0] * len(CODE2DRUM)
-            for code in temp_label:
-                label[CODE2DRUM[code]] = [1]
-                binary_label[code] = 1
-            binary_label = [binary_label]
-
-            if (
-                FeatureExtractor.one_hot_label_to_number(np.array(binary_label))[0]
-                in CLASSIFY_IMPOSSIBLE_LABEL
+            if not FeatureExtractor._validate_possible_label(
+                label_dict
             ):  # 불가능한 라벨값이라면
                 continue
 
             result_onsets.append({"onset": curr_onset, "duration": duration})
-            result_label.append(label)
+            result_label.append(label_dict)
 
         return result_onsets, result_label
 

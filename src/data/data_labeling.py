@@ -13,16 +13,11 @@ from constant import (
     DATA_ENST_NOT,
     DATA_E_GMD_NOT,
     LABEL_DDM,
-    LABEL_REF,
     LABEL_TYPE,
-    PATTERN_DIR,
     PER_DRUM_DIR,
-    PATTERN2CODE,
-    ONEHOT_DRUM2CODE,
     SAMPLE_RATE,
     DRUM2CODE,
     CODE2DRUM,
-    ONSET_OFFSET,
     DDM_OWN,
     IDMT,
     ENST,
@@ -141,10 +136,6 @@ class DataLabeling:
                 label = OnsetDetect.get_onsets_instrument_from_wav(
                     audio, path, start, end, label_init
                 )
-            # elif PATTERN_DIR in path:
-            #     label_path = DataLabeling._get_ddm_label_path(
-            #         path, 3, "txt", "annotation"
-            #     )
 
         elif (DRUM_KIT in path) or (IDMT in path and "train" in path):
             label = OnsetDetect.get_onsets_instrument_from_wav(
@@ -379,23 +370,6 @@ class DataLabeling:
         return label_file
 
     @staticmethod
-    def _get_ddm_label_path(
-        audio_path: str, back_move_num: int, extension: str, folder_name: str = ""
-    ) -> str:
-        """
-        (DDM용)
-        -- label file의 path를 audio path로부터 구하는 함수
-        """
-        split_path = audio_path.split("/")
-        file_name = split_path[-3]  # 파일 이름 (P1, P2,...)
-        # 뒤에서 back_move_num 개 제외한 폴더 list
-        file_paths = split_path[:-back_move_num]
-        label_file = DataLabeling._get_label_file(
-            file_name, file_paths, extension, folder_name
-        )
-        return label_file
-
-    @staticmethod
     def _get_label_file(
         file_name: str, file_paths: List[str], extension: str, folder_name: str = ""
     ) -> str:
@@ -407,58 +381,11 @@ class DataLabeling:
         return label_file
 
     @staticmethod
-    def _get_ddm_single_label(idx: int, path: str) -> List[int]:
-        """
-        -- ddm own data classify type (trimmed data) 라벨링
-        """
-        file_name = os.path.basename(path)  # extract file name
-        if PATTERN_DIR in path:  # -- pattern
-            pattern_name = file_name[:2]  # -- P1
-            label = PATTERN2CODE[pattern_name][idx]
-        elif PER_DRUM_DIR in path:  # -- per drum
-            drum_name = file_name[:2]  # -- CC
-            label = ONEHOT_DRUM2CODE[drum_name]
-        return label
-
-    @staticmethod
     def _get_frame_index(time: float, hop_length: int) -> int:
         """
         -- hop length 기반으로 frame의 인덱스 구하는 함수
         """
         return int(time * SAMPLE_RATE / float(hop_length))
-
-    @staticmethod
-    def _get_label_ddm_detect(
-        onsets_arr: List[float], path: str, frame_length: int, hop_length: int
-    ) -> List[List[int]]:
-        """
-        -- ddm own data detect type (sequence data) 라벨링
-            onset position : 1
-            onset position with ONSET_OFFSET : 0.5 (ONSET_OFFSET: onset position 양 옆으로 몇 개씩 붙일지)
-            extra : 0
-        """
-        labels = [[0] * len(CODE2DRUM) for _ in range(frame_length)]
-
-        for pattern_idx, onset in enumerate(onsets_arr):
-            onset_position = DataLabeling._get_frame_index(onset, hop_length)
-            if onset_position >= frame_length:
-                break
-
-            soft_start_position = max(  # -- onset - offset
-                (onset_position - ONSET_OFFSET), 0
-            )
-            soft_end_position = min(  # -- onset + offset
-                onset_position + ONSET_OFFSET + 1, frame_length
-            )
-
-            one_hot_label = DataLabeling._get_ddm_single_label(pattern_idx, path)
-            for i in range(soft_start_position, soft_end_position):
-                if (np.array(labels[i]) == np.array(one_hot_label)).all():
-                    continue
-                labels[i] = (np.array(one_hot_label) / 2).tolist()  # ex. [0.5, 0, ...]
-            labels[int(onset_position)] = one_hot_label  # ex. [1, 0, ...]
-
-        return labels
 
     @staticmethod
     def _get_label_detect(

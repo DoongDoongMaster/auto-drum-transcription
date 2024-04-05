@@ -181,7 +181,7 @@ train/test split info
 """
 # 'wet_mix' 폴더 내에 'minus-one'이 포함되어 있는지 확인
 DATA_ENST_TEST = {"directory": "wet_mix", "test": "_minus-one_"}
-E_GMD_INFO = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/info.csv"
+E_GMD_INFO = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/{E_GMD}.csv"
 MDB_INFO = f"{ROOT_PATH}/{RAW_PATH}/{MDB}/MIREX2017.md"
 MDB_TRAIN_SET = []
 if os.path.exists(MDB_INFO):  # 파일 존재 여부 확인

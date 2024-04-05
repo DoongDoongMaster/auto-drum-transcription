@@ -21,6 +21,7 @@ from constant import (
     DDM_OWN,
     DRUM_KIT,
     DRUM_MAP,
+    IDMT,
     SAMPLE_RATE,
     IMAGE_PATH,
     DRUM2CODE,
@@ -40,6 +41,7 @@ class OnsetDetect:
         """
         # 1. Compute the onset detection function (ODF).
         od_hfc = OnsetDetection(method="hfc")
+        od_complex = OnsetDetection(method="complex")
 
         # We need the auxilary algorithms to compute magnitude and phase.
         w = Windowing(type="hann")
@@ -53,6 +55,7 @@ class OnsetDetect:
         for frame in FrameGenerator(audio, frameSize=1024, hopSize=512):
             magnitude, phase = c2p(fft(w(frame)))
             pool.add("odf.hfc", od_hfc(magnitude, phase))
+            pool.add("odf.complex", od_complex(magnitude, phase))
 
         # 2. Detect onset locations.
         onsets = Onsets()
@@ -62,26 +65,27 @@ class OnsetDetect:
             # it doesn't actually matter which weight to give it
             [1],
         )
+        onsets_complex = onsets(array([pool["odf.complex"]]), [1])
 
-        n_frames = len(pool["odf.hfc"])
+        n_frames = len(pool["odf.complex"])
         frames_position_samples = np.array(range(n_frames)) * 512
 
         fig, ((ax1, ax3)) = plt.subplots(
             2, 1, sharex=True, sharey=False, figsize=(15, 16)
         )
 
-        ax1.set_title("HFC ODF")
-        ax1.plot(frames_position_samples, pool["odf.hfc"], color="magenta")
+        ax1.set_title("complex ODF")
+        ax1.plot(frames_position_samples, pool["odf.complex"], color="magenta")
 
-        ax3.set_title("Audio waveform and the estimated onset positions (HFC ODF)")
+        ax3.set_title("Audio waveform and the estimated onset positions (complex ODF)")
         ax3.plot(audio)
-        for onset in onsets_hfc:
+        for onset in onsets_complex:
             ax3.axvline(x=onset * SAMPLE_RATE, color="magenta")
 
-        plt.show()
+        # plt.show()
 
-        print("-- ! onset ! --", onsets_hfc)
-        return onsets_hfc
+        # print("-- ! onset ! --", onsets_complex)
+        return onsets_complex
 
     @staticmethod
     def _get_filtering_onsets(
@@ -96,9 +100,10 @@ class OnsetDetect:
 
         end = filter_onset[-1] + 1 if end == None else end
         filter_onset = filter_onset[(filter_onset >= start) & (filter_onset < end)]
+
         result = filter_onset - start  # start 빼서 0초부터 시작으로 맞추기
 
-        np.set_printoptions(precision=2)
+        np.set_printoptions(precision=3, suppress=True)
         print(f"-- ! {start} sec ~ {end} sec 파생한 onsets: ", result)
         return result
 
@@ -392,7 +397,7 @@ class OnsetDetect:
         drum_kit : 실제로 둥 한 번 치는 데이터인데, librosa에서 onset이 여러 개 추출돼서 onset[0]만 데이터로 사용
         ddm : librosa에서 추출된 그대로 데이터로 사용
         """
-        onsets = OnsetDetect.get_onsets_using_librosa(audio)
+        onsets = OnsetDetect.onset_detection(audio)
 
         drum_type = ""
         is_drum_kit = False
@@ -407,14 +412,18 @@ class OnsetDetect:
         elif DRUM_KIT in wav_path:  # drum kit
             is_drum_kit = True
             drum_type = wav_path.split("/")[-2]
+        elif IDMT in wav_path:  # idmt
+            drum_type = wav_path.split("#")[1]  # 'KD', 'SD', 'HH'
 
         if drum_type in DRUM_MAP:
             if is_drum_kit:
-                onsets = [0.0]
+                onsets = [0.01]
             elif is_ddm_cc_08:
                 onsets = [onsets[(onsets >= 2.0) & (onsets < 3.0)][0]]
             elif is_ddm:
                 onsets = onsets[(onsets >= 2.0) & (onsets < 5.1)]
+            else:
+                onsets = onsets
             onset_dict[DRUM_MAP[drum_type]] = onsets
 
         onset_dict = OnsetDetect._get_filtering_onsets_instrument(
@@ -436,8 +445,8 @@ class OnsetDetect:
         rhythm_per_bar = 4.0  # 한 마디에 4분음표가 몇 개 들어가는지
         sec_per_note = 60.0 / float(bpm)  # 4분음표 하나가 몇 초
         wait = (sec_per_note * rhythm_per_bar) / float(
-            rhythm_per_bar * 8
-        )  # 음표 간격 최소 단위 (32bit까지 나오는 기준)
+            rhythm_per_bar * 4
+        )  # 음표 간격 최소 단위 (16bit까지 나오는 기준)
 
         onset_env = librosa.onset.onset_strength(
             y=audio, sr=SAMPLE_RATE, hop_length=hop_length, aggregate=np.median
@@ -448,7 +457,7 @@ class OnsetDetect:
             post_max=3,
             pre_avg=3,
             post_avg=3,
-            delta=1,
+            delta=8,
             wait=wait,
         )
         onset_times = librosa.frames_to_time(
@@ -457,7 +466,7 @@ class OnsetDetect:
 
         # OnsetDetect._show_onset_plot(onset_env, peaks)
 
-        onset_times = onset_times - 0.01
+        onset_times = onset_times - 0.017
 
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_times, start, end)
         return onset_sec_list
@@ -491,8 +500,8 @@ class OnsetDetect:
             lag=1,
             aggregate=np.median,
             n_fft=2048,
-            fmax=8000,
-            n_mels=256,
+            fmax=16000,
+            n_mels=128,
         )
         onset_frames = librosa.onset.onset_detect(
             onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=hop_length

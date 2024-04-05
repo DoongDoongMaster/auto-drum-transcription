@@ -18,6 +18,7 @@ from data.data_labeling import DataLabeling
 from model.base_model import BaseModel
 from constant import (
     CHUNK_TIME_LENGTH,
+    DETECT_TYPES,
     DRUM2CODE,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
@@ -25,27 +26,6 @@ from constant import (
     SAMPLE_RATE,
     DETECT_CODE2DRUM,
 )
-
-
-def merge_columns(arr, col1, col2):
-    # merge col2 into col1
-    # -- 둘 중 하나라도 1이면 1
-    # -- else, 둘 중 하나라도 0.5이면 0.5
-    # -- else, 0
-    merged_column = np.zeros(arr.shape[0])
-    for i in range(arr.shape[0]):
-        if 1 in arr[i, [col1, col2]]:
-            merged_column[i] = 1
-        elif 0.5 in arr[i, [col1, col2]]:
-            merged_column[i] = 0.5
-        else:
-            merged_column[i] = 0
-
-    # merge한 배열 col1 자리에 끼워넣기
-    result = np.delete(arr, [col1, col2], axis=1)
-    result = np.insert(result, col1, merged_column, axis=1)
-
-    return result
 
 
 def binary_to_decimal(binary_list):
@@ -133,15 +113,7 @@ class SeparateDetectMultiClassModel(BaseModel):
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
-        # ------------------------------------------------------------------
-        # y: 0 CC, 1 OH, 2 CH 합치기
-        col2 = DRUM2CODE["CH"]
-        col1 = DRUM2CODE["OH"]
-        col0 = DRUM2CODE["CC"]
-        result = merge_columns(y, col1, col2)
-        result = merge_columns(result, col0, col1)
-        y = result
-        del result
+        y = BaseModel.grouping_label(y, DETECT_TYPES)
 
         # ------------------------------------------------------------------
         # # 각 행마다 binary list -> decimal num

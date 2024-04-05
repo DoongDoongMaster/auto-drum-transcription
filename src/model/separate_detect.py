@@ -17,6 +17,7 @@ from data.data_labeling import DataLabeling
 from model.base_model import BaseModel
 from constant import (
     CHUNK_TIME_LENGTH,
+    DETECT_TYPES,
     DRUM2CODE,
     METHOD_DETECT,
     MEL_SPECTROGRAM,
@@ -26,30 +27,14 @@ from constant import (
 )
 
 
-def merge_columns(arr, col1, col2):
-    # merge col2 into col1
-    # -- 둘 중 하나라도 1이면 1
-    # -- else, 둘 중 하나라도 0.5이면 0.5
-    # -- else, 0
-    merged_column = np.zeros(arr.shape[0])
-    for i in range(arr.shape[0]):
-        if 1 in arr[i, [col1, col2]]:
-            merged_column[i] = 1
-        elif 0.5 in arr[i, [col1, col2]]:
-            merged_column[i] = 0.5
-        else:
-            merged_column[i] = 0
-
-    # merge한 배열 col1 자리에 끼워넣기
-    result = np.delete(arr, [col1, col2], axis=1)
-    result = np.insert(result, col1, merged_column, axis=1)
-
-    return result
-
-
 class SeparateDetectModel(BaseModel):
     def __init__(
-        self, training_epochs=40, opt_learning_rate=0.001, batch_size=20, unit_number=16
+        self,
+        training_epochs=40,
+        opt_learning_rate=0.001,
+        batch_size=20,
+        unit_number=16,
+        load_model_flag=True,
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -65,10 +50,19 @@ class SeparateDetectModel(BaseModel):
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
         self.win_length = self.feature_param["win_length"]
-        self.load_model()
+        if load_model_flag:
+            self.load_model()
 
     def input_reshape(self, data):
-        return data
+        return np.reshape(
+            data,
+            [
+                -1,
+                self.n_rows,
+                self.n_columns,
+                1,
+            ],
+        )
 
     def input_label_reshape(self, data):
         return data
@@ -90,15 +84,7 @@ class SeparateDetectModel(BaseModel):
         X, y = BaseModel._get_x_y(self.method_type, feature_df)
         del feature_df
 
-        # ------------------------------------------------------------------
-        # y: 0 CC, 1 OH, 2 CH 합치기
-        col2 = DRUM2CODE["CH"]
-        col1 = DRUM2CODE["OH"]
-        col0 = DRUM2CODE["CC"]
-        result = merge_columns(y, col1, col2)
-        result = merge_columns(result, col0, col1)
-        y = result
-        del result
+        y = BaseModel.grouping_label(y, DETECT_TYPES)
 
         # ------------------------------------------------------------------
         scaler = StandardScaler()
@@ -196,7 +182,7 @@ class SeparateDetectModel(BaseModel):
 
             if is_onset:
                 onsets_arr.append(i * self.hop_length / SAMPLE_RATE)
-                drum_instrument.append([len(onsets_arr), drums])
+                drum_instrument.append([len(onsets_arr) - 1, drums])
 
         return onsets_arr, drum_instrument, each_instrument_onsets_arr
 
@@ -281,3 +267,54 @@ class SeparateDetectModel(BaseModel):
 
         # return {"instrument": drum_instrument, "rhythm": bar_rhythm}
         # return NULL
+
+    @staticmethod
+    def data_pre_processing_reshpae(data, chunk_size):
+        num_samples, num_features = data.shape
+        num_chunks = num_samples // chunk_size
+
+        # 나머지 부분을 제외한 데이터만 사용
+        data = data[: num_chunks * chunk_size, :]
+
+        # reshape을 통해 3D 배열로 변환
+        return np.reshape(data, [-1, chunk_size, num_features])
+
+    def data_pre_processing(self, audio: np.array) -> np.array:
+        audio_feature = np.zeros((0, self.n_columns))
+
+        # 12s chunk하면서 audio feature추출 후 이어붙이기 -> 함수로 뽑을 예정
+        audios = DataProcessing.cut_chunk_audio(audio)
+        for i, ao in enumerate(audios):
+            # audio to feature
+            feature = AudioToFeature.extract_feature(
+                ao, self.method_type, self.feature_type
+            )
+            audio_feature = np.vstack([audio_feature, feature])
+
+        scaler = StandardScaler()
+        audio_feature = scaler.fit_transform(audio_feature)
+
+        # -- input (#, time, 128 feature)
+        # [TODO] redisAI not work BaseModel func. So, create new func (data_pre_processing_reshape) in this class
+        audio_feature = SeparateDetectModel.data_pre_processing_reshpae(
+            audio_feature, CHUNK_TIME_LENGTH
+        )
+        audio_feature = audio_feature.astype(np.float32)
+
+        return audio_feature
+
+    def data_post_processing(
+        self, predict_data: np.array, _: np.array = None, label_cnt: int = 4
+    ):
+        predict_data = predict_data.reshape((-1, self.n_classes))
+        predict_data = predict_data.copy()
+
+        # -- threshold 0.5
+        onsets_arr, drum_instrument, each_instrument_onsets_arr = (
+            self.get_predict_onsets_instrument(predict_data)
+        )
+
+        threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
+        # DataLabeling.show_label_dict_plot(threshold_dict, 0, 2000)
+
+        return drum_instrument, onsets_arr

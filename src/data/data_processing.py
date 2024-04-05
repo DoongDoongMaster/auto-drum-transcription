@@ -7,6 +7,7 @@ import numpy as np
 from typing import List
 
 from constant import (
+    ONSET_DURATION_RIGHT_MINUS,
     SAMPLE_RATE,
     RAW_PATH,
     NEW_PATH,
@@ -98,7 +99,9 @@ class DataProcessing:
             end = int((onsets[i] + ONSET_DURATION_RIGHT) * SAMPLE_RATE)
 
             if i + 1 < len(onsets):
-                end_by_onset = int((onsets[i + 1] - ONSET_DURATION_LEFT) * SAMPLE_RATE)
+                end_by_onset = int(
+                    (onsets[i + 1] - ONSET_DURATION_RIGHT_MINUS) * SAMPLE_RATE
+                )
                 end = min(end, end_by_onset)
 
             trimmed = audio[start:end]
@@ -119,7 +122,7 @@ class DataProcessing:
                 int((onsets[i]["onset"] - ONSET_DURATION_LEFT) * SAMPLE_RATE), 0
             )
             end_duration = min(
-                onsets[i]["duration"] + ONSET_DURATION_LEFT, ONSET_DURATION_RIGHT
+                onsets[i]["duration"] - ONSET_DURATION_RIGHT_MINUS, ONSET_DURATION_RIGHT
             )
             end = int(float(onsets[i]["onset"] + end_duration) * SAMPLE_RATE)
 
@@ -178,3 +181,8 @@ class DataProcessing:
         """
         for i, audio in enumerate(trimmed_audios, start=1):
             DataProcessing.write_wav_audio_one(root_path, f"/{name}_{i:04}", audio)
+
+    @staticmethod
+    def convert_array_dtype_float32(data):
+        data_float32 = data.astype(np.float32)
+        return data_float32

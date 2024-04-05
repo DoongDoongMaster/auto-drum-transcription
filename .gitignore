@@ -1,6 +1,8 @@
 # model file
 *.h5
+*.pb
 /models/
+/served-models/
 
 # data file
 /data/

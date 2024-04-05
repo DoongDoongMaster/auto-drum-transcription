@@ -32,8 +32,10 @@ from constant import (
     TEST,
     TRAIN,
     VALIDATION,
+    ENST,
 )
 from model.separate_detect_ref import SeparateDetectRefModel
+from model.separate_detect_b import SeparateDetectBModel
 
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
 # FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
@@ -105,10 +107,22 @@ from model.separate_detect_ref import SeparateDetectRefModel
 #     print(separate_detect.predict(predict_test_data, 100, 0))
 
 
-separate_detect_ref = SeparateDetectRefModel(40, 0.001, 32, 128)
+# separate_detect_ref = SeparateDetectRefModel(40, 0.001, 32, 128)
+
+# # == split_data, label_type 매개변수 바꿔서 사용!
+# split_data = {TRAIN: [IDMT]}
+# label_type = LABEL_DDM
+
+# separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
+# separate_detect_ref.create()
+# separate_detect_ref.train()
+# separate_detect_ref.evaluate()
+# separate_detect_ref.save()
+
+separate_detect_ref = SeparateDetectBModel(40, 0.01, 32, 128)
 
 # == split_data, label_type 매개변수 바꿔서 사용!
-split_data = {TRAIN: [IDMT]}
+split_data = {TRAIN: [ENST], TEST: [ENST]}
 label_type = LABEL_DDM
 
 separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)

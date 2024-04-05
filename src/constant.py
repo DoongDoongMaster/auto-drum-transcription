@@ -1,7 +1,9 @@
+import os
+import re
+
 """
 -- image path (그래프와 같은 이미지 저장)
 """
-
 IMAGE_PATH = "../images"
 
 
@@ -28,6 +30,8 @@ IDMT = "IDMT-SMT-DRUMS-V2"
 ENST = "ENST-drums-public-clean"
 E_GMD = "e-gmd-v1.0.0"
 DRUM_KIT = "drum-kit-sound"
+MDB = "MDBDrums"
+MDB_LABEL_TYPE = "subclass"
 
 
 """
@@ -79,8 +83,9 @@ REDIS_AI_PORT = 6379
 SAMPLE_RATE = 44100
 
 # -- 오디오 자를 시, onset 기준 왼쪽, 오른쪽으로 몇 초 자를지 (단위: sec)
-ONSET_DURATION_LEFT = 0.03
-ONSET_DURATION_RIGHT = 0.5
+ONSET_DURATION_LEFT = 0
+ONSET_DURATION_RIGHT_MINUS = 0.035
+ONSET_DURATION_RIGHT = 0.4
 
 # -- classify method feature duration
 CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
@@ -89,7 +94,7 @@ CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
 CLASSIFY_SAME_TIME = 0.035
 
 # -- 너무 짧게 잘린 데이터 버리는 단위 (단위: sec)
-CLASSIFY_SHORT_TIME = 0.16
+CLASSIFY_SHORT_TIME = 0.135
 
 # -- onset offset: int (onset position 양 옆으로 몇 개씩 붙일지)
 ONSET_OFFSET = 1
@@ -177,11 +182,18 @@ DATA_E_GMD_NOT = (
     "drummer7/session3/156_soul_98_fill_4-4",  # 싱크 안 맞음
     "drummer1/session1/5_jazz-funk_116_beat_4-4",  # 싱크 안 맞음
 )
+DATA_MDB = ("MDBDrums/audio/drum_only/",)
+DATA_MDB_NOT = (
+    "MusicDelta_Reggae_",  # no snare,
+    "MusicDelta_SwingJazz_",  # brush,
+    "MusicDelta_CoolJazz_",  # brush
+    "MusicDelta_Beatles_",  # tambourine
+)
 DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(
     f"_{i}.wav" for i in range(2, 59)
 )  # acustic kit 만 사용
 
-DATA_ALL = DATA_IDMT + DATA_DDM_OWN + (DRUM_KIT,) + (E_GMD,) + (ENST,)
+DATA_ALL = DATA_IDMT + DATA_DDM_OWN + DATA_MDB + (DRUM_KIT,) + (E_GMD,) + (ENST,)
 
 # -------------------------------------------------------------------------------------
 
@@ -190,9 +202,38 @@ train/test split info
 """
 # 'wet_mix' 폴더 내에 'minus-one'이 포함되어 있는지 확인
 DATA_ENST_TEST = {"directory": "wet_mix", "test": "_minus-one_"}
-E_GMD_INFO = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/info.csv"
+E_GMD_INFO = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/{E_GMD}.csv"
+MDB_INFO = f"{ROOT_PATH}/{RAW_PATH}/{MDB}/MIREX2017.md"
+MDB_TRAIN_SET = []
+if os.path.exists(MDB_INFO):  # 파일 존재 여부 확인
+    with open(MDB_INFO, "r") as f:
+        content = f.read()
+
+        # Extracting training set
+        train_matches = re.findall(
+            r"### Training Set\n([\s\S]*?)\n### Test Set", content
+        )
+        if train_matches:
+            train_tracks = train_matches[0].strip().split("\n")
+            MDB_TRAIN_SET = (track.strip() for track in train_tracks)
+    MDB_TRAIN_SET = list(MDB_TRAIN_SET)
+
 
 # -------------------------------------------------------------------------------------
+
+
+"""
+-- drum name
+"""
+CC = "CC"  # crush symbal
+RD = "RD"  # ride cymbal & ride bell
+OH = "OH"  # open hi-hat
+CH = "CH"  # closed hi-hat
+TT = "TT"  # tom
+SD = "SD"  # snare
+RS = "RS"  # rimshot
+KK = "KK"  # kick
+
 
 """
 -- Mapping drum_type
@@ -201,7 +242,7 @@ DRUM_TYPES에 추가하기
 => DRUM_MAP을 접근해서 사용 {"sd": "SD", "mt": "TT", "bd": "KK", "chh": "CH", "ohh": "OH"}
 """
 DRUM_TYPES = {
-    "CC": [
+    CC: [
         27,  # -- china 1
         28,  # -- cymbal 1
         30,  # -- cymbal 3
@@ -211,23 +252,30 @@ DRUM_TYPES = {
         57,  # crash cymbal 2
         52,  # china cymbal
         55,  # splash cymbal
-        51,  # ride cymbal
-        59,  # ride cymbal 2
-        53,  # ride bell
         "CC",  # crash (ddm-own)
         "c1",  # crash cymbal 1 (enst/drummer1,2)
         "cr1",  # crash cymbal 1 (enst/drummer2)
         "cr2",  # crash cymbal 1 (enst/drummer3)
         "cr5",  # crash cymbal 2 (enst/drummer3)
-        "rc3",  # ride cymbal 1 (enst/drummer2)
-        "rc2",  # ride cymbal 2 (enst/drummer1)
-        "rc4",  # ride cymbal 2 (enst/drummer2)
         "c4",  # ride cymbal 2 (enst/drummer3)
         "ch5",  # china ride cymbal (enst/drummer2)
         "ch1",  # china ride cymbal (enst/drummer3)
         "spl2",  # splash cymbal (enst/drummer2)
+        "CRC",  # crash cymbal (MDB)
+        "CHC",  # china cymbal (MDB)
+        "SPC",  # splash cymbal (MDB)
     ],  # crash
-    "OH": [
+    RD: [
+        51,  # ride cymbal
+        59,  # ride cymbal 2
+        53,  # ride bell
+        "rc3",  # ride cymbal 1 (enst/drummer2)
+        "rc2",  # ride cymbal 2 (enst/drummer1)
+        "rc4",  # ride cymbal 2 (enst/drummer2)
+        "RDC",  # ride cymbal (MDB)
+        "RDB",  # ride cymbal bell (MDB)
+    ],  # ride
+    OH: [
         23,  # -- open pedal
         24,  # -- open 1
         25,  # -- open 2
@@ -235,16 +283,19 @@ DRUM_TYPES = {
         "ohh",
         46,  # hi-hat open
         "overheads",  # drum kit data
+        "OHH",  # open hi-hat (MDB)
     ],  # hi-hat open
-    "CH": [
+    CH: [
         21,  # -- closed pedal
         22,  # -- closed Edge
         "chh",
         42,  # hi-hat cloased
         44,  # hi-hat pedal
         "HH",  # closed hi-hat (ddm-own)
+        "CHH",  # closed hi-hat (MDB)
+        "PHH",  # pedal hi-hat (MDB)
     ],  # hi-hat closed
-    "TT": [
+    TT: [
         "mt",
         41,  # -- low tom 2
         43,  # -- low tom 1
@@ -254,26 +305,37 @@ DRUM_TYPES = {
         50,  # high tom
         58,  # -- vibra slap
         "toms",  # tom (drum kit data)
-        "ltr",  # low-tom, hit on the rim (enst/drummer1)
         "lmt",  # mid-tom-2 (enst/drummer3)
         "lt",  # low-tom (enst)
         "lft",  # low-tom-2 (enst/drummer3)
+        "TT",  # tom (MDB)
+        "HIT",  # high tom (MDB)
+        "MHT",  # high-mid tom (MDB)
+        "HFT",  # high floor tom (MDB)
+        "LFT",  # low floor tom (MDB)
     ],  # tom
-    "SD": [
+    SD: [
         "sd",
-        37,  # rimshot
         38,  # snare drum
         40,  # electric snare drum
         "snare",  # snare drum (drum kit data)
-        "SD",  # snare (ddm-own)
-        "rs",  # rim shot (enst)
+        "SD",  # snare (ddm-own) & (MDB)
+        "SDD",  # snare: drag (MDB)
+        "SDF",  # snare: flam (MDB)
+        "SDG",  # snare: gohst note (MDB)
     ],  # snare
-    "KK": [
+    RS: [
+        37,  # rimshot
+        "ltr",  # low-tom, hit on the rim (enst/drummer1)
+        "rs",  # rim shot (enst)
+        "SST",  # side stick (MDB)
+    ],  # rimshot
+    KK: [
         "bd",
         35,  # bass drum
         36,  # kick drum
         "kick",  # kick (drum kit data)
-        "KD",  # kick (idmt)
+        "KD",  # kick (idmt) & (MDB)
         "KK",  # kick (ddm-own)
     ],  # kick
 }
@@ -314,29 +376,72 @@ for label, data in LABEL_TYPE.items():
     LABEL_COLUMN += data["column"]
 
 LABEL_INIT_DATA = {
-    IDMT: {TRAIN: [], TEST: []},
-    ENST: {TRAIN: [], TEST: []},
-    E_GMD: {TRAIN: [], VALIDATION: [], TEST: []},
+    IDMT: {
+        TRAIN: [],
+        TEST: [],
+    },
+    ENST: {
+        TRAIN: [],
+        TEST: [],
+    },
+    E_GMD: {
+        TRAIN: [],
+        VALIDATION: [],
+        TEST: [],
+    },
+    MDB: {
+        TRAIN: [],
+        TEST: [],
+    },
+    DRUM_KIT: {
+        TRAIN: [],
+    },
 }
+
+
+"""
+-- 라벨 개수에 따른 drum_types
+"""
+DRUM_TYPES_3 = {
+    OH: [
+        CC,
+        OH,
+        CH,
+        RD,
+    ],
+    SD: [
+        TT,
+        SD,
+        RS,
+    ],
+    KK: [
+        KK,
+    ],
+}
+DRUM_TYPES_4 = {
+    OH: [
+        CC,
+        OH,
+        CH,
+        RD,
+    ],
+    TT: [
+        TT,
+    ],
+    SD: [
+        SD,
+        RS,
+    ],
+    KK: [
+        KK,
+    ],
+}
+
+
 """
 -- classify 방법에서의 분류 라벨
 """
-CLASSIFY_TYPES = {
-    "OH": [
-        "CC",
-        "OH",
-        "CH",
-    ],
-    "TT": [
-        "TT",
-    ],
-    "SD": [
-        "SD",
-    ],
-    "KK": [
-        "KK",
-    ],
-}
+CLASSIFY_TYPES = DRUM_TYPES_3
 CLASSIFY_MAP = {}
 # Iterate over the DRUM_TYPES
 for drum_type, values in CLASSIFY_TYPES.items():
@@ -348,29 +453,12 @@ for drum_type, values in CLASSIFY_TYPES.items():
 -- {0: "OH", 1: "CH", ...}
 """
 CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_TYPES.keys())}
-"""
--- classify 방법에서 불가능한 라벨 값 (십진수)
-"""
-CLASSIFY_IMPOSSIBLE_LABEL = (
-    {14, 15, 22, 23, 26, 27, 28, 29, 30, 31} if len(CLASSIFY_TYPES) == 5 else {0}
-)
 
 
 """
 -- detect 방법에서의 분류 라벨
 """
-DETECT_TYPES = {
-    "OH": ["CC", "OH", "CH"],
-    "TT": [
-        "TT",
-    ],
-    "SD": [
-        "SD",
-    ],
-    "KK": [
-        "KK",
-    ],
-}
+DETECT_TYPES = DRUM_TYPES_4
 DETECT_MAP = {}
 for drum_type, values in DETECT_TYPES.items():
     for value in values:
@@ -380,56 +468,6 @@ for drum_type, values in DETECT_TYPES.items():
 """
 DETECT_CODE2DRUM = {i: k for i, k in enumerate(DETECT_TYPES.keys())}
 
-
-"""
--- drum mapping
-
--- 파일 이름 형식
--- per_drum : CC_04_9949.wav
--- pattern : P1_08_0001.wav
-"""
-# -- {'CC':[1,0,0,0,0,0], 'OH':[0,1,0,0,0,0], ...}
-ONEHOT_DRUM2CODE = {}
-for code, index in DRUM2CODE.items():
-    drum_mapping = [0] * len(DRUM2CODE)
-    drum_mapping[index] = 1
-    ONEHOT_DRUM2CODE[code] = drum_mapping
-
-PATTERN = {
-    "CH": ONEHOT_DRUM2CODE["CH"],
-    "SD": ONEHOT_DRUM2CODE["SD"],
-    "CH_KK": [0, 0, 1, 0, 0, 1],
-    "CH_SD": [0, 0, 1, 0, 1, 0],
-}
-
-P_HH_KK = PATTERN["CH_KK"]
-P_SD = PATTERN["SD"]
-P_HH = PATTERN["CH"]
-P_HH_SD = PATTERN["CH_SD"]
-
-P1_2CODE = [P_HH_KK, P_HH, P_HH_SD, P_HH, P_HH_KK, P_HH_KK, P_HH_SD, P_HH]
-P2_2CODE = [
-    P_HH_KK,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_SD,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_HH_KK,
-    P_HH,
-    P_HH,
-    P_HH,
-    P_SD,
-    P_HH,
-    P_HH,
-    P_HH,
-]
-PATTERN2CODE = {"P1": P1_2CODE, "P2": P2_2CODE}
-
-
-# ------------------------------------------------------------------------------------
 
 """
 -- feature type

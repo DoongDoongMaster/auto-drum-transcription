@@ -60,10 +60,15 @@ from constant import (
 # ))
 # AudioToFeature.show_feature_plot(data["feature"][1], METHOD_CLASSIFY, MFCC)
 
+# ===============Model Ref Train========================
+segment_classify = SegmentClassifyModel(
+    training_epochs=50, batch_size=8, opt_learning_rate=0.01
+)
+
 # ===============Model Train============================
-segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
-segment_classify.extract_feature()
-segment_classify.run()
+# segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
+# segment_classify.extract_feature()
+# segment_classify.run()
 
 # ===============Model Predict==========================
 # segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)

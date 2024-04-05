@@ -45,6 +45,7 @@ class SegmentClassifyModel(BaseModel):
         batch_size=20,
         feature_type=MFCC,
         feature_extension=PKL,
+        load_model_flag=True,
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -68,16 +69,18 @@ class SegmentClassifyModel(BaseModel):
         self.n_channels = 1
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
-        self.load_model()
+        if load_model_flag:
+            self.load_model()
 
     def input_reshape(self, data):
         # sequence data
-        return tf.reshape(
+        return np.reshape(
             data,
             [
                 -1,
                 self.n_columns,
                 self.n_rows,
+                self.n_channels,
             ],
         )
 
@@ -349,12 +352,12 @@ class SegmentClassifyModel(BaseModel):
         for index in indices_above_threshold:
             row, col = index
             if row != current_row:
-                tmp = [current_row, cols]
+                tmp = [int(current_row), cols]
                 result.append(tmp)
                 current_row = row
                 cols = []
-            cols.append(col)
-        result.append([current_row, cols])
+            cols.append(int(col))
+        result.append([int(current_row), cols])
         return result
 
     """
@@ -448,3 +451,49 @@ class SegmentClassifyModel(BaseModel):
         bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)
 
         return {"instrument": drum_instrument, "rhythm": bar_rhythm}
+
+    # tranform 2D array to dict
+    def transform_arr_to_dict(self, arr_data):
+        result_dict = {}
+        for code, drum in CLASSIFY_CODE2DRUM.items():
+            result_dict[drum] = [row[code] for row in arr_data]
+        return result_dict
+
+    def data_pre_processing(self, audio: np.array) -> np.array:
+        # -- trimmed audio
+        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+        trimmed_audios = DataProcessing.trim_audio_per_onset(audio, onsets_arr)
+
+        # -- trimmed feature
+        predict_data = []
+        for _, taudio in enumerate(trimmed_audios):
+            trimmed_feature = AudioToFeature.extract_feature(
+                taudio, self.method_type, self.feature_type
+            )
+            predict_data.append(trimmed_feature)
+
+        # -- reshape
+        predict_data = SegmentClassifyModel.x_data_transpose(predict_data)
+        return predict_data
+
+    def data_post_processing(
+        self, predict_data: np.array, audio: np.array, label_cnt: int = 4
+    ):
+        predict_data_result = []
+        if label_cnt == 3:
+            predict_data_result = np.insert(
+                predict_data, 1, np.zeros((1, len(predict_data))), axis=1
+            )
+        elif label_cnt == 5:
+            for data in predict_data:
+                data_0 = max(data[0], data[1])
+                predict_data_result.append([data_0, data[2], data[3], data[4]])
+        elif label_cnt == 4:
+            predict_data_result = predict_data
+
+        predict_data_result = np.array(predict_data_result)
+        drum_instrument = self.get_predict_result(predict_data_result)
+        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+        onsets_arr = onsets_arr.tolist()
+
+        return drum_instrument, onsets_arr

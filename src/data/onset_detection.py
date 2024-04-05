@@ -79,7 +79,7 @@ class OnsetDetect:
         for onset in onsets_hfc:
             ax3.axvline(x=onset * SAMPLE_RATE, color="magenta")
 
-        plt.show()
+        # plt.show()
 
         print("-- ! onset ! --", onsets_hfc)
         return onsets_hfc
@@ -441,8 +441,8 @@ class OnsetDetect:
         rhythm_per_bar = 4.0  # 한 마디에 4분음표가 몇 개 들어가는지
         sec_per_note = 60.0 / float(bpm)  # 4분음표 하나가 몇 초
         wait = (sec_per_note * rhythm_per_bar) / float(
-            rhythm_per_bar * 8
-        )  # 음표 간격 최소 단위 (32bit까지 나오는 기준)
+            rhythm_per_bar * 4
+        )  # 음표 간격 최소 단위 (16bit까지 나오는 기준)
 
         onset_env = librosa.onset.onset_strength(
             y=audio, sr=SAMPLE_RATE, hop_length=hop_length, aggregate=np.median
@@ -453,7 +453,7 @@ class OnsetDetect:
             post_max=3,
             pre_avg=3,
             post_avg=3,
-            delta=1,
+            delta=8,
             wait=wait,
         )
         onset_times = librosa.frames_to_time(
@@ -462,7 +462,7 @@ class OnsetDetect:
 
         # OnsetDetect._show_onset_plot(onset_env, peaks)
 
-        onset_times = onset_times - 0.01
+        onset_times = onset_times - 0.017
 
         onset_sec_list = OnsetDetect._get_filtering_onsets(onset_times, start, end)
         return onset_sec_list
@@ -496,8 +496,8 @@ class OnsetDetect:
             lag=1,
             aggregate=np.median,
             n_fft=2048,
-            fmax=8000,
-            n_mels=256,
+            fmax=16000,
+            n_mels=128,
         )
         onset_frames = librosa.onset.onset_detect(
             onset_envelope=onset_env, sr=SAMPLE_RATE, hop_length=hop_length

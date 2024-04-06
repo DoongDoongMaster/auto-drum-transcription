@@ -15,6 +15,7 @@ from constant import (
     E_GMD,
     IDMT,
     LABEL_DDM,
+    LABEL_DDM_1,
     LABEL_REF,
     SAMPLE_RATE,
     MFCC,
@@ -227,3 +228,30 @@ separate_detect_ref.evaluate()
 #     ]
 # )
 # print(merge_columns(arr, 0, 1))
+
+# 52800
+# 53999(54000)
+
+# 2534400
+# 2535599(2535600)
+
+
+# import librosa
+# import numpy as np
+
+# rhythm_per_bar = 4.0  # 한 마디에 4분음표가 몇 개 들어가는지
+# sec_per_note = 60.0 / float(100)  # 4분음표 하나가 몇 초
+# wait = (sec_per_note * rhythm_per_bar) / float(
+#     rhythm_per_bar * 4
+# )  # 음표 간격 최소 단위 (16bit까지 나오는 기준)
+# peaks = librosa.util.peak_pick(
+#     np.array([0, 0.0, 1, 1.0, 0.5]),
+#     pre_max=3,
+#     post_max=3,
+#     pre_avg=3,
+#     post_avg=3,
+#     delta=0.5,
+#     wait=10,
+# )
+
+# print(peaks)

@@ -357,6 +357,7 @@ DRUM2CODE = {v: k for k, v in CODE2DRUM.items()}
 """
 LABEL_REF = "LABEL_REF"
 LABEL_DDM = "LABEL_DDM"
+LABEL_DDM_1 = "LABEL_DDM_1"
 LABEL_TYPE = {
     LABEL_REF: {
         "labeled": "[0.5_1.0_0.5]",
@@ -369,6 +370,12 @@ LABEL_TYPE = {
         "offset": {"l": [], "r": [1.0, 0.5]},
         # -- HH-LABEL_DDM, ST-LABEL_DDM, SD-LABEL_DDM, KK-LABEL_DDM
         "column": [f"{drum_code}-{LABEL_DDM}" for _, drum_code in CODE2DRUM.items()],
+    },
+    LABEL_DDM_1: {
+        "labeled": "[1.0_0.5_0.5]",
+        "offset": {"l": [], "r": [0.5, 0.5]},
+        # -- HH-LABEL_DDM_1, ST-LABEL_DDM_1, SD-LABEL_DDM_1, KK-LABEL_DDM_1
+        "column": [f"{drum_code}-{LABEL_DDM_1}" for _, drum_code in CODE2DRUM.items()],
     },
 }
 LABEL_COLUMN = []

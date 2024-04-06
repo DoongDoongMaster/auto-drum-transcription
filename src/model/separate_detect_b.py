@@ -61,7 +61,7 @@ class SeparateDetectBModel(BaseModel):
             batch_size=batch_size,
             method_type=METHOD_DETECT,
             feature_type=MEL_SPECTROGRAM,
-            compile_mode=False,
+            compile_mode=True,
         )
         self.unit_number = unit_number
         self.predict_standard = 0.5

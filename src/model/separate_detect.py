@@ -70,56 +70,13 @@ class SeparateDetectModel(BaseModel):
     def output_reshape(self, data):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
 
-    def create_dataset(self):
-        """
-        -- load data from data file
-        -- Implement dataset split feature & label logic
-        """
-        # Implement dataset split feature & label logic
-        feature_df = FeatureExtractor.load_feature_file(
-            self.method_type, self.feature_type, self.feature_extension
-        )
-
-        # -- get X, y
-        X, y = BaseModel._get_x_y(self.method_type, feature_df)
-        del feature_df
-
-        y = BaseModel.grouping_label(y, DETECT_TYPES)
-
-        # ------------------------------------------------------------------
+    def create_model_dataset(self, X, y, split_type):
         scaler = StandardScaler()
         X = scaler.fit_transform(X)
         X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
         y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
 
-        # -- split train, val, test
-        x_train_temp, x_test, y_train_temp, y_test = train_test_split(
-            X,
-            y,
-            test_size=0.2,
-            random_state=42,
-        )
-        del X
-        del y
-
-        x_train_final, x_val_final, y_train_final, y_val_final = train_test_split(
-            x_train_temp,
-            y_train_temp,
-            test_size=0.2,
-            random_state=42,
-        )
-        del x_train_temp
-        del y_train_temp
-
-        self.x_train = x_train_final
-        self.x_val = x_val_final
-        self.x_test = x_test
-        self.y_train = y_train_final
-        self.y_val = y_val_final
-        self.y_test = y_test
-
-        # -- print shape
-        self.print_dataset_shape()
+        self.split_dataset(X, y, split_type)
 
     def create(self):
         input_layer = Input(shape=(self.n_rows, self.n_columns))
@@ -223,44 +180,24 @@ class SeparateDetectModel(BaseModel):
         predict_data = self.model.predict(audio_feature)
         predict_data = predict_data.reshape((-1, self.n_classes))
         # # -- 12s 씩 잘린 거 이어붙이기 -> 함수로 뽑을 예정
-        result_dict = self.transform_arr_to_dict(predict_data)
-
-        # -- threshold 0.5
-        onsets_arr, drum_instrument, each_instrument_onsets_arr = (
-            self.get_predict_onsets_instrument(predict_data)
-        )
-        threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
-
-        # predict : threshold 둘만 비교
-        # DataLabeling.show_pred_dict_plot_detect(result_dict, threshold_dict, 0, 1200)
+        result_dict = BaseModel.transform_arr_to_dict(predict_data)
 
         # -- 실제 label (merge cc into oh)
         class_6_true_label = DataLabeling.data_labeling(
             audio, wav_path, METHOD_DETECT, hop_length=self.hop_length
         )
-
         # -- OH - CH
-        keys_to_extract = ["OH", "CH"]
-        selected_values = [class_6_true_label[key] for key in keys_to_extract]
-        oh_ch_label = np.vstack(selected_values).T
-        merged_cc_oh = merge_columns(oh_ch_label, 0, 1)
-        class_6_true_label.pop("CH", None)
-        class_6_true_label["OH"] = merged_cc_oh.flatten()
-        class_5_true_label = class_6_true_label  # -- class 5
-        # -- CC - OH
-        keys_to_extract_s = ["CC", "OH"]
-        selected_values_s = [class_5_true_label[key] for key in keys_to_extract_s]
-        cc_oh_label = np.vstack(selected_values_s).T
-        merged_cc_oh = merge_columns(cc_oh_label, 0, 1)
-        class_5_true_label.pop("CC", None)
-        class_5_true_label["OH"] = merged_cc_oh
-        class_4_true_label = class_5_true_label  # -- class 4
-
-        true_label = class_4_true_label
-
-        DataLabeling.show_label_dict_compare_plot_detect(
-            true_label, result_dict, threshold_dict, 0, 1200
+        class_6_true_label_arr = BaseModel.transform_dict_to_arr(class_6_true_label)
+        grouping_true_label_arr = BaseModel.grouping_label(
+            class_6_true_label_arr, DETECT_TYPES
         )
+        true_label = BaseModel.transform_arr_to_dict(grouping_true_label_arr)
+
+        # -- 각 라벨마다 peak picking
+        true_label = BaseModel.transform_peakpick_from_dict(true_label)
+        result_dict = BaseModel.transform_peakpick_from_dict(result_dict)
+
+        DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 
         # # -- rhythm
         # bar_rhythm = self.get_bar_rhythm(new_audio, bpm, onsets_arr)

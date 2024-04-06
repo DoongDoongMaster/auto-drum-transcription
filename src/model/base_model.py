@@ -1,3 +1,4 @@
+import math
 import os
 import librosa
 import numpy as np
@@ -114,12 +115,13 @@ class BaseModel:
                }
         """
         new_y = np.zeros((y_data.shape[0], len(group_dict)))
+
         for l_idx, l_arr in enumerate(y_data):
             temp_label = np.zeros(len(group_dict))
             for idx, (_, labels) in enumerate(group_dict.items()):
                 # 우선순위: 1 > 0.5 > 0
                 label_value = max(l_arr[DRUM2CODE[l]] for l in labels)
-                temp_label[idx] = label_value
+                temp_label[idx] = label_value if not math.isnan(label_value) else 0
             new_y[l_idx] = temp_label
 
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)  # inf = infinity
@@ -128,7 +130,9 @@ class BaseModel:
 
     @staticmethod
     def _get_x_y(
-        method_type: str, feature_df: pd.DataFrame, label_type: str = LABEL_DDM
+        method_type: str,
+        feature_df: pd.DataFrame,
+        label_type: str = LABEL_DDM,
     ):
         if method_type == METHOD_CLASSIFY:
             X = np.array(feature_df.feature.tolist())
@@ -136,8 +140,10 @@ class BaseModel:
             return X, y
         if method_type in METHOD_DETECT:
             # Y: HH-LABEL_REF..., ST, SD, KK-LABEL_DDM | X: mel-1, mel-2, mel-3, ...
+
             X = feature_df.drop(LABEL_COLUMN, axis=1).to_numpy()
             y = feature_df[LABEL_TYPE[label_type]["column"]].to_numpy()
+
             return X, y
         if method_type in METHOD_RHYTHM:
             # label(onset 여부) | mel-1, mel-2, mel-3, ...
@@ -238,6 +244,9 @@ class BaseModel:
             y = BaseModel.grouping_label(y, group_dict)
             # 각 model마다 create dataset
             self.create_model_dataset(X, y, split_type)
+
+            del X
+            del y
         self.fill_all_dataset()
 
         # -- print shape

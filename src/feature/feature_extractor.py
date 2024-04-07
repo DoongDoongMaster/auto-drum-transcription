@@ -16,6 +16,7 @@ from feature.audio_to_feature import AudioToFeature
 
 
 from constant import (
+    CLASSIFY_DURATION,
     CLASSIFY_SAME_TIME,
     CLASSIFY_SHORT_TIME,
     CODE2DRUM,
@@ -414,13 +415,13 @@ class FeatureExtractor:
             if idx < onsets_len:
                 duration = onsets[idx]["onset"] - curr_onset
 
-            if duration < CLASSIFY_SHORT_TIME:  # 너무 짧게 잘린 데이터 버리기
+            if duration < ONSET_DURATION_RIGHT:  # 너무 짧게 잘린 데이터 버리기
                 continue
 
-            if not FeatureExtractor._validate_possible_label(
-                label_dict
-            ):  # 불가능한 라벨값이라면
-                continue
+            # if not FeatureExtractor._validate_possible_label(
+            #     label_dict
+            # ):  # 불가능한 라벨값이라면
+            #     continue
 
             result_onsets.append({"onset": curr_onset, "duration": duration})
             result_label.append(label_dict)

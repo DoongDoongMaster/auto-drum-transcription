@@ -193,35 +193,24 @@ class SegmentClassifyModel(BaseModel):
         X = SegmentClassifyModel.x_data_transpose(X)
 
         if split_type == TRAIN:
-            x_train, x_val, y_train, y_val = train_test_split(
-                X,
-                y,
-                test_size=0.4,
-                random_state=42,
-                stratify=y,
-            )
-            x_val = self.input_reshape(x_val)
-            self.split_dataset(x_val, y_val, VALIDATION)
-
-            # train data smote
-            x_train = self.x_data_1d_reshape(x_train)
-            y_train = FeatureExtractor.one_hot_label_to_number(y_train)
-
+            # # train data smote
+            # x_train = self.x_data_1d_reshape(x_train)
+            y_train = FeatureExtractor.one_hot_label_to_number(y)
             # 라벨 비율 확인
             counter = Counter(y_train)
             print("변경 전", counter)
 
-            x_train, y_train = SegmentClassifyModel.smote_data(x_train, y_train)
+            # x_train, y_train = SegmentClassifyModel.smote_data(x_train, y_train)
             # decimal to multi-hot-encoding
-            y_train = FeatureExtractor.number_to_one_hot_label(y_train)
+            y = FeatureExtractor.number_to_one_hot_label(y_train)
 
             # input shape 조정
-            x_train = self.input_reshape(x_train)
-            self.split_dataset(x_train, y_train, split_type)
+            x_train = self.input_reshape(X)
+            self.split_dataset(x_train, y, split_type)
         elif split_type == TEST:
             # input shape 조정
-            X = self.input_reshape(X)
-            self.split_dataset(X, y, split_type)
+            x_test = self.input_reshape(x_test)
+            self.split_dataset(x_test, y, split_type)
 
     def create(self):
         n_steps = self.n_columns

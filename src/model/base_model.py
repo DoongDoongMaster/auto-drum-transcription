@@ -1,4 +1,5 @@
 import os
+import math
 import librosa
 import numpy as np
 import pandas as pd
@@ -119,6 +120,8 @@ class BaseModel:
             for idx, (_, labels) in enumerate(group_dict.items()):
                 # 우선순위: 1 > 0.5 > 0
                 label_value = max(l_arr[DRUM2CODE[l]] for l in labels)
+                if math.isnan(label_value):
+                    print("===========isNan============", label_value)
                 temp_label[idx] = label_value
             new_y[l_idx] = temp_label
 
@@ -263,6 +266,7 @@ class BaseModel:
                 self.y_train,
                 test_size=0.2,
                 random_state=42,
+                stratify=self.y_train,
             )
             self.split_dataset(x_train, y_train, TRAIN)
             self.split_dataset(x_test, y_test, TEST)
@@ -274,6 +278,7 @@ class BaseModel:
                 self.y_train,
                 test_size=0.2,
                 random_state=42,
+                stratify=self.y_train,
             )
             self.split_dataset(x_train, y_train, TRAIN)
             self.split_dataset(x_val, y_val, VALIDATION)
@@ -353,7 +358,7 @@ class BaseModel:
             print(multilabel_confusion_matrix(y_test_data, y_pred))
 
             print("-- ! classification report ! --")
-            print(classification_report(y_test_data, y_pred))
+            print(classification_report(y_test_data, y_pred, digits=4))
         except Exception as e:
             print(e)
 

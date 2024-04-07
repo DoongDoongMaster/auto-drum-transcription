@@ -83,15 +83,15 @@ REDIS_AI_PORT = 6379
 SAMPLE_RATE = 44100
 
 # -- 오디오 자를 시, onset 기준 왼쪽, 오른쪽으로 몇 초 자를지 (단위: sec)
-ONSET_DURATION_LEFT = 0
-ONSET_DURATION_RIGHT_MINUS = 0.035
-ONSET_DURATION_RIGHT = 0.4
+ONSET_DURATION_LEFT = 0.025
+ONSET_DURATION_RIGHT_MINUS = 0
+ONSET_DURATION_RIGHT = 0.125
 
 # -- classify method feature duration
-CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
+CLASSIFY_DURATION = 0.16
 
 # -- 동시에 친 오디오 구분 초 (단위: sec)
-CLASSIFY_SAME_TIME = 0.035
+CLASSIFY_SAME_TIME = 0.16
 
 # -- 너무 짧게 잘린 데이터 버리는 단위 (단위: sec)
 CLASSIFY_SHORT_TIME = 0.135
@@ -150,13 +150,13 @@ DATA_ENST_NOT = (
     "140_MIDI-minus-one_bigband_sticks",  # cs
     "160_MIDI-minus-one_soul-98_sticks",  # cs
     # -- hi-hat data만 사용
-    "dry_mix/",
-    "kick/",
-    "overhead_L/",
-    "overhead_R/",
-    "snare/",
-    "tom_1/",
-    "tom_2/",
+    # "dry_mix/",
+    # "kick/",
+    # "overhead_L/",
+    # "overhead_R/",
+    # "snare/",
+    # "tom_1/",
+    # "tom_2/",
 )  # ENST dataset에서 제외할 데이터
 DATA_DDM_OWN = (
     "per-drum/CC",
@@ -168,7 +168,6 @@ DATA_DDM_OWN = (
     "pattern/P2",
 )
 DATA_E_GMD_NOT = (
-    "drummer1/session2/66_punk_144_fill_4-4",  # 싱크 안 맞음
     "drummer7/session3/25_hiphop_67_fill_4-4",  # wav 파일 비어있음
     "drummer7/session3/109_rock_95_beat_4-4",  # 싱크 안 맞음
     "drummer7/session2/81_country_78_fill_4-4",  # 싱크 안 맞음
@@ -294,6 +293,7 @@ DRUM_TYPES = {
         "HH",  # closed hi-hat (ddm-own)
         "CHH",  # closed hi-hat (MDB)
         "PHH",  # pedal hi-hat (MDB)
+        "TMB",  # tambourine (MDB)
     ],  # hi-hat closed
     TT: [
         "mt",
@@ -323,6 +323,8 @@ DRUM_TYPES = {
         "SDD",  # snare: drag (MDB)
         "SDF",  # snare: flam (MDB)
         "SDG",  # snare: gohst note (MDB)
+        "SDB",  # snare: brush (MDB)
+        "SDNS",  # snare: no snare (MDB)
     ],  # snare
     RS: [
         37,  # rimshot
@@ -458,7 +460,7 @@ CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_TYPES.keys())}
 """
 -- detect 방법에서의 분류 라벨
 """
-DETECT_TYPES = DRUM_TYPES_4
+DETECT_TYPES = DRUM_TYPES_3
 DETECT_MAP = {}
 for drum_type, values in DETECT_TYPES.items():
     for value in values:
@@ -484,8 +486,8 @@ FEATURE_DTYPE_16 = "float16"
 FEATURE_DTYPE_32 = "float32"
 FEATURE_PARAM_BASIC = {
     "n_fft": 2048,
-    "win_length": 1024,
-    "hop_length": 441,
+    "win_length": 2048,
+    "hop_length": 512,
     "n_classes": len(CODE2DRUM),
 }
 FEATURE_PARAM = {

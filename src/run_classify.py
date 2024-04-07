@@ -6,6 +6,8 @@ from data.data_labeling import DataLabeling
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
 from constant import (
+    CLASSIFY_TYPES,
+    MDB,
     NEW_PATH,
     ROOT_PATH,
     RAW_PATH,
@@ -22,6 +24,8 @@ from constant import (
     MEL_SPECTROGRAM,
     CSV,
     METHOD_RHYTHM,
+    TEST,
+    TRAIN,
 )
 
 
@@ -52,8 +56,10 @@ from constant import (
 # data_paths = [
 #     "../data/raw/e-gmd-v1.0.0/drummer1/session1/78_jazz-fast_290_beat_4-4.wav"
 # ]
-# FeatureExtractor.feature_extractor(data_paths_idmt, METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL)
-# FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL)
+
+# data_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{MDB}")
+# FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL)
+# FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL, MDB, TRAIN)
 
 # print(FeatureExtractor._load_feature_one_file(
 #     "../data/processed-feature/classify/mel-spectrogram/mel-spectrogram-2024-03-13_01-26-48-0100.pkl", PKL
@@ -61,9 +67,20 @@ from constant import (
 # AudioToFeature.show_feature_plot(data["feature"][1], METHOD_CLASSIFY, MFCC)
 
 # ===============Model Ref Train========================
+# == split_data, label_type 매개변수 바꿔서 사용!
+split_data = {TRAIN: [MDB], TEST: [MDB]}
+
 segment_classify = SegmentClassifyModel(
-    training_epochs=50, batch_size=8, opt_learning_rate=0.01
+    training_epochs=50,
+    batch_size=8,
+    opt_learning_rate=0.001,
+    feature_type=MEL_SPECTROGRAM,
 )
+segment_classify.create_dataset(split_data, group_dict=CLASSIFY_TYPES)
+# segment_classify.create()
+# segment_classify.train()
+segment_classify.evaluate()
+# segment_classify.save()
 
 # ===============Model Train============================
 # segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)

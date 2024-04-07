@@ -28,6 +28,7 @@ TEST = "test"
 DDM_OWN = "ddm-own-v2"
 IDMT = "IDMT-SMT-DRUMS-V2"
 ENST = "ENST-drums-public-clean"
+ENST_PUB = "ENST-drums-public"
 E_GMD = "e-gmd-v1.0.0"
 DRUM_KIT = "drum-kit-sound"
 MDB = "MDBDrums"
@@ -53,6 +54,27 @@ METHOD_DETECT = "detect"
 
 # -- 박자 인식 모델
 METHOD_RHYTHM = "rhythm"
+
+
+"""
+-- model saved type
+"""
+MODEL_SAVED_H5 = "h5"
+MODEL_SAVED_PB = "pb"
+MODEL_DIR = "models"
+
+
+"""
+-- served model
+"""
+SERVED_MODEL_DIR = "served-models"  # 서빙 모델 최상위 폴더
+SERVED_MODEL_TYPE = (
+    METHOD_CLASSIFY,
+    METHOD_DETECT,
+    METHOD_RHYTHM,
+)
+REDIS_AI_HOST = "localhost"
+REDIS_AI_PORT = 6379
 
 
 """
@@ -147,7 +169,6 @@ DATA_DDM_OWN = (
     "pattern/P2",
 )
 DATA_E_GMD_NOT = (
-    "drummer1/session2/66_punk_144_fill_4-4",  # 싱크 안 맞음
     "drummer7/session3/25_hiphop_67_fill_4-4",  # wav 파일 비어있음
     "drummer7/session3/109_rock_95_beat_4-4",  # 싱크 안 맞음
     "drummer7/session2/81_country_78_fill_4-4",  # 싱크 안 맞음
@@ -172,8 +193,9 @@ DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(
     f"_{i}.wav" for i in range(2, 59)
 )  # acustic kit 만 사용
 
-DATA_ALL = DATA_IDMT + DATA_DDM_OWN + DATA_MDB + (DRUM_KIT,) + (E_GMD,) + (ENST,)
-
+DATA_ALL = (
+    DATA_IDMT + DATA_DDM_OWN + DATA_MDB + (DRUM_KIT,) + (E_GMD,) + (ENST,) + (ENST_PUB,)
+)
 # -------------------------------------------------------------------------------------
 
 """
@@ -273,6 +295,7 @@ DRUM_TYPES = {
         "HH",  # closed hi-hat (ddm-own)
         "CHH",  # closed hi-hat (MDB)
         "PHH",  # pedal hi-hat (MDB)
+        "TMB",  # tambourine (MDB)
     ],  # hi-hat closed
     TT: [
         "mt",
@@ -302,6 +325,8 @@ DRUM_TYPES = {
         "SDD",  # snare: drag (MDB)
         "SDF",  # snare: flam (MDB)
         "SDG",  # snare: gohst note (MDB)
+        "SDB",  # snare: brush (MDB)
+        "SDNS",  # snare: no snare (MDB)
     ],  # snare
     RS: [
         37,  # rimshot
@@ -336,6 +361,7 @@ DRUM2CODE = {v: k for k, v in CODE2DRUM.items()}
 """
 LABEL_REF = "LABEL_REF"
 LABEL_DDM = "LABEL_DDM"
+LABEL_DDM_1 = "LABEL_DDM_1"
 LABEL_TYPE = {
     LABEL_REF: {
         "labeled": "[0.5_1.0_0.5]",
@@ -348,6 +374,12 @@ LABEL_TYPE = {
         "offset": {"l": [], "r": [1.0, 0.5]},
         # -- HH-LABEL_DDM, ST-LABEL_DDM, SD-LABEL_DDM, KK-LABEL_DDM
         "column": [f"{drum_code}-{LABEL_DDM}" for _, drum_code in CODE2DRUM.items()],
+    },
+    LABEL_DDM_1: {
+        "labeled": "[1.0_0.5_0.5]",
+        "offset": {"l": [], "r": [0.5, 0.5]},
+        # -- HH-LABEL_DDM_1, ST-LABEL_DDM_1, SD-LABEL_DDM_1, KK-LABEL_DDM_1
+        "column": [f"{drum_code}-{LABEL_DDM_1}" for _, drum_code in CODE2DRUM.items()],
     },
 }
 LABEL_COLUMN = []
@@ -437,7 +469,7 @@ CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_TYPES.keys())}
 """
 -- detect 방법에서의 분류 라벨
 """
-DETECT_TYPES = DRUM_TYPES_4
+DETECT_TYPES = DRUM_TYPES_3
 DETECT_MAP = {}
 for drum_type, values in DETECT_TYPES.items():
     for value in values:
@@ -542,3 +574,78 @@ CLASSIFY_SHORT_TIME_FRAME = round(
 """
 CSV = "csv"
 PKL = "pkl"
+
+
+"""
+-- stored model name
+"""
+# ------------ 0329 -------------
+SERVED_MODEL_CLASSIFY_LSTM = "classify_mel-spectrogram_2024-03-15_10-15-34_[all]_[5]_[smote]_[crnn(lstm)_acc(0.98)]"
+SERVED_MODEL_CLASSIFY_BI_LSTM = "classify_mel-spectrogram_2024-03-18_03-27-38_[all]_[5]_[smote]_[crnn(bi-lstm)_acc(0.98)]"
+SERVED_MODEL_CLASSIFY_MFCC = (
+    "classify_mfcc_2024-03-14_02-16-35_[all]_[5]_[smote]_[crnn(lstm)_acc(0.97)]"
+)
+SERVED_MODEL_DETECT_LSTM = "detect_mel-spectrogram_2024-03-15_16-36-20-[all]-[4]-[1-1-0.5]-[crnn(lstm)-acc(0.96)]"
+# ------------ 0403 ------------
+SERVED_MODEL_CLASSIFY_ENST_3 = "classify_mel-spectrogram_2024-04-03_10-37-02_[enst-idmt]_[3]_[smote]_[conv2d+lstm_f1(0.87)]"
+SERVED_MODEL_CLASSIFY_ENST_4 = "classify_mel-spectrogram_2024-04-03_16-12-45_[enst-idmt_enst]_[4]_[crnn(ddm)_f1(0.88)]"
+SERVED_MODEL_DETECT_EGMD_4 = "detect_mel-spectrogram_2024-04-03_09-06-58-[e-gmd-clean]_[4]_[lr0.001]_[crnn4_f1(0.58)]"
+
+SERVED_MODEL_ALL = [
+    {
+        "model_name": SERVED_MODEL_CLASSIFY_LSTM,
+        "is_frozen": True,
+        "is_stored": True,
+        "method_type": METHOD_CLASSIFY,
+        "feature_type": MEL_SPECTROGRAM,
+        "label_cnt": 5,
+    },
+    {
+        "model_name": SERVED_MODEL_CLASSIFY_BI_LSTM,
+        "is_frozen": True,
+        "is_stored": True,
+        "method_type": METHOD_CLASSIFY,
+        "feature_type": MEL_SPECTROGRAM,
+        "label_cnt": 5,
+    },
+    {
+        "model_name": SERVED_MODEL_CLASSIFY_MFCC,
+        "is_frozen": True,
+        "is_stored": True,
+        "method_type": METHOD_CLASSIFY,
+        "feature_type": MFCC,
+        "label_cnt": 5,
+    },
+    {
+        "model_name": SERVED_MODEL_DETECT_LSTM,
+        "is_frozen": True,
+        "is_stored": True,
+        "method_type": METHOD_DETECT,
+        "feature_type": MEL_SPECTROGRAM,
+        "label_cnt": 4,
+    },
+    {
+        "model_name": SERVED_MODEL_CLASSIFY_ENST_3,
+        "is_frozen": True,
+        "is_stored": True,
+        "method_type": METHOD_CLASSIFY,
+        "feature_type": MEL_SPECTROGRAM,
+        "label_cnt": 3,
+    },
+    {
+        "model_name": SERVED_MODEL_CLASSIFY_ENST_4,
+        "is_frozen": True,
+        "is_stored": True,
+        "method_type": METHOD_CLASSIFY,
+        "feature_type": MEL_SPECTROGRAM,
+        "label_cnt": 4,
+    },
+    {
+        "model_name": SERVED_MODEL_DETECT_EGMD_4,
+        "is_frozen": True,
+        "is_stored": True,
+        "method_type": METHOD_DETECT,
+        "feature_type": MEL_SPECTROGRAM,
+        "label_cnt": 4,
+    },
+]

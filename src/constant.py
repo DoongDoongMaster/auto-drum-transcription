@@ -395,6 +395,10 @@ LABEL_INIT_DATA = {
         TRAIN: [],
         TEST: [],
     },
+    ENST_PUB: {
+        TRAIN: [],
+        TEST: [],
+    },
     E_GMD: {
         TRAIN: [],
         VALIDATION: [],

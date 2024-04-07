@@ -118,6 +118,7 @@ class DataLabeling:
                 else OnsetDetect.get_onsets_from_svl
             ),
             ENST: OnsetDetect.get_onsets_from_txt,
+            ENST_PUB: OnsetDetect.get_onsets_from_txt,
             E_GMD: OnsetDetect.get_onsets_from_mid,
             MDB: OnsetDetect.get_onsets_from_txt,
         }
@@ -161,6 +162,7 @@ class DataLabeling:
                     else OnsetDetect.get_onsets_instrument_from_svl
                 ),
                 ENST: OnsetDetect.get_onsets_instrument_from_txt,
+                ENST_PUB: OnsetDetect.get_onsets_instrument_from_txt,
                 E_GMD: OnsetDetect.get_onsets_instrument_from_mid,
                 MDB: OnsetDetect.get_onsets_instrument_from_txt,
             }
@@ -191,6 +193,7 @@ class DataLabeling:
 
         onset_detection_methods = {
             ENST: OnsetDetect.get_onsets_instrument_all_from_txt,
+            ENST_PUB: OnsetDetect.get_onsets_instrument_all_from_txt,
             E_GMD: OnsetDetect.get_onsets_instrument_all_from_mid,
             MDB: OnsetDetect.get_onsets_instrument_all_from_txt,
         }
@@ -350,7 +353,7 @@ class DataLabeling:
                 )
             return DataLabeling._get_label_path(audio_path, 2, "svl", "annotation_svl")
 
-        elif ENST in audio_path:
+        elif ENST in audio_path or ENST_PUB in audio_path:
             return DataLabeling._get_label_path(audio_path, 3, "txt", "annotation")
 
         elif E_GMD in audio_path:

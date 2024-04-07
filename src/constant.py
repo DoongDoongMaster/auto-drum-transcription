@@ -28,6 +28,7 @@ TEST = "test"
 DDM_OWN = "ddm-own-v2"
 IDMT = "IDMT-SMT-DRUMS-V2"
 ENST = "ENST-drums-public-clean"
+ENST_PUB = "ENST-drums-public"
 E_GMD = "e-gmd-v1.0.0"
 DRUM_KIT = "drum-kit-sound"
 MDB = "MDBDrums"
@@ -150,13 +151,13 @@ DATA_ENST_NOT = (
     "140_MIDI-minus-one_bigband_sticks",  # cs
     "160_MIDI-minus-one_soul-98_sticks",  # cs
     # -- hi-hat data만 사용
-    "dry_mix/",
-    "kick/",
-    "overhead_L/",
-    "overhead_R/",
-    "snare/",
-    "tom_1/",
-    "tom_2/",
+    # "dry_mix/",
+    # "kick/",
+    # "overhead_L/",
+    # "overhead_R/",
+    # "snare/",
+    # "tom_1/",
+    # "tom_2/",
 )  # ENST dataset에서 제외할 데이터
 DATA_DDM_OWN = (
     "per-drum/CC",
@@ -168,7 +169,6 @@ DATA_DDM_OWN = (
     "pattern/P2",
 )
 DATA_E_GMD_NOT = (
-    "drummer1/session2/66_punk_144_fill_4-4",  # 싱크 안 맞음
     "drummer7/session3/25_hiphop_67_fill_4-4",  # wav 파일 비어있음
     "drummer7/session3/109_rock_95_beat_4-4",  # 싱크 안 맞음
     "drummer7/session2/81_country_78_fill_4-4",  # 싱크 안 맞음
@@ -193,8 +193,9 @@ DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(
     f"_{i}.wav" for i in range(2, 59)
 )  # acustic kit 만 사용
 
-DATA_ALL = DATA_IDMT + DATA_DDM_OWN + DATA_MDB + (DRUM_KIT,) + (E_GMD,) + (ENST,)
-
+DATA_ALL = (
+    DATA_IDMT + DATA_DDM_OWN + DATA_MDB + (DRUM_KIT,) + (E_GMD,) + (ENST,) + (ENST_PUB,)
+)
 # -------------------------------------------------------------------------------------
 
 """
@@ -294,6 +295,7 @@ DRUM_TYPES = {
         "HH",  # closed hi-hat (ddm-own)
         "CHH",  # closed hi-hat (MDB)
         "PHH",  # pedal hi-hat (MDB)
+        "TMB",  # tambourine (MDB)
     ],  # hi-hat closed
     TT: [
         "mt",
@@ -323,6 +325,8 @@ DRUM_TYPES = {
         "SDD",  # snare: drag (MDB)
         "SDF",  # snare: flam (MDB)
         "SDG",  # snare: gohst note (MDB)
+        "SDB",  # snare: brush (MDB)
+        "SDNS",  # snare: no snare (MDB)
     ],  # snare
     RS: [
         37,  # rimshot
@@ -465,7 +469,7 @@ CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_TYPES.keys())}
 """
 -- detect 방법에서의 분류 라벨
 """
-DETECT_TYPES = DRUM_TYPES_4
+DETECT_TYPES = DRUM_TYPES_3
 DETECT_MAP = {}
 for drum_type, values in DETECT_TYPES.items():
     for value in values:

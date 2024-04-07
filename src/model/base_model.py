@@ -241,7 +241,7 @@ class BaseModel:
         print(multilabel_confusion_matrix(y_test_data, y_pred))
 
         print("-- ! classification report ! --")
-        print(classification_report(y_test_data, y_pred))
+        print(classification_report(y_test_data, y_pred, digits=4))
 
     def create_model_dataset(self, X: np.array, y: np.array, split_type: str):
         # Implement model
@@ -292,6 +292,7 @@ class BaseModel:
                 self.y_train,
                 test_size=0.2,
                 random_state=42,
+                stratify=self.y_train,
             )
             self.split_dataset(x_train, y_train, TRAIN)
             self.split_dataset(x_test, y_test, TEST)
@@ -303,6 +304,7 @@ class BaseModel:
                 self.y_train,
                 test_size=0.2,
                 random_state=42,
+                stratify=self.y_train,
             )
             self.split_dataset(x_train, y_train, TRAIN)
             self.split_dataset(x_val, y_val, VALIDATION)

@@ -77,6 +77,8 @@ class SegmentClassifyModel(BaseModel):
             self.load_model()
 
     def input_reshape(self, data):
+        print("=======origin shape======", data.shape)
+        data = data[:, : self.n_columns, :]
         # sequence data
         return np.reshape(
             data,

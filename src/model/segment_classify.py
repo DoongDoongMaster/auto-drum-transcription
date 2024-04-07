@@ -209,7 +209,7 @@ class SegmentClassifyModel(BaseModel):
             self.split_dataset(x_train, y, split_type)
         elif split_type == TEST:
             # input shape 조정
-            x_test = self.input_reshape(x_test)
+            x_test = self.input_reshape(X)
             self.split_dataset(x_test, y, split_type)
 
     def create(self):

@@ -158,12 +158,15 @@ class FeatureExtractor:
         result_data = copy.deepcopy(LABEL_INIT_DATA)
 
         for path in audio_paths:
+            if DataLabeling.validate_supported_data(path) == False:
+                continue
+
             # idmt 인 경우 path에서 읽기
             if IDMT in path:
-                if TRAIN in path:
-                    result_data[IDMT][TRAIN].append(path)
-                else:  # -- test
+                if "WaveDrum02" in path and "train" not in path:  # -- test
                     result_data[IDMT][TEST].append(path)
+                else:  # -- train
+                    result_data[IDMT][TRAIN].append(path)
             # enst 인 경우 임의로 지정한 test set으로 분기
             elif ENST in path:
                 dn = os.path.dirname(path)
@@ -185,6 +188,7 @@ class FeatureExtractor:
                         find_path = path.replace(substring_to_remove, "")
                         if find_path in row["audio_filename"]:
                             result_data[E_GMD][row["split"]].append(path)
+                    del reader
             # MDB 인 경우 md에서 읽기
             elif MDB in path:
                 if any(train_set in path for train_set in MDB_TRAIN_SET):
@@ -195,6 +199,7 @@ class FeatureExtractor:
             elif DRUM_KIT in path:
                 result_data[DRUM_KIT][TRAIN].append(path)
 
+        del audio_paths
         return result_data
 
     @staticmethod
@@ -240,6 +245,7 @@ class FeatureExtractor:
                             split_type,
                             i,
                         )
+            del split_data
 
     @staticmethod
     def _feature_extractor(
@@ -249,9 +255,6 @@ class FeatureExtractor:
         combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
 
         for path in audio_paths:
-            if DataLabeling.validate_supported_data(path) == False:
-                continue
-
             print("-- current file: ", path)
 
             # -- librosa feature load
@@ -260,7 +263,10 @@ class FeatureExtractor:
             df = FeatureExtractor._get_one_path_feature_label(
                 audio, path, method_type, feature_type
             )  # 메소드별로 피쳐 & 라벨 추출
+
+            del audio
             combined_df = pd.concat([combined_df, df], ignore_index=True)
+            del df
 
         return combined_df
 
@@ -292,11 +298,13 @@ class FeatureExtractor:
 
         # 동시에 친 데이터로 치는 오프셋만큼 묶으면서 데이터 라벨링
         onsets, label = FeatureExtractor._get_onsets_label_from_onsets(onsets_arr)
+        del onsets_arr
 
         audios = DataProcessing.trim_audio_per_onset_with_duration(audio, onsets)
         # DataProcessing.write_trimmed_audio(
         #     "../data/classify-test", "classify_test", audios
         # )
+        del audio, onsets
 
         for i, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
@@ -306,6 +314,10 @@ class FeatureExtractor:
             )
             # combine dataframe
             combined_df = pd.concat([combined_df, df], ignore_index=True)
+
+            del df, feature
+
+        del audios
 
         return combined_df
 

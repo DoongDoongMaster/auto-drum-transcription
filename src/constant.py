@@ -28,6 +28,7 @@ TEST = "test"
 DDM_OWN = "ddm-own-v2"
 IDMT = "IDMT-SMT-DRUMS-V2"
 ENST = "ENST-drums-public-clean"
+ENST_PUB = "ENST-drums-public"
 E_GMD = "e-gmd-v1.0.0"
 DRUM_KIT = "drum-kit-sound"
 MDB = "MDBDrums"
@@ -192,7 +193,9 @@ DATA_E_GMD_NOT = DATA_E_GMD_NOT + tuple(
     f"_{i}.wav" for i in range(2, 59)
 )  # acustic kit 만 사용
 
-DATA_ALL = DATA_IDMT + DATA_DDM_OWN + DATA_MDB + (DRUM_KIT,) + (E_GMD,) + (ENST,)
+DATA_ALL = (
+    DATA_IDMT + DATA_DDM_OWN + DATA_MDB + (DRUM_KIT,) + (E_GMD,) + (ENST,) + (ENST_PUB,)
+)
 
 # -------------------------------------------------------------------------------------
 

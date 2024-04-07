@@ -61,7 +61,7 @@ class SeparateDetectRefModel(BaseModel):
             batch_size=batch_size,
             method_type=METHOD_DETECT,
             feature_type=MEL_SPECTROGRAM,
-            compile_mode=False,
+            compile_mode=True,
         )
         self.unit_number = unit_number
         self.predict_standard = 0.5
@@ -152,16 +152,16 @@ class SeparateDetectRefModel(BaseModel):
 
         steps_per_epoch = len(self.x_train) // self.batch_size  # Batch size is 32
 
-        cyclical_learning_rate = tfa.optimizers.CyclicalLearningRate(
-            initial_learning_rate=1e-4,
-            maximal_learning_rate=1e-2,
-            step_size=2 * steps_per_epoch,
-            scale_fn=lambda x: 1 / (2.0 ** (x - 1)),
-            scale_mode="cycle",
-        )
-        opt = tf.keras.optimizers.Adam(cyclical_learning_rate)
+        # cyclical_learning_rate = tfa.optimizers.CyclicalLearningRate(
+        #     initial_learning_rate=0.001,
+        #     maximal_learning_rate=0.01,
+        #     step_size=2 * steps_per_epoch,
+        #     scale_fn=lambda x: 1 / (2.0 ** (x - 1)),
+        #     scale_mode="cycle",
+        # )
+        # opt = tf.keras.optimizers.Adam(cyclical_learning_rate)
         # opt = Adam(cyclical_learning_rate)
-        # opt = Adam(learning_rate=self.opt_learning_rate)
+        opt = Adam(learning_rate=self.opt_learning_rate)
         self.model.compile(
             loss="binary_crossentropy", optimizer=opt, metrics=["binary_accuracy"]
         )
@@ -246,7 +246,9 @@ class SeparateDetectRefModel(BaseModel):
         )
         # -- OH - CH
         class_6_true_label_arr = BaseModel.transform_dict_to_arr(class_6_true_label)
-        grouping_true_label_arr = BaseModel.grouping_label(class_6_true_label_arr, DETECT_TYPES)
+        grouping_true_label_arr = BaseModel.grouping_label(
+            class_6_true_label_arr, DETECT_TYPES
+        )
         true_label = BaseModel.transform_arr_to_dict(grouping_true_label_arr)
 
         # -- 각 라벨마다 peak picking

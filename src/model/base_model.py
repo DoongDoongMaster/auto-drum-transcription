@@ -1,10 +1,11 @@
+import math
 import os
 import librosa
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
-
+import matplotlib.pyplot as plt
 from glob import glob
 from datetime import datetime
 from tensorflow.keras.callbacks import EarlyStopping
@@ -34,6 +35,7 @@ from constant import (
     TEST,
     TRAIN,
     VALIDATION,
+    IMAGE_PATH,
 )
 
 
@@ -114,12 +116,13 @@ class BaseModel:
                }
         """
         new_y = np.zeros((y_data.shape[0], len(group_dict)))
+
         for l_idx, l_arr in enumerate(y_data):
             temp_label = np.zeros(len(group_dict))
             for idx, (_, labels) in enumerate(group_dict.items()):
                 # 우선순위: 1 > 0.5 > 0
                 label_value = max(l_arr[DRUM2CODE[l]] for l in labels)
-                temp_label[idx] = label_value
+                temp_label[idx] = label_value if not math.isnan(label_value) else 0
             new_y[l_idx] = temp_label
 
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)  # inf = infinity
@@ -128,7 +131,9 @@ class BaseModel:
 
     @staticmethod
     def _get_x_y(
-        method_type: str, feature_df: pd.DataFrame, label_type: str = LABEL_DDM
+        method_type: str,
+        feature_df: pd.DataFrame,
+        label_type: str = LABEL_DDM,
     ):
         if method_type == METHOD_CLASSIFY:
             X = np.array(feature_df.feature.tolist())
@@ -136,8 +141,10 @@ class BaseModel:
             return X, y
         if method_type in METHOD_DETECT:
             # Y: HH-LABEL_REF..., ST, SD, KK-LABEL_DDM | X: mel-1, mel-2, mel-3, ...
+
             X = feature_df.drop(LABEL_COLUMN, axis=1).to_numpy()
             y = feature_df[LABEL_TYPE[label_type]["column"]].to_numpy()
+
             return X, y
         if method_type in METHOD_RHYTHM:
             # label(onset 여부) | mel-1, mel-2, mel-3, ...
@@ -170,7 +177,7 @@ class BaseModel:
         return data.reshape((num_chunks, chunk_size, num_features, 1))
 
     @staticmethod
-    def transform_peakpick_from_dict(data_dict):
+    def transform_peakpick_from_dict(data_dict, delta):
         """
         peak picking from dict data
         input : float32 array
@@ -187,7 +194,7 @@ class BaseModel:
                 post_max=3,
                 pre_avg=3,
                 post_avg=3,
-                delta=0.1,
+                delta=delta,
                 wait=1,
             )
             for idx in peaks:
@@ -217,6 +224,25 @@ class BaseModel:
         result_arr = np.stack([dict_data[key] for key in dict_data.keys()], axis=1)
         return result_arr
 
+    @staticmethod
+    def show_f1score_delta_plot(delta_values, f1_scores):
+        plt.plot(delta_values, f1_scores)
+        plt.title("F1-Score vs. Delta Values")
+        plt.xlabel("Delta")
+        plt.ylabel("F1-Score")
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        plt.savefig(f"{IMAGE_PATH}/f1score-delta-{date_time}.png")
+        plt.show()
+
+    @staticmethod
+    def print_confusion_matrix(y_test_data, y_pred):
+        # confusion matrix & precision & recall
+        print("-- ! confusion matrix ! --")
+        print(multilabel_confusion_matrix(y_test_data, y_pred))
+
+        print("-- ! classification report ! --")
+        print(classification_report(y_test_data, y_pred))
+
     def create_model_dataset(self, X: np.array, y: np.array, split_type: str):
         # Implement model
         pass
@@ -238,6 +264,9 @@ class BaseModel:
             y = BaseModel.grouping_label(y, group_dict)
             # 각 model마다 create dataset
             self.create_model_dataset(X, y, split_type)
+
+            del X
+            del y
         self.fill_all_dataset()
 
         # -- print shape
@@ -334,26 +363,41 @@ class BaseModel:
             y_test_data = self.data_2d_reshape(self.y_test)
             y_pred = self.data_2d_reshape(y_pred)
 
-            # -- binary
             if self.method_type == METHOD_DETECT:
-                # y array -> y dict -> peakpick dict -> y array
-                y_test_data = DataProcessing.convert_array_dtype_float32(y_test_data)
-                y_test_data = BaseModel.transform_arr_to_dict(y_test_data)
-                y_test_data = BaseModel.transform_peakpick_from_dict(y_test_data)
-                y_test_data = BaseModel.transform_dict_to_arr(y_test_data)
+                delta_values = np.linspace(0, 1, 11)  # 0부터 1까지 10개의 값
+                result = []
+                for delta in delta_values:
+                    tmp_y_test_data = y_test_data
+                    tmp_y_pred = y_pred
+                    # -- binary
+                    # y array -> y dict -> peakpick dict -> y array
+                    tmp_y_test_data = DataProcessing.convert_array_dtype_float32(
+                        tmp_y_test_data
+                    )
+                    tmp_y_test_data = BaseModel.transform_arr_to_dict(tmp_y_test_data)
+                    tmp_y_test_data = BaseModel.transform_peakpick_from_dict(
+                        tmp_y_test_data, delta
+                    )
+                    tmp_y_test_data = BaseModel.transform_dict_to_arr(tmp_y_test_data)
 
-                y_pred = BaseModel.transform_arr_to_dict(y_pred)
-                y_pred = BaseModel.transform_peakpick_from_dict(y_pred)
-                y_pred = BaseModel.transform_dict_to_arr(y_pred)
+                    tmp_y_pred = BaseModel.transform_arr_to_dict(tmp_y_pred)
+                    tmp_y_pred = BaseModel.transform_peakpick_from_dict(
+                        tmp_y_pred, delta
+                    )
+                    tmp_y_pred = BaseModel.transform_dict_to_arr(tmp_y_pred)
+
+                    result.append(
+                        classification_report(
+                            tmp_y_test_data, tmp_y_pred, output_dict=True
+                        )["weighted avg"]["f1-score"]
+                    )
+                    print(f"------------------ delta : {delta} ------------------")
+                    BaseModel.print_confusion_matrix(tmp_y_test_data, tmp_y_pred)
+                BaseModel.show_f1score_delta_plot(delta_values, result)
             else:
                 y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
+                BaseModel.print_confusion_matrix(y_test_data, y_pred)
 
-            # confusion matrix & precision & recall
-            print("-- ! confusion matrix ! --")
-            print(multilabel_confusion_matrix(y_test_data, y_pred))
-
-            print("-- ! classification report ! --")
-            print(classification_report(y_test_data, y_pred))
         except Exception as e:
             print(e)
 

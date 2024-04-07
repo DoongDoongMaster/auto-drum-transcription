@@ -557,6 +557,8 @@ class FeatureExtractor:
                 if result_data == None:  # label 없음
                     continue
                 label.update(result_data)
+            if len(label.keys()) == 0:
+                continue
 
             # make dataframe
             df = FeatureExtractor._make_dataframe(

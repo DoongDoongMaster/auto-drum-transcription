@@ -1,13 +1,30 @@
-from typing import List
 import numpy as np
+
+from glob import glob
+from typing import List
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from keras.models import Model
 
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, LSTM, Conv1D, Input
-from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras.layers import (
+    Dense,
+    LSTM,
+    Conv1D,
+    Input,
+    BatchNormalization,
+    MaxPooling1D,
+    Bidirectional,
+    GRU,
+    TimeDistributed,
+    Conv2D,
+    MaxPooling2D,
+    Reshape,
+    Dropout,
+)
+from tensorflow.keras.optimizers import RMSprop, Adam, SGD
+import tensorflow_addons as tfa
 
 from feature.feature_extractor import FeatureExtractor
 from feature.audio_to_feature import AudioToFeature
@@ -24,17 +41,19 @@ from constant import (
     MILLISECOND,
     SAMPLE_RATE,
     DETECT_CODE2DRUM,
+    TEST,
+    TRAIN,
+    VALIDATION,
 )
 
 
-class SeparateDetectModel(BaseModel):
+class SeparateDetectBModel(BaseModel):
     def __init__(
         self,
         training_epochs=40,
         opt_learning_rate=0.001,
         batch_size=20,
         unit_number=16,
-        load_model_flag=True,
     ):
         super().__init__(
             training_epochs=training_epochs,
@@ -42,6 +61,7 @@ class SeparateDetectModel(BaseModel):
             batch_size=batch_size,
             method_type=METHOD_DETECT,
             feature_type=MEL_SPECTROGRAM,
+            compile_mode=True,
         )
         self.unit_number = unit_number
         self.predict_standard = 0.5
@@ -50,19 +70,10 @@ class SeparateDetectModel(BaseModel):
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
         self.win_length = self.feature_param["win_length"]
-        if load_model_flag:
-            self.load_model()
+        self.load_model()
 
     def input_reshape(self, data):
-        return np.reshape(
-            data,
-            [
-                -1,
-                self.n_rows,
-                self.n_columns,
-                1,
-            ],
-        )
+        return data
 
     def input_label_reshape(self, data):
         return data
@@ -79,21 +90,42 @@ class SeparateDetectModel(BaseModel):
         self.split_dataset(X, y, split_type)
 
     def create(self):
-        input_layer = Input(shape=(self.n_rows, self.n_columns))
-        conv1 = Conv1D(
-            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
-        )(input_layer)
-        conv2 = Conv1D(
-            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
-        )(conv1)
-        conv3 = Conv1D(
-            filters=32, kernel_size=8, strides=1, activation="tanh", padding="same"
-        )(conv2)
-        lstm1 = LSTM(32, return_sequences=True)(conv3)
-        lstm2 = LSTM(32, return_sequences=True)(lstm1)
-        lstm3 = LSTM(32, return_sequences=True)(lstm2)
+        input_layer = Input(shape=(self.n_rows, self.n_columns, 1))
 
+        # First Convolutional Block
+        conv1_1 = Conv2D(
+            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(input_layer)
+        conv1_1 = BatchNormalization()(conv1_1)
+        conv1_2 = Conv2D(
+            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(conv1_1)
+        conv1_2 = BatchNormalization()(conv1_2)
+        pool1 = MaxPooling2D(pool_size=(1, 3))(conv1_2)
+
+        # Second Convolutional Block
+        conv2_1 = Conv2D(
+            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(pool1)
+        conv2_1 = BatchNormalization()(conv2_1)
+        conv2_2 = Conv2D(
+            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+        )(conv2_1)
+        conv2_2 = BatchNormalization()(conv2_2)
+        pool2 = MaxPooling2D(pool_size=(1, 3))(conv2_2)
+
+        # Reshape for RNN
+        reshape = Reshape((pool2.shape[1], pool2.shape[2] * pool2.shape[3]))(pool2)
+
+        # BiGRU layers
+        lstm1 = Bidirectional(LSTM(50, return_sequences=True))(reshape)
+        lstm2 = Bidirectional(LSTM(50, return_sequences=True))(lstm1)
+        lstm3 = Bidirectional(LSTM(50, return_sequences=True))(lstm2)
+
+        # Output layer
         output_layer = Dense(self.n_classes, activation="sigmoid")(lstm3)
+
+        # Model compilation
         self.model = Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
         opt = RMSprop(learning_rate=self.opt_learning_rate)
@@ -139,16 +171,9 @@ class SeparateDetectModel(BaseModel):
 
             if is_onset:
                 onsets_arr.append(i * self.hop_length / SAMPLE_RATE)
-                drum_instrument.append([len(onsets_arr) - 1, drums])
+                drum_instrument.append([len(onsets_arr), drums])
 
         return onsets_arr, drum_instrument, each_instrument_onsets_arr
-
-    # tranform 2D array to dict
-    def transform_arr_to_dict(self, arr_data):
-        result_dict = {}
-        for code, drum in DETECT_CODE2DRUM.items():
-            result_dict[drum] = [row[code] for row in arr_data]
-        return result_dict
 
     def predict(self, wav_path, bpm, delay):
         # Implement model predict logic
@@ -204,54 +229,3 @@ class SeparateDetectModel(BaseModel):
 
         # return {"instrument": drum_instrument, "rhythm": bar_rhythm}
         # return NULL
-
-    @staticmethod
-    def data_pre_processing_reshpae(data, chunk_size):
-        num_samples, num_features = data.shape
-        num_chunks = num_samples // chunk_size
-
-        # 나머지 부분을 제외한 데이터만 사용
-        data = data[: num_chunks * chunk_size, :]
-
-        # reshape을 통해 3D 배열로 변환
-        return np.reshape(data, [-1, chunk_size, num_features])
-
-    def data_pre_processing(self, audio: np.array) -> np.array:
-        audio_feature = np.zeros((0, self.n_columns))
-
-        # 12s chunk하면서 audio feature추출 후 이어붙이기 -> 함수로 뽑을 예정
-        audios = DataProcessing.cut_chunk_audio(audio)
-        for i, ao in enumerate(audios):
-            # audio to feature
-            feature = AudioToFeature.extract_feature(
-                ao, self.method_type, self.feature_type
-            )
-            audio_feature = np.vstack([audio_feature, feature])
-
-        scaler = StandardScaler()
-        audio_feature = scaler.fit_transform(audio_feature)
-
-        # -- input (#, time, 128 feature)
-        # [TODO] redisAI not work BaseModel func. So, create new func (data_pre_processing_reshape) in this class
-        audio_feature = SeparateDetectModel.data_pre_processing_reshpae(
-            audio_feature, CHUNK_TIME_LENGTH
-        )
-        audio_feature = audio_feature.astype(np.float32)
-
-        return audio_feature
-
-    def data_post_processing(
-        self, predict_data: np.array, _: np.array = None, label_cnt: int = 4
-    ):
-        predict_data = predict_data.reshape((-1, self.n_classes))
-        predict_data = predict_data.copy()
-
-        # -- threshold 0.5
-        onsets_arr, drum_instrument, each_instrument_onsets_arr = (
-            self.get_predict_onsets_instrument(predict_data)
-        )
-
-        threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
-        # DataLabeling.show_label_dict_plot(threshold_dict, 0, 2000)
-
-        return drum_instrument, onsets_arr

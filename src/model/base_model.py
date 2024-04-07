@@ -34,7 +34,8 @@ from constant import (
     CODE2DRUM,
     TEST,
     TRAIN,
-    VALIDATION,IMAGE_PATH
+    VALIDATION,
+    IMAGE_PATH,
 )
 
 
@@ -68,7 +69,6 @@ class BaseModel:
         self.save_folder_path = f"../models/{method_type}"
         self.save_path = f"{self.save_folder_path}/{method_type}_{feature_type}"
         self.model_save_type = "h5"
-
 
     def save(self):
         """
@@ -202,19 +202,6 @@ class BaseModel:
             result_dict[key] = peak_value
         return result_dict
 
-    @staticmethod
-    def visualize_results(delta_values, f1_scores):
-        plt.plot(delta_values, f1_scores)
-        plt.title('F1-Score vs. Delta Values')
-        plt.xlabel('Delta')
-        plt.ylabel('F1-Score')
-        date_time = datetime.now().strftime(
-            "%Y-%m-%d_%H-%M-%S"
-        )
-        plt.savefig(f"{IMAGE_PATH}/f1score-delta-{date_time}.png")
-        plt.show()
-
-
     # tranform 2D array to dict
     @staticmethod
     def transform_arr_to_dict(arr_data):
@@ -236,6 +223,25 @@ class BaseModel:
         """
         result_arr = np.stack([dict_data[key] for key in dict_data.keys()], axis=1)
         return result_arr
+
+    @staticmethod
+    def show_f1score_delta_plot(delta_values, f1_scores):
+        plt.plot(delta_values, f1_scores)
+        plt.title("F1-Score vs. Delta Values")
+        plt.xlabel("Delta")
+        plt.ylabel("F1-Score")
+        date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        plt.savefig(f"{IMAGE_PATH}/f1score-delta-{date_time}.png")
+        plt.show()
+
+    @staticmethod
+    def print_confusion_matrix(y_test_data, y_pred):
+        # confusion matrix & precision & recall
+        print("-- ! confusion matrix ! --")
+        print(multilabel_confusion_matrix(y_test_data, y_pred))
+
+        print("-- ! classification report ! --")
+        print(classification_report(y_test_data, y_pred))
 
     def create_model_dataset(self, X: np.array, y: np.array, split_type: str):
         # Implement model
@@ -357,38 +363,41 @@ class BaseModel:
             y_test_data = self.data_2d_reshape(self.y_test)
             y_pred = self.data_2d_reshape(y_pred)
 
-            delta_values = np.linspace(0, 1, 11)  # 0부터 1까지 10개의 값
-            result=[]
-
-
-            for delta in delta_values:
-                tmp_y_test_data=y_test_data
-                tmp_y_pred=y_pred
-                # -- binary
-                if self.method_type == METHOD_DETECT:
+            if self.method_type == METHOD_DETECT:
+                delta_values = np.linspace(0, 1, 11)  # 0부터 1까지 10개의 값
+                result = []
+                for delta in delta_values:
+                    tmp_y_test_data = y_test_data
+                    tmp_y_pred = y_pred
+                    # -- binary
                     # y array -> y dict -> peakpick dict -> y array
-                    tmp_y_test_data = DataProcessing.convert_array_dtype_float32(tmp_y_test_data)
+                    tmp_y_test_data = DataProcessing.convert_array_dtype_float32(
+                        tmp_y_test_data
+                    )
                     tmp_y_test_data = BaseModel.transform_arr_to_dict(tmp_y_test_data)
-                    tmp_y_test_data = BaseModel.transform_peakpick_from_dict(tmp_y_test_data, delta)
+                    tmp_y_test_data = BaseModel.transform_peakpick_from_dict(
+                        tmp_y_test_data, delta
+                    )
                     tmp_y_test_data = BaseModel.transform_dict_to_arr(tmp_y_test_data)
 
                     tmp_y_pred = BaseModel.transform_arr_to_dict(tmp_y_pred)
-                    tmp_y_pred = BaseModel.transform_peakpick_from_dict(tmp_y_pred, delta)
+                    tmp_y_pred = BaseModel.transform_peakpick_from_dict(
+                        tmp_y_pred, delta
+                    )
                     tmp_y_pred = BaseModel.transform_dict_to_arr(tmp_y_pred)
-                else:
-                    y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
 
+                    result.append(
+                        classification_report(
+                            tmp_y_test_data, tmp_y_pred, output_dict=True
+                        )["weighted avg"]["f1-score"]
+                    )
+                    print(f"------------------ delta : {delta} ------------------")
+                    BaseModel.print_confusion_matrix(tmp_y_test_data, tmp_y_pred)
+                BaseModel.show_f1score_delta_plot(delta_values, result)
+            else:
+                y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
+                BaseModel.print_confusion_matrix(y_test_data, y_pred)
 
-                # confusion matrix & precision & recall
-                print("-- ! confusion matrix ! --")
-                print(multilabel_confusion_matrix(tmp_y_test_data, tmp_y_pred))
-
-                print("-- ! classification report ! --")
-                print(classification_report(tmp_y_test_data, tmp_y_pred))
-                print(f"-- delta : {delta}")
-
-                result.append(classification_report(tmp_y_test_data, tmp_y_pred, output_dict=True)['weighted avg']['f1-score'])
-            BaseModel.visualize_results(delta_values, result)
         except Exception as e:
             print(e)
 

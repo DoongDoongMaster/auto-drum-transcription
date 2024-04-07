@@ -286,7 +286,7 @@ class BaseModel:
 
     def fill_all_dataset(self):
         # test 없으면 train에서
-        if self.x_test is None:
+        if self.x_test is None and self.x_train is not None:
             x_train, x_test, y_train, y_test = train_test_split(
                 self.x_train,
                 self.y_train,
@@ -298,7 +298,7 @@ class BaseModel:
             self.split_dataset(x_test, y_test, TEST)
 
         # validation 없으면 train에서
-        if self.x_val is None:
+        if self.x_val is None and self.x_train is not None:
             x_train, x_val, y_train, y_val = train_test_split(
                 self.x_train,
                 self.y_train,

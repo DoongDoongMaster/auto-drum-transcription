@@ -198,7 +198,6 @@ class FeatureExtractor:
             # drum_kit 인 경우 모두 train으로
             elif DRUM_KIT in path:
                 result_data[DRUM_KIT][TRAIN].append(path)
-
         del audio_paths
         return result_data
 
@@ -263,7 +262,6 @@ class FeatureExtractor:
             df = FeatureExtractor._get_one_path_feature_label(
                 audio, path, method_type, feature_type
             )  # 메소드별로 피쳐 & 라벨 추출
-
             del audio
             combined_df = pd.concat([combined_df, df], ignore_index=True)
             del df
@@ -314,11 +312,9 @@ class FeatureExtractor:
             )
             # combine dataframe
             combined_df = pd.concat([combined_df, df], ignore_index=True)
-
             del df, feature
 
         del audios
-
         return combined_df
 
     @staticmethod
@@ -570,6 +566,8 @@ class FeatureExtractor:
                 if result_data == None:  # label 없음
                     continue
                 label.update(result_data)
+            if len(label.keys()) == 0:
+                continue
 
             # make dataframe
             df = FeatureExtractor._make_dataframe(

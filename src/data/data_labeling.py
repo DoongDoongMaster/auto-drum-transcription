@@ -13,6 +13,7 @@ from constant import (
     DATA_ENST_NOT,
     DATA_E_GMD_NOT,
     DATA_MDB_NOT,
+    ENST_PUB,
     LABEL_DDM,
     LABEL_TYPE,
     MDB,
@@ -86,7 +87,7 @@ class DataLabeling:
         if IDMT in path and any(p in path for p in DATA_IDMT_NOT):
             return False
         # ENST: accompaniment 들어가면 x
-        if ENST in path and any(p in path for p in DATA_ENST_NOT):
+        if (ENST in path or ENST_PUB in path) and any(p in path for p in DATA_ENST_NOT):
             return False
         # E-GMD
         if E_GMD in path and any(p in path for p in DATA_E_GMD_NOT):

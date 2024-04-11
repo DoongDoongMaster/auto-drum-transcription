@@ -58,6 +58,7 @@ class SegmentClassifyModel(BaseModel):
             method_type=METHOD_CLASSIFY,
             feature_type=feature_type,
             feature_extension=feature_extension,
+            class_dict=CLASSIFY_CODE2DRUM,
         )
         self.data_cnt = 1
         self.train_cnt = 1

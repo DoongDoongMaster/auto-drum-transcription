@@ -82,10 +82,10 @@ segment_classify = SegmentClassifyModel(
     feature_type=MEL_SPECTROGRAM,
 )
 segment_classify.create_dataset(split_data, group_dict=CLASSIFY_TYPES)
-segment_classify.create()
-segment_classify.train()
+# segment_classify.create()
+# segment_classify.train()
 segment_classify.evaluate()
-segment_classify.save()
+# segment_classify.save()
 
 # ===============Model Evaluate========================
 # == split_data, label_type 매개변수 바꿔서 사용!

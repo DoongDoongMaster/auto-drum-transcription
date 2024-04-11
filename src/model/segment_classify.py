@@ -58,6 +58,7 @@ class SegmentClassifyModel(BaseModel):
             method_type=METHOD_CLASSIFY,
             feature_type=feature_type,
             feature_extension=feature_extension,
+            class_dict=CLASSIFY_CODE2DRUM,
         )
         self.data_cnt = 1
         self.train_cnt = 1
@@ -196,32 +197,39 @@ class SegmentClassifyModel(BaseModel):
             x_train, x_val, y_train, y_val = train_test_split(
                 X,
                 y,
-                test_size=0.4,
+                test_size=0.2,
                 random_state=42,
                 stratify=y,
             )
+            del X, y
+
             x_val = self.input_reshape(x_val)
             self.split_dataset(x_val, y_val, VALIDATION)
+            del x_val, y_val
 
             # train data smote
-            x_train = self.x_data_1d_reshape(x_train)
+            # x_train = self.x_data_1d_reshape(x_train)
             y_train = FeatureExtractor.one_hot_label_to_number(y_train)
 
             # 라벨 비율 확인
             counter = Counter(y_train)
             print("변경 전", counter)
 
-            x_train, y_train = SegmentClassifyModel.smote_data(x_train, y_train)
+            # x_train, y_train = SegmentClassifyModel.smote_data(x_train, y_train)
             # decimal to multi-hot-encoding
             y_train = FeatureExtractor.number_to_one_hot_label(y_train)
 
             # input shape 조정
             x_train = self.input_reshape(x_train)
             self.split_dataset(x_train, y_train, split_type)
+
+            del x_train, y_train
         elif split_type == TEST:
             # input shape 조정
             X = self.input_reshape(X)
             self.split_dataset(X, y, split_type)
+
+            del X, y
 
     def create(self):
         n_steps = self.n_columns
@@ -233,31 +241,47 @@ class SegmentClassifyModel(BaseModel):
 
         # 1st Convolutional Block
         conv1_1 = layers.Conv2D(
-            filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=64, kernel_size=(3, 3), activation="selu", padding="same"
         )(input_layer)
         pool1 = layers.MaxPooling2D(pool_size=(2, 2))(conv1_1)
+        dropout1 = layers.Dropout(0.1)(pool1)
 
         # 2st Convolutional Block
         conv2_1 = layers.Conv2D(
-            filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
-        )(pool1)
+            filters=64, kernel_size=(3, 3), activation="selu", padding="same"
+        )(dropout1)
         pool2 = layers.MaxPooling2D(pool_size=(2, 2))(conv2_1)
+        dropout2 = layers.Dropout(0.1)(pool2)
 
         # 3st Convolutional Block
         conv3_1 = layers.Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
-        )(pool2)
+            filters=64, kernel_size=(3, 3), activation="selu", padding="same"
+        )(dropout2)
         pool3 = layers.MaxPooling2D(pool_size=(2, 2))(conv3_1)
+        dropout3 = layers.Dropout(0.1)(pool3)
+
+        # 4st Convolutional Block
+        conv4_1 = layers.Conv2D(
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
+        )(dropout3)
+        pool4 = layers.MaxPooling2D(pool_size=(1, 2))(conv4_1)
+        dropout4 = layers.Dropout(0.1)(pool4)
 
         # Reshape for RNN
-        reshape = layers.Reshape((pool3.shape[1], pool3.shape[2] * pool3.shape[3]))(
-            pool3
-        )
+        reshape = layers.Reshape(
+            (dropout4.shape[1], dropout4.shape[2] * dropout4.shape[3])
+        )(dropout4)
 
         # BiLSTM layers
-        lstm1 = layers.Bidirectional(LSTM(8, return_sequences=True))(reshape)
-        last_dropout = layers.Dropout(0.2)(lstm1)
-        last_flatten = layers.Flatten()(last_dropout)
+        lstm1 = layers.Bidirectional(
+            LSTM(32, return_sequences=True, activation="tanh")
+        )(reshape)
+        dropout_lstm1 = layers.Dropout(0.1)(lstm1)
+        lstm2 = layers.Bidirectional(
+            LSTM(32, return_sequences=True, activation="tanh")
+        )(dropout_lstm1)
+        dropout_lstm2 = layers.Dropout(0.1)(lstm2)
+        last_flatten = layers.Flatten()(dropout_lstm2)
 
         # Output layer
         output_layer = Dense(self.n_classes, activation="sigmoid")(last_flatten)
@@ -323,7 +347,6 @@ class SegmentClassifyModel(BaseModel):
                     i * feature_file_offset_test : (i + 1) * feature_file_offset_test
                 ]
             )
-
             for idx, train_data in enumerate(split_dataset_train):
                 print("split data length", len(train_data["x"]))
                 self.create_dataset(train_data, split_dataset_test[idx])

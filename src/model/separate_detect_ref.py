@@ -3,6 +3,7 @@ import numpy as np
 from glob import glob
 from typing import List
 
+from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from keras.models import Model
@@ -64,7 +65,7 @@ class SeparateDetectRefModel(BaseModel):
             compile_mode=True,
         )
         self.unit_number = unit_number
-        self.predict_standard = 0.5
+        self.predict_standard = 0.1
         self.n_rows = CHUNK_TIME_LENGTH
         self.n_columns = self.feature_param["n_mels"]
         self.n_classes = self.feature_param["n_classes"]
@@ -82,55 +83,46 @@ class SeparateDetectRefModel(BaseModel):
         return tf.reshape(data, [-1, self.n_rows, self.n_classes])
 
     def create_model_dataset(self, X, y, split_type):
-        scaler = StandardScaler()
-        X = scaler.fit_transform(X)
-        X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
-        y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
+        # scaler = StandardScaler()
+        # X = scaler.fit_transform(X)
+        # X = BaseModel.split_x_data(X, CHUNK_TIME_LENGTH)
+        # y = BaseModel.split_data(y, CHUNK_TIME_LENGTH)
+        X, y = BaseModel.split_x_y_data(X, y, CHUNK_TIME_LENGTH)
 
         self.split_dataset(X, y, split_type)
 
     def create(self):
+        keras.backend.clear_session()
+
         input_layer = Input(shape=(self.n_rows, self.n_columns, 1))
 
         # 1st Convolutional Block
         conv1_1 = Conv2D(
             filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(input_layer)
-        conv1_2 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
-        )(conv1_1)
-        pool1 = MaxPooling2D(pool_size=(1, 3))(conv1_2)
+        pool1 = MaxPooling2D(pool_size=(1, 3))(conv1_1)
         dropout1 = Dropout(0.4)(pool1)
 
         # 2nd Convolutional Block
         conv2_1 = Conv2D(
             filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(dropout1)
-        conv2_2 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
-        )(conv2_1)
-        pool2 = MaxPooling2D(pool_size=(1, 3))(conv2_2)
+        pool2 = MaxPooling2D(pool_size=(1, 3))(conv2_1)
         dropout2 = Dropout(0.4)(pool2)
 
         # 3rd Convolutional Block
         conv3_1 = Conv2D(
             filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(dropout2)
-        conv3_2 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
-        )(conv3_1)
-        pool3 = MaxPooling2D(pool_size=(1, 3))(conv3_2)
+        pool3 = MaxPooling2D(pool_size=(1, 3))(conv3_1)
         dropout3 = Dropout(0.4)(pool3)
 
         # 4th Convolutional Block
         conv4_1 = Conv2D(
             filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(dropout3)
-        conv4_2 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
-        )(conv4_1)
-        pool4 = MaxPooling2D(pool_size=(1, 3))(conv4_2)
-        dropout4 = Dropout(0.1)(pool4)
+        pool4 = MaxPooling2D(pool_size=(1, 3))(conv4_1)
+        dropout4 = Dropout(0.2)(pool4)
 
         # Reshape for RNN
         reshape = Reshape((dropout4.shape[1], dropout4.shape[2] * dropout4.shape[3]))(
@@ -138,10 +130,12 @@ class SeparateDetectRefModel(BaseModel):
         )
 
         # BiLSTM layers
-        lstm1 = Bidirectional(LSTM(50, return_sequences=True))(reshape)
-        lstm2 = Bidirectional(LSTM(50, return_sequences=True))(lstm1)
-        lstm3 = Bidirectional(LSTM(50, return_sequences=True))(lstm2)
-        last_dropout = Dropout(0.4)(lstm3)
+        lstm1 = Bidirectional(LSTM(50, return_sequences=True, activation="tanh"))(reshape)
+        dropout5 = Dropout(0.1)(lstm1)
+        lstm2 = Bidirectional(LSTM(50, return_sequences=True, activation="tanh"))(dropout5)
+        dropout6 = Dropout(0.1)(lstm2)
+        lstm3 = Bidirectional(LSTM(50, return_sequences=True, activation="tanh"))(dropout6)
+        last_dropout = Dropout(0.2)(lstm3)
 
         # Output layer
         output_layer = Dense(self.n_classes, activation="sigmoid")(last_dropout)
@@ -228,8 +222,8 @@ class SeparateDetectRefModel(BaseModel):
             )
             audio_feature = np.vstack([audio_feature, feature])
 
-        scaler = StandardScaler()
-        audio_feature = scaler.fit_transform(audio_feature)
+        # scaler = StandardScaler()
+        # audio_feature = scaler.fit_transform(audio_feature)
 
         # -- input (#, time, 128 feature)
         audio_feature = BaseModel.split_x_data(audio_feature, CHUNK_TIME_LENGTH)
@@ -252,8 +246,8 @@ class SeparateDetectRefModel(BaseModel):
         true_label = BaseModel.transform_arr_to_dict(grouping_true_label_arr)
 
         # -- 각 라벨마다 peak picking
-        true_label = BaseModel.transform_peakpick_from_dict(true_label)
-        result_dict = BaseModel.transform_peakpick_from_dict(result_dict)
+        true_label = BaseModel.transform_peakpick_from_dict(true_label, 0.1)
+        result_dict = BaseModel.transform_peakpick_from_dict(result_dict, 0.1)
 
         DataLabeling.show_label_dict_compare_plot(true_label, result_dict, 0, 1200)
 

@@ -3,6 +3,7 @@ import numpy as np
 from glob import glob
 from typing import List
 
+from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from keras.models import Model
@@ -64,7 +65,7 @@ class SeparateDetectBModel(BaseModel):
             compile_mode=True,
         )
         self.unit_number = unit_number
-        self.predict_standard = 0.5
+        self.predict_standard = 0.1
         self.n_rows = CHUNK_TIME_LENGTH
         self.n_columns = self.feature_param["n_mels"]
         self.n_classes = self.feature_param["n_classes"]
@@ -90,15 +91,17 @@ class SeparateDetectBModel(BaseModel):
         self.split_dataset(X, y, split_type)
 
     def create(self):
+        keras.backend.clear_session()
+
         input_layer = Input(shape=(self.n_rows, self.n_columns, 1))
 
         # First Convolutional Block
         conv1_1 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
         )(input_layer)
         conv1_1 = BatchNormalization()(conv1_1)
         conv1_2 = Conv2D(
-            filters=32, kernel_size=(3, 3), activation="tanh", padding="same"
+            filters=64, kernel_size=(3, 3), activation="tanh", padding="same"
         )(conv1_1)
         conv1_2 = BatchNormalization()(conv1_2)
         pool1 = MaxPooling2D(pool_size=(1, 3))(conv1_2)
@@ -119,11 +122,14 @@ class SeparateDetectBModel(BaseModel):
 
         # BiGRU layers
         lstm1 = Bidirectional(LSTM(50, return_sequences=True))(reshape)
-        lstm2 = Bidirectional(LSTM(50, return_sequences=True))(lstm1)
-        lstm3 = Bidirectional(LSTM(50, return_sequences=True))(lstm2)
+        dropout5 = Dropout(0.1)(lstm1)
+        lstm2 = Bidirectional(LSTM(50, return_sequences=True))(dropout5)
+        dropout6 = Dropout(0.1)(lstm2)
+        lstm3 = Bidirectional(LSTM(50, return_sequences=True))(dropout6)
+        dropout7 = Dropout(0.1)(lstm3)
 
         # Output layer
-        output_layer = Dense(self.n_classes, activation="sigmoid")(lstm3)
+        output_layer = Dense(self.n_classes, activation="sigmoid")(dropout7)
 
         # Model compilation
         self.model = Model(inputs=input_layer, outputs=output_layer)

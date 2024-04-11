@@ -144,6 +144,7 @@ class FeatureExtractor:
                     feature_files,
                 )
                 result_data.update({split_type: combined_df})
+                del combined_df
 
         return result_data
 

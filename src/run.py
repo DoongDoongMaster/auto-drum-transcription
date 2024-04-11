@@ -108,19 +108,19 @@ from model.separate_detect_b import SeparateDetectBModel
 #     print(separate_detect.predict(predict_test_data, 100, 0))
 
 
-# separate_detect_ref = SeparateDetectModel(40, 0.001, 32, 128)
-# separate_detect_ref = SeparateDetectRefModel(40, 0.001, 32, 128)
-separate_detect_ref = SeparateDetectBModel(40, 0.001, 32, 128)
+# separate_detect_ref = SeparateDetectModel(100, 0.001, 32, 128)
+separate_detect_ref = SeparateDetectRefModel(100, 0.001, 32, 128)
+# separate_detect_ref = SeparateDetectBModel(100, 0.001, 32, 128)
 
 # == split_data, label_type 매개변수 바꿔서 사용!
-split_data = {TRAIN: [IDMT], TEST: [E_GMD]}
+split_data = {TRAIN: [E_GMD], VALIDATION: [E_GMD], TEST: [E_GMD]}
 label_type = LABEL_DDM
 
 separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
-# separate_detect_ref.create()
-# separate_detect_ref.train()
+separate_detect_ref.create()
+separate_detect_ref.train()
 separate_detect_ref.evaluate()
-# separate_detect_ref.save()
+separate_detect_ref.save()
 
 # # == split_data, label_type 매개변수 바꿔서 사용!
 # split_data = {TRAIN: [E_GMD], VALIDATION: [E_GMD], TEST: [E_GMD]}
@@ -137,7 +137,7 @@ separate_detect_ref.evaluate()
 # predict_test_datas = [
 #     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
 #     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
-#     # "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
+#     "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
 #     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
 #     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
 #     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",

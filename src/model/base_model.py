@@ -180,6 +180,31 @@ class BaseModel:
         return data.reshape((num_chunks, chunk_size, num_features, 1))
 
     @staticmethod
+    def split_x_y_data(X, y, chunk_size):
+        num_samples, num_features = y.shape
+        num_chunks = num_samples // chunk_size
+
+        # 나머지 부분을 제외한 데이터만 사용
+        new_y = y[: num_chunks * chunk_size, :]
+
+        num_samples_x, num_features_x = X.shape
+        num_chunks_x = num_samples_x // chunk_size
+
+        # 나머지 부분을 제외한 데이터만 사용
+        new_X = X[: num_chunks_x * chunk_size, :]
+
+        # reshape을 통해 3D 배열로 변환
+        new_y = new_y.reshape((num_chunks, chunk_size, num_features))
+        new_X = new_X.reshape((num_chunks_x, chunk_size, num_features_x, 1))
+
+        # 라벨 값이 모두 0인 데이터 인덱스 구하기
+        zero_indices = np.where(np.all(new_y == 0, axis=(1, 2)))[0]
+        new_y = np.delete(new_y, zero_indices, axis=0)
+        new_X = np.delete(new_X, zero_indices, axis=0)
+
+        return new_X, new_y
+
+    @staticmethod
     def transform_peakpick_from_dict(data_dict, delta):
         """
         peak picking from dict data
@@ -193,12 +218,12 @@ class BaseModel:
             # peak_pick를 통해 몇 번째 인덱스가 peak인지 추출
             peaks = librosa.util.peak_pick(
                 item_value,
-                pre_max=3,
+                pre_max=0,
                 post_max=3,
-                pre_avg=3,
+                pre_avg=0,
                 post_avg=3,
                 delta=delta,
-                wait=1,
+                wait=4,
             )
             for idx in peaks:
                 peak_value[idx] = 1

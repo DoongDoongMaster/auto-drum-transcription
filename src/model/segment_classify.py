@@ -204,14 +204,14 @@ class SegmentClassifyModel(BaseModel):
             self.split_dataset(x_val, y_val, VALIDATION)
 
             # train data smote
-            x_train = self.x_data_1d_reshape(x_train)
+            # x_train = self.x_data_1d_reshape(x_train)
             y_train = FeatureExtractor.one_hot_label_to_number(y_train)
 
             # 라벨 비율 확인
             counter = Counter(y_train)
             print("변경 전", counter)
 
-            x_train, y_train = SegmentClassifyModel.smote_data(x_train, y_train)
+            # x_train, y_train = SegmentClassifyModel.smote_data(x_train, y_train)
             # decimal to multi-hot-encoding
             y_train = FeatureExtractor.number_to_one_hot_label(y_train)
 

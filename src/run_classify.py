@@ -6,6 +6,7 @@ from data.data_labeling import DataLabeling
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
 from constant import (
+    MDB,
     NEW_PATH,
     ROOT_PATH,
     RAW_PATH,
@@ -22,6 +23,8 @@ from constant import (
     MEL_SPECTROGRAM,
     CSV,
     METHOD_RHYTHM,
+    TEST,
+    TRAIN,
 )
 
 
@@ -60,15 +63,23 @@ from constant import (
 # ))
 # AudioToFeature.show_feature_plot(data["feature"][1], METHOD_CLASSIFY, MFCC)
 
-# ===============Model Ref Train========================
-segment_classify = SegmentClassifyModel(
-    training_epochs=50, batch_size=8, opt_learning_rate=0.01
-)
+# ===============Model Train========================
+split_data = {
+    TRAIN: [MDB],
+    TEST: [MDB],
+}
 
-# ===============Model Train============================
-# segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
-# segment_classify.extract_feature()
-# segment_classify.run()
+segment_classify = SegmentClassifyModel(
+    training_epochs=50,
+    batch_size=8,
+    opt_learning_rate=0.001,
+    feature_type=MEL_SPECTROGRAM,
+)
+segment_classify.create_dataset(split_data=split_data)
+segment_classify.create()
+segment_classify.train()
+segment_classify.evaluate()
+segment_classify.save()
 
 # ===============Model Predict==========================
 # segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)

@@ -282,6 +282,8 @@ class BaseModel:
         elif split_type == TEST:
             self.x_test = X
             self.y_test = y
+
+        del X, y
         return
 
     def fill_all_dataset(self):
@@ -297,6 +299,8 @@ class BaseModel:
             self.split_dataset(x_train, y_train, TRAIN)
             self.split_dataset(x_test, y_test, TEST)
 
+            del x_train, x_test, y_train, y_test
+
         # validation 없으면 train에서
         if self.x_val is None and self.x_train is not None:
             x_train, x_val, y_train, y_val = train_test_split(
@@ -308,6 +312,8 @@ class BaseModel:
             )
             self.split_dataset(x_train, y_train, TRAIN)
             self.split_dataset(x_val, y_val, VALIDATION)
+
+            del x_train, x_val, y_train, y_val
 
     def print_dataset_shape(self):
         if not self.x_train is None:

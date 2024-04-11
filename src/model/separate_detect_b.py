@@ -65,7 +65,7 @@ class SeparateDetectBModel(BaseModel):
             compile_mode=True,
         )
         self.unit_number = unit_number
-        self.predict_standard = 0.1
+        self.predict_standard = 0.5
         self.n_rows = CHUNK_TIME_LENGTH
         self.n_columns = self.feature_param["n_mels"]
         self.n_classes = self.feature_param["n_classes"]

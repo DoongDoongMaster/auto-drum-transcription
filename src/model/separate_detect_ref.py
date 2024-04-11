@@ -65,7 +65,7 @@ class SeparateDetectRefModel(BaseModel):
             compile_mode=True,
         )
         self.unit_number = unit_number
-        self.predict_standard = 0.1
+        self.predict_standard = 0.5
         self.n_rows = CHUNK_TIME_LENGTH
         self.n_columns = self.feature_param["n_mels"]
         self.n_classes = self.feature_param["n_classes"]
@@ -130,11 +130,17 @@ class SeparateDetectRefModel(BaseModel):
         )
 
         # BiLSTM layers
-        lstm1 = Bidirectional(LSTM(50, return_sequences=True, activation="tanh"))(reshape)
+        lstm1 = Bidirectional(LSTM(50, return_sequences=True, activation="tanh"))(
+            reshape
+        )
         dropout5 = Dropout(0.1)(lstm1)
-        lstm2 = Bidirectional(LSTM(50, return_sequences=True, activation="tanh"))(dropout5)
+        lstm2 = Bidirectional(LSTM(50, return_sequences=True, activation="tanh"))(
+            dropout5
+        )
         dropout6 = Dropout(0.1)(lstm2)
-        lstm3 = Bidirectional(LSTM(50, return_sequences=True, activation="tanh"))(dropout6)
+        lstm3 = Bidirectional(LSTM(50, return_sequences=True, activation="tanh"))(
+            dropout6
+        )
         last_dropout = Dropout(0.2)(lstm3)
 
         # Output layer

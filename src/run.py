@@ -11,6 +11,12 @@ from model.rhythm_detect_model import RhythmDetectModel
 
 from constant import (
     CSV,
+    DETECT_TYPES,
+    E_GMD,
+    IDMT,
+    LABEL_DDM,
+    LABEL_DDM_1,
+    LABEL_REF,
     SAMPLE_RATE,
     MFCC,
     STFT,
@@ -24,7 +30,13 @@ from constant import (
     RAW_PATH,
     NEW_PATH,
     PKL,
+    TEST,
+    TRAIN,
+    VALIDATION,
+    ENST,
 )
+from model.separate_detect_ref import SeparateDetectRefModel
+from model.separate_detect_b import SeparateDetectBModel
 
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
 # FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
@@ -68,7 +80,7 @@ from constant import (
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
 # FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
 
-separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
+# separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
 
 # separate_detect.create_dataset()
 # separate_detect.create()
@@ -76,31 +88,72 @@ separate_detect = SeparateDetectModel(40, 0.01, 32, 128)
 # separate_detect.evaluate()
 # separate_detect.save()
 
-predict_test_datas = [
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
-    "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
-    "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
-    "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
-]
-for predict_test_data in predict_test_datas:
-    print(separate_detect.predict(predict_test_data, 100, 0))
+# predict_test_datas = [
+# "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+# "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+# "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
+# "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+# "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+# "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+# "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+# "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+# "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P1_08_0004.m4a",
+# "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P2_16_0001.m4a",
+# "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_1.wav",
+# "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_2.wav",
+# "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_3.wav",
+# "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_4.wav",
+# ]
+# for predict_test_data in predict_test_datas:
+#     print(separate_detect.predict(predict_test_data, 100, 0))
 
-# print(separate_detect.predict("../data/test/test_shifting.wav", 100, 0))
-# print(separate_detect.predict("../data/test/RealDrum01_03#HH#train.wav", 100, 0))
-# print(separate_detect.predict("../data/test/WaveDrum02_31#SD#train.wav", 100, 0))
-# print(separate_detect.predict("../data/test/RealDrum01_02#KD#train.wav", 100, 0))
-# print(
-#     separate_detect.predict("../data/test/3_soul-groove3_86_beat_4-4_out.wav", 100, 0)
-# )
-# print(
-#     separate_detect.predict(
-#         "../data/test/141_MIDI-minus-one_soul-98_sticks.wav", 100, 0
-#     )
-# )
+
+# separate_detect_ref = SeparateDetectModel(40, 0.001, 32, 128)
+# separate_detect_ref = SeparateDetectRefModel(40, 0.001, 32, 128)
+separate_detect_ref = SeparateDetectBModel(40, 0.001, 32, 128)
+
+# == split_data, label_type 매개변수 바꿔서 사용!
+split_data = {TRAIN: [IDMT], TEST: [E_GMD]}
+label_type = LABEL_DDM
+
+separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
+# separate_detect_ref.create()
+# separate_detect_ref.train()
+separate_detect_ref.evaluate()
+# separate_detect_ref.save()
+
+# # == split_data, label_type 매개변수 바꿔서 사용!
+# split_data = {TRAIN: [E_GMD], VALIDATION: [E_GMD], TEST: [E_GMD]}
+# label_type = LABEL_DDM
+# separate_detect_ref = SeparateDetectBModel(40, 0.01, 32, 128)
+
+
+# separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
+# separate_detect_ref.create()
+# separate_detect_ref.train()
+# separate_detect_ref.evaluate()
+# separate_detect_ref.save()
+
+# predict_test_datas = [
+#     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+#     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+#     # "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
+#     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+#     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P1_08_0004.m4a",
+#     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P2_16_0001.m4a",
+#     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_1.wav",
+#     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_2.wav",
+#     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_3.wav",
+#     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_4.wav",
+# ]
+# for predict_test_data in predict_test_datas:
+#     print(separate_detect_ref.predict(predict_test_data, 100, 0))
+
+
 # ---------------------------------------------------------------------------------------
 # import librosa
 # import numpy as np
@@ -175,3 +228,30 @@ for predict_test_data in predict_test_datas:
 #     ]
 # )
 # print(merge_columns(arr, 0, 1))
+
+# 52800
+# 53999(54000)
+
+# 2534400
+# 2535599(2535600)
+
+
+# import librosa
+# import numpy as np
+
+# rhythm_per_bar = 4.0  # 한 마디에 4분음표가 몇 개 들어가는지
+# sec_per_note = 60.0 / float(100)  # 4분음표 하나가 몇 초
+# wait = (sec_per_note * rhythm_per_bar) / float(
+#     rhythm_per_bar * 4
+# )  # 음표 간격 최소 단위 (16bit까지 나오는 기준)
+# peaks = librosa.util.peak_pick(
+#     np.array([0, 0.0, 1, 1.0, 0.5]),
+#     pre_max=3,
+#     post_max=3,
+#     pre_avg=3,
+#     post_avg=3,
+#     delta=0.5,
+#     wait=10,
+# )
+
+# print(peaks)

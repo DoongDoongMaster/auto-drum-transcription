@@ -1,4 +1,6 @@
 import os
+import csv
+import copy
 import librosa
 import numpy as np
 import pandas as pd
@@ -14,7 +16,27 @@ from feature.audio_to_feature import AudioToFeature
 
 
 from constant import (
+    CLASSIFY_SAME_TIME,
+    CLASSIFY_SHORT_TIME,
     CODE2DRUM,
+    DATA_ENST_TEST,
+    DRUM_KIT,
+    E_GMD,
+    E_GMD_INFO,
+    ENST,
+    ENST_PUB,
+    FEATURE_DTYPE_16,
+    FEATURE_DTYPE_32,
+    IDMT,
+    LABEL_COLUMN,
+    LABEL_INIT_DATA,
+    LABEL_DDM,
+    LABEL_REF,
+    LABEL_TYPE,
+    MDB,
+    MDB_TRAIN_SET,
+    ONSET_DURATION_RIGHT,
+    RAW_PATH,
     SAMPLE_RATE,
     MFCC,
     STFT,
@@ -27,12 +49,11 @@ from constant import (
     CSV,
     PKL,
     FEATURE_PARAM,
-    CLASSIFY_DURATION,
-    CLASSIFY_DETECT_TYPES,
-    CLASSIFY_MAP,
-    CLASSIFY_DRUM2CODE,
+    CLASSIFY_TYPES,
     CLASSIFY_CODE2DRUM,
-    CLASSIFY_IMPOSSIBLE_LABEL,
+    TEST,
+    TRAIN,
+    VALIDATION,
 )
 
 
@@ -46,6 +67,8 @@ class FeatureExtractor:
         method_type: str,
         feature_type: str,
         feature_extension: str,
+        data_type: str = E_GMD,  # E-GMD | IDMT | ENST
+        split_type: str = TRAIN,  # TRAIN | VALIDATION | TEST
         feature_files: list[str] = None,
     ) -> pd.DataFrame:
         """
@@ -55,8 +78,10 @@ class FeatureExtractor:
             feature_files is None
         ):  # 피쳐 파일 리스트가 비어있다면 -> 피쳐 저장된 경로 통해서 접근
             save_folder_path = FeatureExtractor._get_save_folder_path(
-                method_type, feature_type
+                method_type, feature_type, data_type, split_type
             )
+
+            print("--------", save_folder_path)
             if not os.path.exists(save_folder_path):
                 raise Exception(
                     f"모델: {method_type}, 피쳐: {feature_type} 에 해당하는 피쳐가 없습니다!!!"
@@ -70,13 +95,15 @@ class FeatureExtractor:
             data_feature_label = FeatureExtractor._load_feature_one_file(
                 feature_file, feature_extension
             )
-
             # 현재 파일의 데이터를 combined_df에 추가
             combined_df = pd.concat(
                 [combined_df, data_feature_label], ignore_index=True
             )
             del data_feature_label
 
+        # row 생략 없이 출력
+        # pd.set_option("display.max_rows", None)
+        # print("-- 추출 : ", feature_files)
         print(
             "-- ! 로딩 완료 ! --",
             "data shape:",
@@ -86,6 +113,101 @@ class FeatureExtractor:
         print(combined_df)
 
         return combined_df
+
+    @staticmethod
+    def load_dataset_from_split_data_file(
+        method_type: str,
+        feature_type: str,
+        feature_extension: str,
+        split_data: dict[str],
+        feature_files: list[str] = None,
+    ) -> pd.DataFrame:
+        """
+        -- feature 추출한 파일 불러오기
+        input: {train: [] / validation:[] / test:[]} 각 split type에 가져오고 싶은 데이터별로 array에 담아서
+        - split_type: TRAIN | VALIDATION | TEST
+        - data_type:  E-GMD | IDMT | ENST
+
+        result_data: {train: [df, ...] / validation:[] / test:[df, ...]}
+        """
+        result_data = {}
+        for split_type, data_type in split_data.items():
+            print("-- !! split type >> ", split_type)
+            print("-- !! data types >> ", data_type)
+            for dt in data_type:
+                combined_df = FeatureExtractor.load_feature_file(
+                    method_type,
+                    feature_type,
+                    feature_extension,
+                    dt,
+                    split_type,
+                    feature_files,
+                )
+                result_data.update({split_type: combined_df})
+
+        return result_data
+
+    @staticmethod
+    def split_train_test_from_path(audio_paths: List[str]):
+        # - idmt : train / test (from path)
+        # - enst : train / test (from enst test data)
+        # - e-gmd : train / validation / test (from info.csv)
+        # return {idmt:{train:[], test:[]}, enst:{train:[], test:[]}, e-gmd:{train:[], validation:[], test:[]}}
+
+        # 그냥 복사하면 주소값이 복사되어, LABEL_INIT_DATA에 값이 쌓이므로, 깊은 복사로 값만 가져가기
+        result_data = copy.deepcopy(LABEL_INIT_DATA)
+
+        for path in audio_paths:
+            if DataLabeling.validate_supported_data(path) == False:
+                continue
+
+            # idmt 인 경우 path에서 읽기
+            if IDMT in path:
+                if "WaveDrum02" in path and "train" not in path:  # -- test
+                    result_data[IDMT][TEST].append(path)
+                else:  # -- train
+                    result_data[IDMT][TRAIN].append(path)
+            # enst 인 경우 임의로 지정한 test set으로 분기
+            elif ENST in path:
+                dn = os.path.dirname(path)
+                bn = os.path.basename(path)
+                if DATA_ENST_TEST["directory"] in dn:
+                    if DATA_ENST_TEST["test"] in bn:
+                        result_data[ENST][TEST].append(path)
+                    else:
+                        result_data[ENST][TRAIN].append(path)
+            elif ENST_PUB in path:
+                dn = os.path.dirname(path)
+                bn = os.path.basename(path)
+                if DATA_ENST_TEST["directory"] in dn:
+                    if DATA_ENST_TEST["test"] in bn:
+                        result_data[ENST_PUB][TEST].append(path)
+                    else:
+                        result_data[ENST_PUB][TRAIN].append(path)
+            # e-gmd 인 경우 csv에서 읽기
+            elif E_GMD in path:
+                # CSV 파일 열고 읽기 모드로 연 후, DictReader를 사용하여 데이터 읽어오기
+                with open(E_GMD_INFO, newline="") as csvfile:
+                    reader = csv.DictReader(csvfile)
+                    for row in reader:
+                        # -- ../data/raw/e-gmd-v1.0.0/ 제거 후
+                        # -- audio file name과 같은 경우 train/validation/test 나눠서 데이터 추가
+                        substring_to_remove = f"{ROOT_PATH}/{RAW_PATH}/{E_GMD}/"
+                        find_path = path.replace(substring_to_remove, "")
+                        if find_path in row["audio_filename"]:
+                            result_data[E_GMD][row["split"]].append(path)
+                    del reader
+            # MDB 인 경우 md에서 읽기
+            elif MDB in path:
+                if any(train_set in path for train_set in MDB_TRAIN_SET):
+                    result_data[MDB][TRAIN].append(path)
+                else:  # -- test
+                    result_data[MDB][TEST].append(path)
+            # drum_kit 인 경우 모두 train으로
+            elif DRUM_KIT in path:
+                result_data[DRUM_KIT][TRAIN].append(path)
+        del audio_paths
+        return result_data
 
     @staticmethod
     def feature_extractor(
@@ -101,20 +223,36 @@ class FeatureExtractor:
         print(f"-- ! {feature_type} feature extracting ! --")
         print("-- 총 audio_paths 몇 개??? >> ", len(audio_paths))
 
-        batch_size = 20
+        batch_size = 5
         for i in range(0, len(audio_paths), batch_size):
             print(f"-- ! feature extracting ... {i} to {i + batch_size}")
             batch_audio_paths = audio_paths[i : min(len(audio_paths), i + batch_size)]
-            features_df_new = FeatureExtractor._feature_extractor(
-                batch_audio_paths, method_type, feature_type
-            )
-            if features_df_new.empty:
-                continue
 
-            # Save feature file
-            FeatureExtractor._save_feature_file(
-                method_type, feature_type, feature_extension, features_df_new, i
-            )
+            # [e-gmd/idmt/enst] : [train/validation/test] 각 데이터가 있는 경우, 각자 list로 feature extract 후, save
+            split_data = FeatureExtractor.split_train_test_from_path(batch_audio_paths)
+            del batch_audio_paths
+
+            for data_type, split_data_all in split_data.items():
+                for split_type, split_value in split_data_all.items():
+                    print(
+                        f"!! --- data_type: {data_type} -- {split_type} : {split_value}"
+                    )
+                    if len(split_value) != 0:
+                        features_df_new = FeatureExtractor._feature_extractor(
+                            split_value, method_type, feature_type
+                        )
+                        if features_df_new.empty:
+                            continue
+                        FeatureExtractor._save_feature_file(
+                            method_type,
+                            feature_type,
+                            feature_extension,
+                            features_df_new,
+                            data_type,
+                            split_type,
+                            i,
+                        )
+            del split_data
 
     @staticmethod
     def _feature_extractor(
@@ -124,9 +262,6 @@ class FeatureExtractor:
         combined_df = FeatureExtractor._init_combine_df(method_type, feature_type)
 
         for path in audio_paths:
-            if DataLabeling.validate_supported_data(path) == False:
-                continue
-
             print("-- current file: ", path)
 
             # -- librosa feature load
@@ -135,7 +270,9 @@ class FeatureExtractor:
             df = FeatureExtractor._get_one_path_feature_label(
                 audio, path, method_type, feature_type
             )  # 메소드별로 피쳐 & 라벨 추출
+            del audio
             combined_df = pd.concat([combined_df, df], ignore_index=True)
+            del df
 
         return combined_df
 
@@ -167,9 +304,13 @@ class FeatureExtractor:
 
         # 동시에 친 데이터로 치는 오프셋만큼 묶으면서 데이터 라벨링
         onsets, label = FeatureExtractor._get_onsets_label_from_onsets(onsets_arr)
+        del onsets_arr
 
         audios = DataProcessing.trim_audio_per_onset_with_duration(audio, onsets)
-        # DataProcessing.write_trimmed_audio("../data/test", "classify_test", audios)
+        # DataProcessing.write_trimmed_audio(
+        #     "../data/classify-test", "classify_test", audios
+        # )
+        del audio, onsets
 
         for i, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
@@ -179,7 +320,9 @@ class FeatureExtractor:
             )
             # combine dataframe
             combined_df = pd.concat([combined_df, df], ignore_index=True)
+            del df, feature
 
+        del audios
         return combined_df
 
     @staticmethod
@@ -222,86 +365,82 @@ class FeatureExtractor:
         )
 
     @staticmethod
-    def _translate_drum_label_to_classify(drum: int) -> int:
-        if drum == -1:
-            return
-        return CLASSIFY_DRUM2CODE[CLASSIFY_MAP[CODE2DRUM[drum]]]
+    def _validate_possible_label(label_dict):
+        # 'KK' 키를 제외한 나머지 키에서 [1] 값을 가지는 키의 개수를 카운트합니다.
+        count = sum(
+            1
+            for key, value in label_dict.items()
+            if key != "KK" and key != "CH" and value == [1]
+        )
+
+        # [1] 값을 가지는 키의 개수가 3개 이상이면 False를 반환합니다.
+        return count < 3
+
+    @staticmethod
+    def _validate_same_time_data(curr_onset, next_onset):
+        return (next_onset - curr_onset) <= CLASSIFY_SAME_TIME
+
+    @staticmethod
+    def _is_available_drum_code(drum_code):
+        return drum_code in CODE2DRUM
+
+    @staticmethod
+    def _get_same_time_label(idx, onsets, curr_onset, is_available, label_dict):
+        if idx + 1 >= len(onsets):
+            return idx, is_available, label_dict
+
+        next_onset, next_drum = onsets[idx + 1].values()
+        if FeatureExtractor._validate_same_time_data(curr_onset, next_onset):
+            idx = idx + 1
+            is_available = FeatureExtractor._is_available_drum_code(next_drum)
+            label_dict[CODE2DRUM[next_drum]] = [1]
+
+        return idx, is_available, label_dict
 
     @staticmethod
     def _get_onsets_label_from_onsets(onsets):
-        OFFSET = 0.035  # 몇 초 차이까지 동시에 친 것으로 볼 것인지
         idx = 0
+        onsets_len = len(onsets)
         result_onsets = []  # [{"onset": onset, "duration": 다음 온셋 사이의 시간}, ...]
         result_label = []  # [{'OH':[], 'CH':[], 'TT':[], 'SD':[], 'KK':[]}, ...]
         while True:
-            if idx >= len(onsets):
+            if idx >= onsets_len:  # onsets 길이 초과하면 종료
                 break
 
-            is_available = True  # 우리가 다루는 악기인지 여부
+            # 현재 onset 음
             curr_onset, curr_drum = onsets[idx].values()
-            if not curr_drum in CODE2DRUM:
-                is_available = False
-
-            curr_drum = FeatureExtractor._translate_drum_label_to_classify(
+            is_available = FeatureExtractor._is_available_drum_code(
                 curr_drum
-            )  # 0: 'OH', 1: 'CH', 2: 'TT', 3: 'SD', 4: 'KK'
-            temp_label = [curr_drum]
-            if (
-                idx + 1 < len(onsets)
-                and onsets[idx + 1]["onset"] - curr_onset <= OFFSET
-            ):
-                idx = idx + 1
-                if not onsets[idx]["drum"] in CODE2DRUM:
-                    is_available = False
-                next_drum = FeatureExtractor._translate_drum_label_to_classify(
-                    onsets[idx]["drum"]
-                )  # 0: 'OH', 1: 'CH', 2: 'TT', 3: 'SD', 4: 'KK'
-                temp_label.append(next_drum)
-                if (
-                    idx + 1 < len(onsets)
-                    and onsets[idx + 1]["onset"] - curr_onset <= OFFSET
-                ):
-                    idx = idx + 1
-                    if not onsets[idx]["drum"] in CODE2DRUM:
-                        is_available = False
-                    next_drum = FeatureExtractor._translate_drum_label_to_classify(
-                        onsets[idx]["drum"]
-                    )  # 0: 'OH', 1: 'CH', 2: 'TT', 3: 'SD', 4: 'KK'
-                    temp_label.append(next_drum)
+            )  # 우리가 다루는 악기인지 여부
+            # labeling
+            label_dict = {v: [0] for _, v in CODE2DRUM.items()}
+            label_dict[CODE2DRUM[curr_drum]] = [1]
+
+            # 현재 음 제외 최대 2개까지 동시에 친 음으로 판단
+            for _ in range(2):
+                idx, is_available, label_dict = FeatureExtractor._get_same_time_label(
+                    idx, onsets, curr_onset, is_available, label_dict
+                )
 
             idx = idx + 1
 
             if not is_available:
                 continue
 
-            duration = CLASSIFY_DURATION
-            if idx < len(onsets):
+            duration = ONSET_DURATION_RIGHT
+            if idx < onsets_len:
                 duration = onsets[idx]["onset"] - curr_onset
 
-            if duration < 0.05:  # 너무 짧게 잘린 데이터 버리기
+            if duration < CLASSIFY_SHORT_TIME:  # 너무 짧게 잘린 데이터 버리기
                 continue
 
-            label = {v: [0] for _, v in CLASSIFY_CODE2DRUM.items()}
-            binary_label = [0] * len(CLASSIFY_CODE2DRUM)
-            for code in temp_label:
-                label[CLASSIFY_CODE2DRUM[code]] = [1]
-                binary_label[code] = 1
-            binary_label = [binary_label]
-
-            if (
-                FeatureExtractor.one_hot_label_to_number(np.array(binary_label))[0]
-                in CLASSIFY_IMPOSSIBLE_LABEL
+            if not FeatureExtractor._validate_possible_label(
+                label_dict
             ):  # 불가능한 라벨값이라면
                 continue
 
             result_onsets.append({"onset": curr_onset, "duration": duration})
-            result_label.append(label)
-
-        # print("result_onsets-------------")
-        # for idx, result in enumerate(result_onsets):
-        #     print(idx + 1, result["duration"])
-        # print("result_label-------------")
-        # print(result_label)
+            result_label.append(label_dict)
 
         return result_onsets, result_label
 
@@ -332,11 +471,11 @@ class FeatureExtractor:
         for _, ao in enumerate(audios):
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
             l = {}
-            for k, v in CLASSIFY_DETECT_TYPES.items():
+            for k, v in CLASSIFY_TYPES.items():
                 temp_label = []
                 for drum_idx, origin_key in enumerate(v):
                     if len(temp_label) == 0:  # 초기화
-                        temp_label = label[CLASSIFY_DETECT_TYPES[k][drum_idx]]
+                        temp_label = label[CLASSIFY_TYPES[k][drum_idx]]
                     else:
                         for frame_idx, frame_value in enumerate(label[origin_key]):
                             if temp_label[frame_idx] == 1.0 or frame_value == 0.0:
@@ -372,6 +511,35 @@ class FeatureExtractor:
         return onset_frame
 
     @staticmethod
+    def convert_key_name(dict_data, key_name):
+        """
+        {CC:[]} -> {CC-LABEL_REF-[0.5-1-0.5]:[]}
+        """
+        converted_data_dict = {}
+        for original_key, value in dict_data.items():
+            new_key = f"{original_key}-{key_name}"
+            converted_data_dict[new_key] = value
+        return converted_data_dict
+
+    @staticmethod
+    def data_labeling_label_type(
+        ao: np.ndarray,
+        path: str,
+        method_type: str,
+        i: int = None,
+        feature_shape: int = 0,
+        hop_length: int = 0,
+        label_type: str = LABEL_DDM,
+    ):
+        """
+        data labeling 후, convert key name
+        """
+        label = DataLabeling.data_labeling(
+            ao, path, method_type, i, feature_shape, hop_length, label_type
+        )
+        return FeatureExtractor.convert_key_name(label, label_type) if label else None
+
+    @staticmethod
     def _extract_non_classify_feature(
         audio: np.ndarray, path: str, method_type: str, feature_type: str
     ):
@@ -391,11 +559,22 @@ class FeatureExtractor:
         for i, ao in enumerate(audios):
             # audio to feature
             feature = AudioToFeature.extract_feature(ao, method_type, feature_type)
-            # get label
-            label = DataLabeling.data_labeling(
-                ao, path, method_type, i, feature.shape[0], hop_length
-            )
-            if label == False:  # label 없음
+
+            label = {}
+            for label_type_key in LABEL_TYPE:
+                result_data = FeatureExtractor.data_labeling_label_type(
+                    ao,
+                    path,
+                    method_type,
+                    i,
+                    feature.shape[0],
+                    hop_length,
+                    label_type_key,
+                )
+                if result_data == None:  # label 없음
+                    continue
+                label.update(result_data)
+            if len(label.keys()) == 0:
                 continue
 
             # make dataframe
@@ -436,7 +615,7 @@ class FeatureExtractor:
 
         return pd.DataFrame(
             label_data,
-            dtype="float16",
+            dtype=FEATURE_DTYPE_16,
         )
 
     @staticmethod
@@ -456,7 +635,7 @@ class FeatureExtractor:
             return pd.DataFrame(
                 feature,
                 columns=[feature_type[:8] + str(i + 1) for i in range(n_feature)],
-                dtype="float32",
+                dtype=FEATURE_DTYPE_32,
             )
 
     @staticmethod
@@ -465,13 +644,15 @@ class FeatureExtractor:
         feature_type: str,
         feature_extension: str,
         features: pd.DataFrame,
+        data_type: str,  # e-gmd|idmt|enst
+        split_type: str,  # test|validation|test
         number: int,
     ):
         """
         -- feature 파일 저장하기
         """
         save_folder_path = FeatureExtractor._get_save_folder_path(
-            method_type, feature_type
+            method_type, feature_type, data_type, split_type
         )
         date_time = datetime.now().strftime(
             "%Y-%m-%d_%H-%M-%S"
@@ -515,6 +696,7 @@ class FeatureExtractor:
     def _init_combine_df(method_type: str, feature_type: str) -> pd.DataFrame:
         """
         -- dataframe 헤더 초기화
+        -- [HH, OH, …, KK]-LABEL_DDM, [HH, OH, …, KK]-LABEL_REF
         """
         # feature에서 한 frame에 들어있는 sample 개수
         n_feature = FeatureExtractor._get_n_feature(
@@ -523,26 +705,23 @@ class FeatureExtractor:
 
         if (
             method_type == METHOD_CLASSIFY
-        ):  # label = ['OH', 'CH', 'TT', 'SD', 'KK'] + feature
+        ):  # label = ['CC', 'OH', 'CH', 'TT', 'SD', 'KK'] + feature
+            return pd.DataFrame(columns=[v for _, v in CODE2DRUM.items()] + ["feature"])
+        elif method_type == METHOD_DETECT:
+            # ['OH-LABEL_DDM','CH-LABEL_DDM',..., 'KK-LABEL_REF'] + feature
             return pd.DataFrame(
-                columns=[key for key in CLASSIFY_DETECT_TYPES.keys()] + ["feature"]
+                columns=LABEL_COLUMN
+                + [f"{feature_type[:8]}{i + 1}" for i in range(n_feature)]
             )
-        if method_type == METHOD_DETECT:
-            return pd.DataFrame(
-                columns=[
-                    v for _, v in CODE2DRUM.items()
-                ]  # ['CC', 'OH', 'CH', 'TT', 'SD', 'KK']
-                + [feature_type[:8] + str(i + 1) for i in range(n_feature)]
-            )
-        if method_type == METHOD_RHYTHM:
+        elif method_type == METHOD_RHYTHM:
             return pd.DataFrame(
                 columns=["label"]
-                + [feature_type[:8] + str(i + 1) for i in range(n_feature)]
+                + [f"{feature_type[:8]}{i + 1}" for i in range(n_feature)]
             )
 
     @staticmethod
-    def _get_save_folder_path(method_type, feature_type) -> str:
-        return f"{ROOT_PATH}/{PROCESSED_FEATURE}/{method_type}/{feature_type}"
+    def _get_save_folder_path(method_type, feature_type, data_type, split_type) -> str:
+        return f"{ROOT_PATH}/{PROCESSED_FEATURE}/{method_type}/{feature_type}/{data_type}/{split_type}"
 
     @staticmethod
     def load_audio(path):

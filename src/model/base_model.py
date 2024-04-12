@@ -13,6 +13,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import (
     multilabel_confusion_matrix,
     classification_report,
+    ConfusionMatrixDisplay,
 )
 
 from data.data_processing import DataProcessing
@@ -50,6 +51,7 @@ class BaseModel:
         feature_type,
         feature_extension=PKL,
         compile_mode=True,
+        class_dict=CODE2DRUM,
     ):
         self.model = None
         self.training_epochs = training_epochs
@@ -59,6 +61,7 @@ class BaseModel:
         self.feature_type = feature_type
         self.feature_extension = feature_extension
         self.compile_mode = compile_mode
+        self.class_dict = class_dict
         self.feature_param = FEATURE_PARAM[method_type][feature_type]
         self.sample_rate = SAMPLE_RATE
         self.x_train: np.ndarray = None
@@ -178,6 +181,31 @@ class BaseModel:
         return data.reshape((num_chunks, chunk_size, num_features, 1))
 
     @staticmethod
+    def split_x_y_data(X, y, chunk_size):
+        num_samples, num_features = y.shape
+        num_chunks = num_samples // chunk_size
+
+        # 나머지 부분을 제외한 데이터만 사용
+        new_y = y[: num_chunks * chunk_size, :]
+
+        num_samples_x, num_features_x = X.shape
+        num_chunks_x = num_samples_x // chunk_size
+
+        # 나머지 부분을 제외한 데이터만 사용
+        new_X = X[: num_chunks_x * chunk_size, :]
+
+        # reshape을 통해 3D 배열로 변환
+        new_y = new_y.reshape((num_chunks, chunk_size, num_features))
+        new_X = new_X.reshape((num_chunks_x, chunk_size, num_features_x, 1))
+
+        # 라벨 값이 모두 0인 데이터 인덱스 구하기
+        zero_indices = np.where(np.all(new_y == 0, axis=(1, 2)))[0]
+        new_y = np.delete(new_y, zero_indices, axis=0)
+        new_X = np.delete(new_X, zero_indices, axis=0)
+
+        return new_X, new_y
+
+    @staticmethod
     def transform_peakpick_from_dict(data_dict, delta):
         """
         peak picking from dict data
@@ -191,12 +219,12 @@ class BaseModel:
             # peak_pick를 통해 몇 번째 인덱스가 peak인지 추출
             peaks = librosa.util.peak_pick(
                 item_value,
-                pre_max=3,
+                pre_max=0,
                 post_max=3,
-                pre_avg=3,
+                pre_avg=0,
                 post_avg=3,
                 delta=delta,
-                wait=1,
+                wait=4,
             )
             for idx in peaks:
                 peak_value[idx] = 1
@@ -236,13 +264,58 @@ class BaseModel:
         plt.show()
 
     @staticmethod
-    def print_confusion_matrix(y_test_data, y_pred):
+    def get_confusion_matrix(y_true, y_pred):
+        return multilabel_confusion_matrix(y_true, y_pred)
+
+    @staticmethod
+    def print_confusion_matrix(cm, y_test_data, y_pred):
         # confusion matrix & precision & recall
         print("-- ! confusion matrix ! --")
-        print(multilabel_confusion_matrix(y_test_data, y_pred))
+        print(cm)
 
         print("-- ! classification report ! --")
         print(classification_report(y_test_data, y_pred, digits=4))
+
+    @staticmethod
+    def show_confusion_matrix(cm, labels):
+        fig, axs = plt.subplots(
+            nrows=1, ncols=len(labels), figsize=(8, 6 * len(labels))
+        )
+
+        for i, label in enumerate(labels):
+            ax = axs[i]
+            ax.imshow(cm[i], interpolation="nearest", cmap=plt.cm.Blues)
+            ax.set(
+                xticks=np.arange(cm.shape[2]),
+                yticks=np.arange(cm.shape[1]),
+                xticklabels=["N", "P"],
+                yticklabels=["N", "P"],
+                title=f"Confusion matrix for label {label}",
+                ylabel="True label",
+                xlabel="Predicted label",
+            )
+
+            # Rotate the tick labels for better readability
+            plt.setp(
+                ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor"
+            )
+
+            # Loop over data dimensions and create text annotations
+            fmt = "d"
+            thresh = cm[i].max() / 2.0
+            for x in range(cm[i].shape[0]):
+                for y in range(cm[i].shape[1]):
+                    ax.text(
+                        y,
+                        x,
+                        format(cm[i][x, y], fmt),
+                        ha="center",
+                        va="center",
+                        color="white" if cm[i][x, y] > thresh else "black",
+                    )
+
+        fig.tight_layout()
+        plt.show()
 
     def create_model_dataset(self, X: np.array, y: np.array, split_type: str):
         # Implement model
@@ -283,6 +356,8 @@ class BaseModel:
         elif split_type == TEST:
             self.x_test = X
             self.y_test = y
+
+        del X, y
         return
 
     def fill_all_dataset(self):
@@ -298,6 +373,8 @@ class BaseModel:
             self.split_dataset(x_train, y_train, TRAIN)
             self.split_dataset(x_test, y_test, TEST)
 
+            del x_train, x_test, y_train, y_test
+
         # validation 없으면 train에서
         if self.x_val is None and self.x_train is not None:
             x_train, x_val, y_train, y_val = train_test_split(
@@ -309,6 +386,8 @@ class BaseModel:
             )
             self.split_dataset(x_train, y_train, TRAIN)
             self.split_dataset(x_val, y_val, VALIDATION)
+
+            del x_train, x_val, y_train, y_val
 
     def print_dataset_shape(self):
         if not self.x_train is None:
@@ -358,6 +437,8 @@ class BaseModel:
         print("test loss:", results[0])
         print("test accuracy:", results[1])
 
+        labels = list(self.class_dict.values())
+
         try:
             # -- predict
             y_pred = self.model.predict(self.x_test)
@@ -395,11 +476,15 @@ class BaseModel:
                         )["weighted avg"]["f1-score"]
                     )
                     print(f"------------------ delta : {delta} ------------------")
-                    BaseModel.print_confusion_matrix(tmp_y_test_data, tmp_y_pred)
+                    cm = BaseModel.get_confusion_matrix(tmp_y_test_data, tmp_y_pred)
+                    BaseModel.print_confusion_matrix(cm, tmp_y_test_data, tmp_y_pred)
+                    BaseModel.show_confusion_matrix(cm, labels)
                 BaseModel.show_f1score_delta_plot(delta_values, result)
             else:
                 y_pred = np.where(y_pred > self.predict_standard, 1.0, 0.0)
-                BaseModel.print_confusion_matrix(y_test_data, y_pred)
+                cm = BaseModel.get_confusion_matrix(y_test_data, y_pred)
+                BaseModel.print_confusion_matrix(cm, y_test_data, y_pred)
+                BaseModel.show_confusion_matrix(cm, labels)
 
         except Exception as e:
             print(e)

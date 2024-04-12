@@ -26,6 +26,7 @@ from constant import (
     METHOD_RHYTHM,
     TEST,
     TRAIN,
+    VALIDATION,
 )
 
 
@@ -57,18 +58,22 @@ from constant import (
 #     "../data/raw/e-gmd-v1.0.0/drummer1/session1/78_jazz-fast_290_beat_4-4.wav"
 # ]
 
-# data_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{MDB}")
-# FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL)
-# FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL, MDB, TRAIN)
+# data_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{ENST}")
+# FeatureExtractor.feature_extractor(data_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
+# FeatureExtractor.load_feature_file(METHOD_DETECT, MEL_SPECTROGRAM, PKL, ENST, TRAIN)
 
 # print(FeatureExtractor._load_feature_one_file(
 #     "../data/processed-feature/classify/mel-spectrogram/mel-spectrogram-2024-03-13_01-26-48-0100.pkl", PKL
 # ))
 # AudioToFeature.show_feature_plot(data["feature"][1], METHOD_CLASSIFY, MFCC)
 
-# ===============Model Ref Train========================
+# ===============Model Train========================
 # == split_data, label_type 매개변수 바꿔서 사용!
-split_data = {TRAIN: [MDB], TEST: [MDB]}
+split_data = {
+    TRAIN: [MDB],
+    # VALIDATION: [MDB],
+    TEST: [MDB],
+}
 
 segment_classify = SegmentClassifyModel(
     training_epochs=50,
@@ -82,10 +87,22 @@ segment_classify.create_dataset(split_data, group_dict=CLASSIFY_TYPES)
 segment_classify.evaluate()
 # segment_classify.save()
 
-# ===============Model Train============================
-# segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
-# segment_classify.extract_feature()
-# segment_classify.run()
+# ===============Model Evaluate========================
+# == split_data, label_type 매개변수 바꿔서 사용!
+# split_data = {
+#     TEST: [
+#         ENST,
+#     ]
+# }
+
+# segment_classify = SegmentClassifyModel(
+#     training_epochs=50,
+#     batch_size=8,
+#     opt_learning_rate=0.001,
+#     feature_type=MEL_SPECTROGRAM,
+# )
+# segment_classify.create_dataset(split_data, group_dict=CLASSIFY_TYPES)
+# segment_classify.evaluate()
 
 # ===============Model Predict==========================
 # segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)

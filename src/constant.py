@@ -123,33 +123,74 @@ DATA_ENST_NOT = (
     "accompaniment/",
     "cowbell",
     "brushes",
-    "no-snare",
     "mallets",
     "rods",
-    "cross-sticks",
-    "phrase_reggae",
-    "salsa",
-    # -- drummer1
-    "096_solo_latin_hands",  # sd- (no-snare)
-    "108_minus-one_rock-60s_sticks",  # cb (cow bell)
-    # -- drummer2
-    "108_solo_toms_sticks",  # sd-
-    "121_minus-one_charleston_sticks",  # cs (cross sticks)
-    "124_minus-one_bossa_sticks",  # cs
-    "134_MIDI-minus-one_country-120_sticks",  # cs
-    "144_MIDI-minus-one_rock-113_sticks",  # cs
-    "150_MIDI-minus-one_soul-98_sticks",  # cs
-    # -- drummer3
-    "067_phrase_afro_simple_slow_sticks",  # cs
-    "068_phrase_afro_simple_medium_sticks",  # cs
-    "090_phrase_shuffle-blues_complex_fast_sticks",  # sticks
-    "111_phrase_oriental_simple_fast_sticks",  # cs
-    "114_phrase_oriental_complex_fast_sticks",  # cs
-    "115_phrase_cha-cha_simple_slow_sticks",  # cs
-    "116_phrase_cha-cha_complex_slow_sticks",  # cb
-    "134_minus-one_bossa_sticks",  # cs
-    "140_MIDI-minus-one_bigband_sticks",  # cs
-    "160_MIDI-minus-one_soul-98_sticks",  # cs
+    "drummer_1/annotation/002_hits_snare-drum-no-snare_sticks_x5"
+    "drummer_1/annotation/011_hits_cowbell_sticks_x5"
+    "drummer_1/annotation/020_hits_cowbell_brushes_x5"
+    "drummer_1/annotation/022_hits_snare-drum-no-snare_mallets_x5"
+    "drummer_1/annotation/028_hits_cowbell_mallets_x4"
+    "drummer_1/annotation/029_hits_cross-sticks_sticks_x4"
+    "drummer_1/annotation/049_phrase_afro_simple_medium_mallets"
+    "drummer_1/annotation/050_phrase_afro_simple_fast_mallets"
+    "drummer_1/annotation/051_phrase_afro_complex_slow_mallets"
+    "drummer_1/annotation/052_phrase_afro_complex_medium_mallets"
+    "drummer_1/annotation/053_phrase_afro_complex_fast_mallets"
+    "drummer_1/annotation/060_phrase_salsa_simple_slow_sticks"
+    "drummer_1/annotation/061_phrase_salsa_simple_medium_sticks"
+    "drummer_1/annotation/062_phrase_salsa_simple_fast_sticks"
+    "drummer_1/annotation/063_phrase_salsa_complex_slow_sticks"
+    "drummer_1/annotation/065_phrase_salsa_complex_fast_sticks"
+    "drummer_1/annotation/078_phrase_reggae_simple_slow_sticks"
+    "drummer_1/annotation/079_phrase_reggae_simple_medium_sticks"
+    "drummer_1/annotation/080_phrase_reggae_simple_fast_sticks"
+    "drummer_1/annotation/081_phrase_reggae_complex_slow_sticks"
+    "drummer_1/annotation/082_phrase_reggae_complex_medium_sticks"
+    "drummer_1/annotation/083_phrase_reggae-ska_complex_fast_sticks"
+    "drummer_1/annotation/096_solo_latin_hands"
+    "drummer_1/annotation/098_solo_afro_mallets"
+    "drummer_1/annotation/101_solo_jazz-rock_rods"
+    "drummer_1/annotation/102_solo_salsa_sticks"
+    "drummer_1/annotation/107_minus-one_salsa_sticks"
+    "drummer_1/annotation/108_minus-one_rock-60s_sticks"
+    "drummer_1/annotation/112_minus-one_funk_rods"
+    "drummer_1/annotation/114_minus-one_celtic-rock_brushes"
+    "drummer_1/annotation/115_minus-one_bossa_brushes"
+    "drummer_2/annotation/013_hits_cowbell_sticks_x7"
+    "drummer_2/annotation/014_hits_snare-drum-shuffle_brushes_x7"
+    "drummer_2/annotation/024_hits_cowbell_brushes_x8"
+    "drummer_2/annotation/028_hits_snare-drum-no-snare_mallets_x7"
+    "drummer_2/annotation/108_solo_toms_sticks"
+    "drummer_2/annotation/115_minus-one_salsa_sticks"
+    "drummer_2/annotation/121_minus-one_charleston_sticks"
+    "drummer_2/annotation/124_minus-one_bossa_sticks"
+    "drummer_2/annotation/134_MIDI-minus-one_country-120_sticks"
+    "drummer_2/annotation/144_MIDI-minus-one_rock-113_sticks"
+    "drummer_2/annotation/150_MIDI-minus-one_soul-98_sticks"
+    "drummer_3/annotation/041_hits_snare-drum-no-snare_mallets_x5"
+    "drummer_3/annotation/048_hits_cross-sticks_sticks_x5"
+    "drummer_3/annotation/067_phrase_afro_simple_slow_sticks"
+    "drummer_3/annotation/068_phrase_afro_simple_medium_sticks"
+    "drummer_3/annotation/079_phrase_salsa_simple_slow_sticks"
+    "drummer_3/annotation/080_phrase_salsa_simple_medium_sticks"
+    "drummer_3/annotation/081_phrase_salsa_simple_medium_sticks"
+    "drummer_3/annotation/082_phrase_salsa_complex_slow_sticks"
+    "drummer_3/annotation/090_phrase_shuffle-blues_complex_fast_sticks"
+    "drummer_3/annotation/091_phrase_reggae_simple_slow_sticks"
+    "drummer_3/annotation/092_phrase_reggae_simple_medium_sticks"
+    "drummer_3/annotation/093_phrase_reggae_simple_fast_sticks"
+    "drummer_3/annotation/094_phrase_reggae_complex_slow_sticks"
+    "drummer_3/annotation/095_phrase_reggae_complex_medium_sticks"
+    "drummer_3/annotation/096_phrase_reggae_complex_fast_sticks"
+    "drummer_3/annotation/111_phrase_oriental_simple_fast_sticks"
+    "drummer_3/annotation/114_phrase_oriental_complex_fast_sticks"
+    "drummer_3/annotation/115_phrase_cha-cha_simple_slow_sticks"
+    "drummer_3/annotation/116_phrase_cha-cha_complex_slow_sticks"
+    "drummer_3/annotation/119_solo_toms_mallets"
+    "drummer_3/annotation/126_minus-one_salsa_sticks"
+    "drummer_3/annotation/134_minus-one_bossa_sticks"
+    "drummer_3/annotation/140_MIDI-minus-one_bigband_sticks"
+    "drummer_3/annotation/160_MIDI-minus-one_soul-98_sticks",
     # -- hi-hat data만 사용
     # "dry_mix/",
     # "kick/",

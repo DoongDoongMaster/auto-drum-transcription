@@ -180,9 +180,9 @@ class FeatureExtractor:
                 dn = os.path.dirname(path)
                 bn = os.path.basename(path)
                 if DATA_ENST_TEST["directory"] in dn and DATA_ENST_TEST["test"] in bn:
-                    result_data[ENST][TEST].append(path)
+                    result_data[ENST_PUB][TEST].append(path)
                 else:
-                    result_data[ENST][TRAIN].append(path)
+                    result_data[ENST_PUB][TRAIN].append(path)
             # e-gmd 인 경우 csv에서 읽기
             elif E_GMD in path:
                 # CSV 파일 열고 읽기 모드로 연 후, DictReader를 사용하여 데이터 읽어오기

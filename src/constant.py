@@ -105,7 +105,7 @@ ONSET_OFFSET = 1
 CHUNK_LENGTH = 12
 
 # -- chunk length - model에 넣기 전 dataset 가공 시
-CHUNK_TIME_LENGTH = 30
+CHUNK_TIME_LENGTH = 1200
 
 # -- unit (1 sec)
 MILLISECOND = 1000000
@@ -121,35 +121,75 @@ DATA_IDMT = (
 DATA_IDMT_NOT = ("TechnoDrum",)
 DATA_ENST_NOT = (
     "accompaniment/",
-    "cowbell",
     "brushes",
-    "no-snare",
     "mallets",
     "rods",
-    "cross-sticks",
-    "phrase_reggae",
-    "salsa",
-    # -- drummer1
-    "096_solo_latin_hands",  # sd- (no-snare)
-    "108_minus-one_rock-60s_sticks",  # cb (cow bell)
-    # -- drummer2
-    "108_solo_toms_sticks",  # sd-
-    "121_minus-one_charleston_sticks",  # cs (cross sticks)
-    "124_minus-one_bossa_sticks",  # cs
-    "134_MIDI-minus-one_country-120_sticks",  # cs
-    "144_MIDI-minus-one_rock-113_sticks",  # cs
-    "150_MIDI-minus-one_soul-98_sticks",  # cs
-    # -- drummer3
-    "067_phrase_afro_simple_slow_sticks",  # cs
-    "068_phrase_afro_simple_medium_sticks",  # cs
-    "090_phrase_shuffle-blues_complex_fast_sticks",  # sticks
-    "111_phrase_oriental_simple_fast_sticks",  # cs
-    "114_phrase_oriental_complex_fast_sticks",  # cs
-    "115_phrase_cha-cha_simple_slow_sticks",  # cs
-    "116_phrase_cha-cha_complex_slow_sticks",  # cb
-    "134_minus-one_bossa_sticks",  # cs
-    "140_MIDI-minus-one_bigband_sticks",  # cs
-    "160_MIDI-minus-one_soul-98_sticks",  # cs
+    "002_hits_snare-drum-no-snare_sticks_x5",
+    "011_hits_cowbell_sticks_x5",
+    "020_hits_cowbell_brushes_x5",
+    "022_hits_snare-drum-no-snare_mallets_x5",
+    "028_hits_cowbell_mallets_x4",
+    "029_hits_cross-sticks_sticks_x4",
+    "049_phrase_afro_simple_medium_mallets",
+    "050_phrase_afro_simple_fast_mallets",
+    "051_phrase_afro_complex_slow_mallets",
+    "052_phrase_afro_complex_medium_mallets",
+    "053_phrase_afro_complex_fast_mallets",
+    "060_phrase_salsa_simple_slow_sticks",
+    "061_phrase_salsa_simple_medium_sticks",
+    "062_phrase_salsa_simple_fast_sticks",
+    "063_phrase_salsa_complex_slow_sticks",
+    "065_phrase_salsa_complex_fast_sticks",
+    "078_phrase_reggae_simple_slow_sticks",
+    "079_phrase_reggae_simple_medium_sticks",
+    "080_phrase_reggae_simple_fast_sticks",
+    "081_phrase_reggae_complex_slow_sticks",
+    "082_phrase_reggae_complex_medium_sticks",
+    "083_phrase_reggae-ska_complex_fast_sticks",
+    "096_solo_latin_hands",
+    "098_solo_afro_mallets",
+    "101_solo_jazz-rock_rods",
+    "102_solo_salsa_sticks",
+    "107_minus-one_salsa_sticks",
+    "108_minus-one_rock-60s_sticks",
+    "112_minus-one_funk_rods",
+    "114_minus-one_celtic-rock_brushes",
+    "115_minus-one_bossa_brushes",
+    "013_hits_cowbell_sticks_x7",
+    "014_hits_snare-drum-shuffle_brushes_x7",
+    "024_hits_cowbell_brushes_x8",
+    "028_hits_snare-drum-no-snare_mallets_x7",
+    "108_solo_toms_sticks",
+    "115_minus-one_salsa_sticks",
+    "121_minus-one_charleston_sticks",
+    "124_minus-one_bossa_sticks",
+    "134_MIDI-minus-one_country-120_sticks",
+    "144_MIDI-minus-one_rock-113_sticks",
+    "150_MIDI-minus-one_soul-98_sticks",
+    "041_hits_snare-drum-no-snare_mallets_x5",
+    "048_hits_cross-sticks_sticks_x5",
+    "067_phrase_afro_simple_slow_sticks",
+    "068_phrase_afro_simple_medium_sticks",
+    "079_phrase_salsa_simple_slow_sticks",
+    "080_phrase_salsa_simple_medium_sticks",
+    "081_phrase_salsa_simple_medium_sticks",
+    "082_phrase_salsa_complex_slow_sticks",
+    "090_phrase_shuffle-blues_complex_fast_sticks",
+    "091_phrase_reggae_simple_slow_sticks",
+    "092_phrase_reggae_simple_medium_sticks",
+    "093_phrase_reggae_simple_fast_sticks",
+    "094_phrase_reggae_complex_slow_sticks",
+    "095_phrase_reggae_complex_medium_sticks",
+    "096_phrase_reggae_complex_fast_sticks",
+    "111_phrase_oriental_simple_fast_sticks",
+    "114_phrase_oriental_complex_fast_sticks",
+    "115_phrase_cha-cha_simple_slow_sticks",
+    "116_phrase_cha-cha_complex_slow_sticks",
+    "119_solo_toms_mallets",
+    "126_minus-one_salsa_sticks",
+    "134_minus-one_bossa_sticks",
+    "140_MIDI-minus-one_bigband_sticks",
+    "160_MIDI-minus-one_soul-98_sticks",
     # -- hi-hat data만 사용
     # "dry_mix/",
     # "kick/",

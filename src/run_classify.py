@@ -26,6 +26,7 @@ from constant import (
     METHOD_RHYTHM,
     TEST,
     TRAIN,
+    VALIDATION,
 )
 
 
@@ -58,8 +59,8 @@ from constant import (
 # ]
 
 data_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}/{ENST}")
-FeatureExtractor.feature_extractor(data_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)
-FeatureExtractor.load_feature_file(METHOD_DETECT, MEL_SPECTROGRAM, PKL, ENST, TRAIN)
+FeatureExtractor.feature_extractor(data_paths, METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL)
+FeatureExtractor.load_feature_file(METHOD_CLASSIFY, MEL_SPECTROGRAM, PKL, ENST, TRAIN)
 
 # print(FeatureExtractor._load_feature_one_file(
 #     "../data/processed-feature/classify/mel-spectrogram/mel-spectrogram-2024-03-13_01-26-48-0100.pkl", PKL
@@ -82,10 +83,22 @@ FeatureExtractor.load_feature_file(METHOD_DETECT, MEL_SPECTROGRAM, PKL, ENST, TR
 # segment_classify.evaluate()
 # segment_classify.save()
 
-# ===============Model Train============================
-# segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)
-# segment_classify.extract_feature()
-# segment_classify.run()
+# ===============Model Evaluate========================
+# == split_data, label_type 매개변수 바꿔서 사용!
+# split_data = {
+#     TEST: [
+#         ENST,
+#     ]
+# }
+
+# segment_classify = SegmentClassifyModel(
+#     training_epochs=50,
+#     batch_size=8,
+#     opt_learning_rate=0.001,
+#     feature_type=MEL_SPECTROGRAM,
+# )
+# segment_classify.create_dataset(split_data, group_dict=CLASSIFY_TYPES)
+# segment_classify.evaluate()
 
 # ===============Model Predict==========================
 # segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)

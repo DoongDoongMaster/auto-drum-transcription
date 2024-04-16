@@ -219,7 +219,7 @@ class SegmentClassifyModel(BaseModel):
 
             # x_train, y_train = SegmentClassifyModel.smote_data(x_train, y_train)
             # decimal to multi-hot-encoding
-            y = FeatureExtractor.number_to_one_hot_label(y_train)
+            y_train = FeatureExtractor.number_to_one_hot_label(y_train)
 
             # input shape 조정
             x_train = self.input_reshape(x_train)

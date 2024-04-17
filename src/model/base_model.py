@@ -128,6 +128,7 @@ class BaseModel:
                 temp_label[idx] = label_value if not math.isnan(label_value) else 0
             new_y[l_idx] = temp_label
 
+        del y_data
         # np.set_printoptions(threshold=np.inf, linewidth=np.inf)  # inf = infinity
         # print("-- ! 그룹핑 후 라벨 ! --\n", new_y)
         return new_y
@@ -141,6 +142,8 @@ class BaseModel:
         if method_type == METHOD_CLASSIFY:
             X = np.array(feature_df.feature.tolist())
             y = feature_df[[drum for _, drum in CODE2DRUM.items()]].to_numpy()
+
+            del feature_df
             return X, y
         if method_type in METHOD_DETECT:
             # Y: HH-LABEL_REF..., ST, SD, KK-LABEL_DDM | X: mel-1, mel-2, mel-3, ...
@@ -148,11 +151,14 @@ class BaseModel:
             X = feature_df.drop(LABEL_COLUMN, axis=1).to_numpy()
             y = feature_df[LABEL_TYPE[label_type]["column"]].to_numpy()
 
+            del feature_df
             return X, y
         if method_type in METHOD_RHYTHM:
             # label(onset 여부) | mel-1, mel-2, mel-3, ...
             X = feature_df.drop(["label"], axis=1).to_numpy()
             y = feature_df["label"].to_numpy()
+
+            del feature_df
             return X, y
 
     # 데이터 분할을 위한 함수 정의
@@ -338,8 +344,11 @@ class BaseModel:
             # 각 model마다 create dataset
             self.create_model_dataset(X, y, split_type)
 
+            del data
             del X
             del y
+
+        del split_data_df
         self.fill_all_dataset()
 
         # -- print shape

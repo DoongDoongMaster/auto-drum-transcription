@@ -358,14 +358,6 @@ class BaseModel:
                 del X
                 del y
 
-<<<<<<< Updated upstream
-            del data
-            del X
-            del y
-
-        del split_data_df
-=======
->>>>>>> Stashed changes
         self.fill_all_dataset()
 
         # -- print shape

@@ -333,22 +333,39 @@ class BaseModel:
         group_dict: str = DRUM_TYPES_3,
     ):
         # -- load train, validation, test
-        split_data_df = FeatureExtractor.load_dataset_from_split_data_file(
-            self.method_type, self.feature_type, self.feature_extension, split_data
-        )
+        # split_data_df = FeatureExtractor.load_dataset_from_split_data_file(
+        #     self.method_type, self.feature_type, self.feature_extension, split_data
+        # )
 
-        # -- get X, y
-        for split_type, data in split_data_df.items():
-            X, y = BaseModel._get_x_y(self.method_type, data, label_type)
-            y = BaseModel.grouping_label(y, group_dict)
-            # 각 model마다 create dataset
-            self.create_model_dataset(X, y, split_type)
+        for split_type, data_type in split_data.items():
+            print("-- !! split type >> ", split_type)
+            print("-- !! data types >> ", data_type)
+            for dt in data_type:
+                combined_df = FeatureExtractor.load_feature_file(
+                    self.method_type,
+                    self.feature_type,
+                    self.feature_extension,
+                    dt,
+                    split_type,
+                )
+                # -- get X, y
+                X, y = BaseModel._get_x_y(self.method_type, combined_df, label_type)
+                del combined_df
+                y = BaseModel.grouping_label(y, group_dict)
+                # 각 model마다 create dataset
+                self.create_model_dataset(X, y, split_type)
 
+                del X
+                del y
+
+<<<<<<< Updated upstream
             del data
             del X
             del y
 
         del split_data_df
+=======
+>>>>>>> Stashed changes
         self.fill_all_dataset()
 
         # -- print shape

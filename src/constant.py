@@ -73,8 +73,6 @@ SERVED_MODEL_TYPE = (
     METHOD_DETECT,
     METHOD_RHYTHM,
 )
-REDIS_AI_HOST = "localhost"
-REDIS_AI_PORT = 6379
 
 
 """
@@ -699,16 +697,16 @@ SERVED_MODEL_ALL = [
     # },
     {
         "model_name": SERVED_MODEL_CLASSIFY_4_80,
-        "is_frozen": True,
-        "is_stored": True,
+        "is_frozen": False,
+        "is_stored": False,
         "method_type": METHOD_CLASSIFY,
         "feature_type": MEL_SPECTROGRAM,
         "label_cnt": 4,
     },
     {
         "model_name": SERVED_MODEL_CLASSIFY_4_87,
-        "is_frozen": True,
-        "is_stored": True,
+        "is_frozen": False,
+        "is_stored": False,
         "method_type": METHOD_CLASSIFY,
         "feature_type": MEL_SPECTROGRAM,
         "label_cnt": 4,

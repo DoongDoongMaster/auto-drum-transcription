@@ -61,12 +61,12 @@ class ModelServing:
             as_text=False,
         )
 
-        tf.io.write_graph(
-            graph_or_graph_def=frozen_func.graph,
-            logdir=frozen_output_path,
-            name=f"{frozen_model}.pbtxt",
-            as_text=True,
-        )
+        # tf.io.write_graph(
+        #     graph_or_graph_def=frozen_func.graph,
+        #     logdir=frozen_output_path,
+        #     name=f"{frozen_model}.pbtxt",
+        #     as_text=True,
+        # )
 
     def store_model_to_server(self):
         model = open(

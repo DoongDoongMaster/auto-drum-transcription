@@ -113,14 +113,14 @@ separate_detect_ref = SeparateDetectRefModel(100, 0.001, 32, 128)
 # separate_detect_ref = SeparateDetectBModel(100, 0.001, 32, 128)
 
 # == split_data, label_type 매개변수 바꿔서 사용!
-split_data = {TRAIN: [E_GMD], VALIDATION: [E_GMD], TEST: [E_GMD]}
-label_type = LABEL_DDM
+# split_data = {TRAIN: [E_GMD], VALIDATION: [E_GMD], TEST: [E_GMD]}
+# label_type = LABEL_DDM
 
-separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
-separate_detect_ref.create()
-separate_detect_ref.train()
-separate_detect_ref.evaluate()
-separate_detect_ref.save()
+# separate_detect_ref.create_dataset(split_data, label_type, DETECT_TYPES)
+# separate_detect_ref.create()
+# separate_detect_ref.train()
+# separate_detect_ref.evaluate()
+# separate_detect_ref.save()
 
 # # == split_data, label_type 매개변수 바꿔서 사용!
 # split_data = {TRAIN: [E_GMD], VALIDATION: [E_GMD], TEST: [E_GMD]}
@@ -134,24 +134,25 @@ separate_detect_ref.save()
 # separate_detect_ref.evaluate()
 # separate_detect_ref.save()
 
-# predict_test_datas = [
-#     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
-#     # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
-#     "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
-#     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
-#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
-#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
-#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
-#     # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
-#     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P1_08_0004.m4a",
-#     # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P2_16_0001.m4a",
-#     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_1.wav",
-#     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_2.wav",
-#     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_3.wav",
-#     "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_4.wav",
-# ]
-# for predict_test_data in predict_test_datas:
-#     print(separate_detect_ref.predict(predict_test_data, 100, 0))
+predict_test_datas = [
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_funk-groove1_138_beat_4-4.wav",
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/1_rock_105_beat_4-4.wav",
+    # "../data/test/e-gmd-v1.0.0/drummer1/session1/항해_솔로_일부분.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/162_MIDI-minus-one_fusion-125_sticks.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#HH.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#SD.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#KD.wav",
+    # "../data/test/IDMT-SMT-DRUMS-V2/audio/WaveDrum02_60#MIX.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P1_08_0004.m4a",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/P2_16_0001.m4a",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_1.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_2.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_3.wav",
+    # "../data/test/ENST-drums-public-clean/drummer_1/audio/wet_mix/0329_demo_4.wav",
+    "../data/test/e-gmd-v1.0.0/drummer1/session1/그로쓰_데모4.wav"
+]
+for predict_test_data in predict_test_datas:
+    print(separate_detect_ref.predict(predict_test_data, 100, 0))
 
 
 # ---------------------------------------------------------------------------------------

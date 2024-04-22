@@ -241,28 +241,28 @@ class SegmentClassifyModel(BaseModel):
 
         # 1st Convolutional Block
         conv1_1 = layers.Conv2D(
-            filters=64, kernel_size=(3, 3), activation="selu", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(input_layer)
-        pool1 = layers.MaxPooling2D(pool_size=(2, 2))(conv1_1)
+        pool1 = layers.MaxPooling2D(pool_size=(1, 2))(conv1_1)
         dropout1 = layers.Dropout(0.1)(pool1)
 
         # 2st Convolutional Block
         conv2_1 = layers.Conv2D(
-            filters=64, kernel_size=(3, 3), activation="selu", padding="same"
+            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
         )(dropout1)
-        pool2 = layers.MaxPooling2D(pool_size=(2, 2))(conv2_1)
+        pool2 = layers.MaxPooling2D(pool_size=(1, 2))(conv2_1)
         dropout2 = layers.Dropout(0.1)(pool2)
 
         # 3st Convolutional Block
         conv3_1 = layers.Conv2D(
-            filters=64, kernel_size=(3, 3), activation="selu", padding="same"
+            filters=16, kernel_size=(3, 3), activation="selu", padding="same"
         )(dropout2)
-        pool3 = layers.MaxPooling2D(pool_size=(2, 2))(conv3_1)
+        pool3 = layers.MaxPooling2D(pool_size=(1, 2))(conv3_1)
         dropout3 = layers.Dropout(0.1)(pool3)
 
         # 4st Convolutional Block
         conv4_1 = layers.Conv2D(
-            filters=32, kernel_size=(3, 3), activation="selu", padding="same"
+            filters=8, kernel_size=(3, 3), activation="selu", padding="same"
         )(dropout3)
         pool4 = layers.MaxPooling2D(pool_size=(1, 2))(conv4_1)
         dropout4 = layers.Dropout(0.1)(pool4)
@@ -490,7 +490,7 @@ class SegmentClassifyModel(BaseModel):
 
     def data_pre_processing(self, audio: np.array) -> np.array:
         # -- trimmed audio
-        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+        onsets_arr = OnsetDetect.onset_detection(audio)
         trimmed_audios = DataProcessing.trim_audio_per_onset(audio, onsets_arr)
 
         # -- trimmed feature
@@ -522,7 +522,7 @@ class SegmentClassifyModel(BaseModel):
 
         predict_data_result = np.array(predict_data_result)
         drum_instrument = self.get_predict_result(predict_data_result)
-        onsets_arr = OnsetDetect.get_onsets_using_librosa(audio)
+        onsets_arr = OnsetDetect.onset_detection(audio)
         onsets_arr = onsets_arr.tolist()
 
         return drum_instrument, onsets_arr

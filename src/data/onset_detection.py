@@ -70,17 +70,17 @@ class OnsetDetect:
         n_frames = len(pool["odf.complex"])
         frames_position_samples = np.array(range(n_frames)) * 512
 
-        fig, ((ax1, ax3)) = plt.subplots(
-            2, 1, sharex=True, sharey=False, figsize=(15, 16)
-        )
+        # fig, ((ax1, ax3)) = plt.subplots(
+        #     2, 1, sharex=True, sharey=False, figsize=(15, 16)
+        # )
 
-        ax1.set_title("complex ODF")
-        ax1.plot(frames_position_samples, pool["odf.complex"], color="magenta")
+        # ax1.set_title("complex ODF")
+        # ax1.plot(frames_position_samples, pool["odf.complex"], color="magenta")
 
-        ax3.set_title("Audio waveform and the estimated onset positions (complex ODF)")
-        ax3.plot(audio)
-        for onset in onsets_complex:
-            ax3.axvline(x=onset * SAMPLE_RATE, color="magenta")
+        # ax3.set_title("Audio waveform and the estimated onset positions (complex ODF)")
+        # ax3.plot(audio)
+        # for onset in onsets_complex:
+        #     ax3.axvline(x=onset * SAMPLE_RATE, color="magenta")
 
         # plt.show()
 

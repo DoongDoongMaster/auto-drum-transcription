@@ -1,0 +1,33 @@
+version: "3"
+
+services:
+  redisai:
+    container_name: redisai
+    image: redislabs/redisai:edge-gpu-bionic
+    ports:
+      - 6379:6379
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  fastapi:
+    container_name: fastapi
+    build: .
+    command: gunicorn app:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8080 --reload
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+    volumes:
+      # - .:/home/code
+      - ./src:/home/code/src
+      - ./models:/home/code/models
+      - ./scripts:/home/code/scripts
+      - ./served-models:/home/code/served-models
+    entrypoint:
+      - sh
+      - scripts/docker_entrypoint.sh

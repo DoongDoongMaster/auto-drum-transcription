@@ -251,7 +251,7 @@ class SeparateDetectModel(BaseModel):
             self.get_predict_onsets_instrument(predict_data)
         )
 
-        threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
+        # threshold_dict = self.transform_arr_to_dict(each_instrument_onsets_arr)
         # DataLabeling.show_label_dict_plot(threshold_dict, 0, 2000)
 
         return drum_instrument, onsets_arr

@@ -8,13 +8,14 @@ from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from serving.model_serving import ModelServing
 
+
 app = FastAPI()
 
 
-@app.post("/predict")
+@app.post("/adt/predict", tags=["ADT"])
 def model_predict(file: UploadFile = File(...)):
     # ============ sercved model class create ========================
-    curr_model_num = 5
+    curr_model_num = 1
     data = SERVED_MODEL_ALL[curr_model_num]
     model_serving_class = ModelServing(
         data.get("method_type"),

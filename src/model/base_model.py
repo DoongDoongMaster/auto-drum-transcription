@@ -340,23 +340,34 @@ class BaseModel:
         for split_type, data_type in split_data.items():
             print("-- !! split type >> ", split_type)
             print("-- !! data types >> ", data_type)
+
+            # dataframe 초기화
+            combined_df = FeatureExtractor._init_combine_df(
+                self.method_type, self.feature_type
+            )
             for dt in data_type:
-                combined_df = FeatureExtractor.load_feature_file(
+                # feature 파일을 읽어와 DataFrame으로 변환
+                data_feature_label = FeatureExtractor.load_feature_file(
                     self.method_type,
                     self.feature_type,
                     self.feature_extension,
                     dt,
                     split_type,
                 )
-                # -- get X, y
-                X, y = BaseModel._get_x_y(self.method_type, combined_df, label_type)
-                del combined_df
-                y = BaseModel.grouping_label(y, group_dict)
-                # 각 model마다 create dataset
-                self.create_model_dataset(X, y, split_type)
+                # 현재 파일의 데이터를 combined_df에 추가
+                combined_df = pd.concat(
+                    [combined_df, data_feature_label], ignore_index=True
+                )
+                del data_feature_label
+            # -- get X, y
+            X, y = BaseModel._get_x_y(self.method_type, combined_df, label_type)
+            del combined_df
+            y = BaseModel.grouping_label(y, group_dict)
+            # 각 model마다 create dataset
+            self.create_model_dataset(X, y, split_type)
 
-                del X
-                del y
+            del X
+            del y
 
         self.fill_all_dataset()
 

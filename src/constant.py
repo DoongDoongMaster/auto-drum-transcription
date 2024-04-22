@@ -73,8 +73,6 @@ SERVED_MODEL_TYPE = (
     METHOD_DETECT,
     METHOD_RHYTHM,
 )
-REDIS_AI_HOST = "localhost"
-REDIS_AI_PORT = 6379
 
 
 """
@@ -86,10 +84,10 @@ SAMPLE_RATE = 44100
 # -- 오디오 자를 시, onset 기준 왼쪽, 오른쪽으로 몇 초 자를지 (단위: sec)
 ONSET_DURATION_LEFT = 0
 ONSET_DURATION_RIGHT_MINUS = 0.035
-ONSET_DURATION_RIGHT = 0.4
+ONSET_DURATION_RIGHT = 0.15
 
 # -- classify method feature duration
-CLASSIFY_DURATION = ONSET_DURATION_RIGHT + 0.1
+CLASSIFY_DURATION = ONSET_DURATION_RIGHT
 
 # -- 동시에 친 오디오 구분 초 (단위: sec)
 CLASSIFY_SAME_TIME = 0.035
@@ -105,7 +103,7 @@ ONSET_OFFSET = 1
 CHUNK_LENGTH = 12
 
 # -- chunk length - model에 넣기 전 dataset 가공 시
-CHUNK_TIME_LENGTH = 1200
+CHUNK_TIME_LENGTH = 30
 
 # -- unit (1 sec)
 MILLISECOND = 1000000
@@ -496,7 +494,7 @@ DRUM_TYPES_4 = {
 """
 -- classify 방법에서의 분류 라벨
 """
-CLASSIFY_TYPES = DRUM_TYPES_3
+CLASSIFY_TYPES = DRUM_TYPES_4
 CLASSIFY_MAP = {}
 # Iterate over the DRUM_TYPES
 for drum_type, values in CLASSIFY_TYPES.items():
@@ -513,7 +511,7 @@ CLASSIFY_CODE2DRUM = {i: k for i, k in enumerate(CLASSIFY_TYPES.keys())}
 """
 -- detect 방법에서의 분류 라벨
 """
-DETECT_TYPES = DRUM_TYPES_3
+DETECT_TYPES = DRUM_TYPES_4
 DETECT_MAP = {}
 for drum_type, values in DETECT_TYPES.items():
     for value in values:
@@ -634,61 +632,82 @@ SERVED_MODEL_DETECT_LSTM = "detect_mel-spectrogram_2024-03-15_16-36-20-[all]-[4]
 SERVED_MODEL_CLASSIFY_ENST_3 = "classify_mel-spectrogram_2024-04-03_10-37-02_[enst-idmt]_[3]_[smote]_[conv2d+lstm_f1(0.87)]"
 SERVED_MODEL_CLASSIFY_ENST_4 = "classify_mel-spectrogram_2024-04-03_16-12-45_[enst-idmt_enst]_[4]_[crnn(ddm)_f1(0.88)]"
 SERVED_MODEL_DETECT_EGMD_4 = "detect_mel-spectrogram_2024-04-03_09-06-58-[e-gmd-clean]_[4]_[lr0.001]_[crnn4_f1(0.58)]"
+# ----------- 0422 -------------
+SERVED_MODEL_CLASSIFY_4_80 = "classify_mel-spectrogram_2024-04-21_23-38-05-[0.8310]"
+SERVED_MODEL_CLASSIFY_4_87 = (
+    "classify_mel-spectrogram_2024-04-22_04-53-00-[MDB-IDMT-ENST-E_GMD]-[0.8731]"
+)
 
 SERVED_MODEL_ALL = [
+    # {
+    #     "model_name": SERVED_MODEL_CLASSIFY_LSTM,
+    #     "is_frozen": False,
+    #     "is_stored": False,
+    #     "method_type": METHOD_CLASSIFY,
+    #     "feature_type": MEL_SPECTROGRAM,
+    #     "label_cnt": 5,
+    # },
+    # {
+    #     "model_name": SERVED_MODEL_CLASSIFY_BI_LSTM,
+    #     "is_frozen": False,
+    #     "is_stored": False,
+    #     "method_type": METHOD_CLASSIFY,
+    #     "feature_type": MEL_SPECTROGRAM,
+    #     "label_cnt": 5,
+    # },
+    # {
+    #     "model_name": SERVED_MODEL_CLASSIFY_MFCC,
+    #     "is_frozen": False,
+    #     "is_stored": False,
+    #     "method_type": METHOD_CLASSIFY,
+    #     "feature_type": MFCC,
+    #     "label_cnt": 5,
+    # },
+    # {
+    #     "model_name": SERVED_MODEL_DETECT_LSTM,
+    #     "is_frozen": False,
+    #     "is_stored": False,
+    #     "method_type": METHOD_DETECT,
+    #     "feature_type": MEL_SPECTROGRAM,
+    #     "label_cnt": 4,
+    # },
+    # {
+    #     "model_name": SERVED_MODEL_CLASSIFY_ENST_3,
+    #     "is_frozen": False,
+    #     "is_stored": False,
+    #     "method_type": METHOD_CLASSIFY,
+    #     "feature_type": MEL_SPECTROGRAM,
+    #     "label_cnt": 3,
+    # },
+    # {
+    #     "model_name": SERVED_MODEL_CLASSIFY_ENST_4,
+    #     "is_frozen": False,
+    #     "is_stored": False,
+    #     "method_type": METHOD_CLASSIFY,
+    #     "feature_type": MEL_SPECTROGRAM,
+    #     "label_cnt": 4,
+    # },
+    # {
+    #     "model_name": SERVED_MODEL_DETECT_EGMD_4,
+    #     "is_frozen": False,
+    #     "is_stored": False,
+    #     "method_type": METHOD_DETECT,
+    #     "feature_type": MEL_SPECTROGRAM,
+    #     "label_cnt": 4,
+    # },
     {
-        "model_name": SERVED_MODEL_CLASSIFY_LSTM,
+        "model_name": SERVED_MODEL_CLASSIFY_4_80,
         "is_frozen": True,
-        "is_stored": True,
+        "is_stored": False,
         "method_type": METHOD_CLASSIFY,
-        "feature_type": MEL_SPECTROGRAM,
-        "label_cnt": 5,
-    },
-    {
-        "model_name": SERVED_MODEL_CLASSIFY_BI_LSTM,
-        "is_frozen": True,
-        "is_stored": True,
-        "method_type": METHOD_CLASSIFY,
-        "feature_type": MEL_SPECTROGRAM,
-        "label_cnt": 5,
-    },
-    {
-        "model_name": SERVED_MODEL_CLASSIFY_MFCC,
-        "is_frozen": True,
-        "is_stored": True,
-        "method_type": METHOD_CLASSIFY,
-        "feature_type": MFCC,
-        "label_cnt": 5,
-    },
-    {
-        "model_name": SERVED_MODEL_DETECT_LSTM,
-        "is_frozen": True,
-        "is_stored": True,
-        "method_type": METHOD_DETECT,
         "feature_type": MEL_SPECTROGRAM,
         "label_cnt": 4,
     },
     {
-        "model_name": SERVED_MODEL_CLASSIFY_ENST_3,
+        "model_name": SERVED_MODEL_CLASSIFY_4_87,
         "is_frozen": True,
-        "is_stored": True,
+        "is_stored": False,
         "method_type": METHOD_CLASSIFY,
-        "feature_type": MEL_SPECTROGRAM,
-        "label_cnt": 3,
-    },
-    {
-        "model_name": SERVED_MODEL_CLASSIFY_ENST_4,
-        "is_frozen": True,
-        "is_stored": True,
-        "method_type": METHOD_CLASSIFY,
-        "feature_type": MEL_SPECTROGRAM,
-        "label_cnt": 4,
-    },
-    {
-        "model_name": SERVED_MODEL_DETECT_EGMD_4,
-        "is_frozen": True,
-        "is_stored": True,
-        "method_type": METHOD_DETECT,
         "feature_type": MEL_SPECTROGRAM,
         "label_cnt": 4,
     },

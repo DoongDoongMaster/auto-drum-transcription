@@ -1,8 +1,6 @@
 from constant import (
     SERVED_MODEL_ALL,
 )
-from data.data_processing import DataProcessing
-from feature.feature_extractor import FeatureExtractor
 from serving.model_serving import ModelServing
 
 # ============ sercved model class create & model save ========================

@@ -697,7 +697,7 @@ SERVED_MODEL_ALL = [
     # },
     {
         "model_name": SERVED_MODEL_CLASSIFY_4_80,
-        "is_frozen": False,
+        "is_frozen": True,
         "is_stored": False,
         "method_type": METHOD_CLASSIFY,
         "feature_type": MEL_SPECTROGRAM,
@@ -705,7 +705,7 @@ SERVED_MODEL_ALL = [
     },
     {
         "model_name": SERVED_MODEL_CLASSIFY_4_87,
-        "is_frozen": False,
+        "is_frozen": True,
         "is_stored": False,
         "method_type": METHOD_CLASSIFY,
         "feature_type": MEL_SPECTROGRAM,

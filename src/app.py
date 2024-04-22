@@ -8,6 +8,7 @@ from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from serving.model_serving import ModelServing
 
+
 app = FastAPI()
 
 

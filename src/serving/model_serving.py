@@ -1,6 +1,8 @@
+import os
 import numpy as np
 import tensorflow as tf
 
+from dotenv import load_dotenv
 from redisai import Client
 from tensorflow import keras
 from tensorflow.python.framework.convert_to_constants import (
@@ -13,13 +15,15 @@ from constant import (
     MODEL_DIR,
     MODEL_SAVED_H5,
     MODEL_SAVED_PB,
-    REDIS_AI_HOST,
-    REDIS_AI_PORT,
     SERVED_MODEL_DETECT_EGMD_4,
     SERVED_MODEL_DIR,
 )
 from model.segment_classify import SegmentClassifyModel
 from model.separate_detect import SeparateDetectModel
+
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
 class ModelServing:
@@ -30,7 +34,9 @@ class ModelServing:
         model_name: str,
         label_cnt: int = 4,
     ) -> None:
-        self.redisai_client = Client(host=REDIS_AI_HOST, port=REDIS_AI_PORT)
+        self.redisai_client = Client(
+            host=os.environ["REDIS_AI_HOST"], port=os.environ["REDIS_AI_PORT"]
+        )
         self.method_type = method_type
         self.feature_type = feature_type
         self.model_name = model_name

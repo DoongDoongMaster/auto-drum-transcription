@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   redisai:
     container_name: redisai
@@ -31,3 +29,11 @@ services:
     entrypoint:
       - sh
       - scripts/docker_entrypoint.sh
+
+  ngrok:
+    container_name: ngrok
+    image: ngrok/ngrok:latest
+    env_file:
+      - .env
+    network_mode: host
+    command: ["http", "80"]

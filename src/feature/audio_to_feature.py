@@ -58,7 +58,7 @@ class AudioToFeature:
         if method_type in [METHOD_DETECT, METHOD_RHYTHM]:  # separate & detect방식 확인
             result = np.transpose(result)  # row: time, col: feature
 
-        AudioToFeature._print_feature_info(audio, feature_type, result)
+        # AudioToFeature._print_feature_info(audio, feature_type, result)
         return result
 
     @staticmethod

@@ -2,6 +2,8 @@ services:
   redisai:
     container_name: redisai
     image: redislabs/redisai:edge-gpu-bionic
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=1
     ports:
       - 6379:6379
     deploy:
@@ -9,8 +11,8 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
               capabilities: [gpu]
+              device_ids: ["1"]
 
   fastapi:
     container_name: fastapi

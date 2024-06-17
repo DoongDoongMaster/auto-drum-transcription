@@ -22,8 +22,11 @@ from model.segment_classify import SegmentClassifyModel
 from model.separate_detect import SeparateDetectModel
 
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
+# .env 파일의 경로 설정
+dotenv_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "../../../../.env"
+)
+load_dotenv(dotenv_path)
 
 
 class ModelServing:

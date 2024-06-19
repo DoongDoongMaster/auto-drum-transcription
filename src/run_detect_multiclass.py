@@ -24,7 +24,7 @@ from constant import (
     NEW_PATH,
     PKL,
 )
-from model.separate_detect_multiclass import SeparateDetectMultiClassModel
+from models.separate_detect_multiclass import SeparateDetectMultiClassModel
 
 separate_detect_multiclass = SeparateDetectMultiClassModel(40, 0.01, 32, 128)
 

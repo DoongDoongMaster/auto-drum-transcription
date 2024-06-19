@@ -15,7 +15,7 @@ from keras.layers import Dense, LSTM, Conv1D, Input
 from keras.optimizers import Adam, SGD, RMSprop
 from keras.metrics import BinaryAccuracy
 
-from model.base_model import BaseModel
+from models.base_model import BaseModel
 from data.onset_detection import OnsetDetect
 from data.data_processing import DataProcessing
 from data.data_labeling import DataLabeling

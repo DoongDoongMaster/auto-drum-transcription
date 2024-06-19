@@ -1,5 +1,5 @@
 import librosa
-from model.separate_detect import SeparateDetectModel
+from models.separate_detect import SeparateDetectModel
 from data.onset_detection import OnsetDetect
 from data.data_processing import DataProcessing
 from data.data_labeling import DataLabeling

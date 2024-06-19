@@ -25,7 +25,7 @@ from data.data_processing import DataProcessing
 from data.data_labeling import DataLabeling
 from feature.audio_to_feature import AudioToFeature
 from feature.feature_extractor import FeatureExtractor
-from model.base_model import BaseModel
+from models.base_model import BaseModel
 from constant import (
     METHOD_RHYTHM,
     STFT,

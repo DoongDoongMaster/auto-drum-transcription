@@ -1,5 +1,5 @@
 import librosa
-from model.segment_classify import SegmentClassifyModel
+from models.segment_classify import SegmentClassifyModel
 from data.onset_detection import OnsetDetect
 from data.data_processing import DataProcessing
 from data.data_labeling import DataLabeling

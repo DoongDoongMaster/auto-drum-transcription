@@ -15,7 +15,7 @@ from feature.audio_to_feature import AudioToFeature
 from data.rhythm_detection import RhythmDetection
 from data.data_processing import DataProcessing
 from data.data_labeling import DataLabeling
-from model.base_model import BaseModel
+from models.base_model import BaseModel
 from constant import (
     CHUNK_TIME_LENGTH,
     DETECT_TYPES,

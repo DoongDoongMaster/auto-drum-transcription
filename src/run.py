@@ -5,9 +5,9 @@ from data.data_labeling import DataLabeling
 from data.data_processing import DataProcessing
 from feature.feature_extractor import FeatureExtractor
 from data.onset_detection import OnsetDetect
-from model.segment_classify import SegmentClassifyModel
-from model.separate_detect import SeparateDetectModel
-from model.rhythm_detect_model import RhythmDetectModel
+from models.segment_classify import SegmentClassifyModel
+from models.separate_detect import SeparateDetectModel
+from models.rhythm_detect_model import RhythmDetectModel
 
 from constant import (
     CSV,
@@ -35,8 +35,8 @@ from constant import (
     VALIDATION,
     ENST,
 )
-from model.separate_detect_ref import SeparateDetectRefModel
-from model.separate_detect_b import SeparateDetectBModel
+from models.separate_detect_ref import SeparateDetectRefModel
+from models.separate_detect_b import SeparateDetectBModel
 
 # audio_paths = DataProcessing.get_paths(f"{ROOT_PATH}/{RAW_PATH}")
 # FeatureExtractor.feature_extractor(audio_paths, METHOD_DETECT, MEL_SPECTROGRAM, PKL)

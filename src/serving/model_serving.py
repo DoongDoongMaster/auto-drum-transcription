@@ -18,8 +18,8 @@ from constant import (
     SERVED_MODEL_DETECT_EGMD_4,
     SERVED_MODEL_DIR,
 )
-from model.segment_classify import SegmentClassifyModel
-from model.separate_detect import SeparateDetectModel
+from models.segment_classify import SegmentClassifyModel
+from models.separate_detect import SeparateDetectModel
 
 
 # .env 파일의 경로 설정

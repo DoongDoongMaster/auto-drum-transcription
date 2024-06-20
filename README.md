@@ -97,7 +97,7 @@
   segment_classify.evaluate() # 모델 평가
   segment_classify.save() # 모델 저장
   ```
-### 4. Inferenct
+### 4. Inference
 - 실행 코드 (`src/` 위치에서 실행)
   ```python
   segment_classify = SegmentClassifyModel(feature_type=MEL_SPECTROGRAM)

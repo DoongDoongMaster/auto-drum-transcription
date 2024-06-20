@@ -2,10 +2,10 @@
 >드럼의 박자를 인식하고 악기를 분류하는 드럼 전사 모델
 
 ## 📝 Table of Contents
-- [Introduction](https://github.com/DoongDoongMaster/automatic-drum-transcription/edit/main/README.md#introduction)
-- [Dataset](https://github.com/DoongDoongMaster/automatic-drum-transcription/edit/main/README.md#dataset)
-- [Preparation](https://github.com/DoongDoongMaster/automatic-drum-transcription/edit/main/README.md#preparation)
-- [Run](https://github.com/DoongDoongMaster/automatic-drum-transcription/edit/main/README.md#run)
+- [Introduction](https://github.com/DoongDoongMaster/automatic-drum-transcription?tab=readme-ov-file#introduction)
+- [Dataset](https://github.com/DoongDoongMaster/automatic-drum-transcription?tab=readme-ov-file#dataset)
+- [Preparation](https://github.com/DoongDoongMaster/automatic-drum-transcription?tab=readme-ov-file#preparation)
+- [Run](https://github.com/DoongDoongMaster/automatic-drum-transcription?tab=readme-ov-file#run)
 <br>
 
 ## Introduction

@@ -87,53 +87,53 @@ class ModelServing:
         )
 
     def predict_model_from_server(self, audio: np.array):
-        # self.model_meta = self.redisai_client.modelget(
-        #     f"{self.model_name}", meta_only=True
-        # )
-        # if self.model_meta:
-        print("========== find model! ==============")
-        model_class = None
-        if self.method_type == METHOD_CLASSIFY:
-            model_class = SegmentClassifyModel(
-                feature_type=self.feature_type, load_model_flag=False
+        self.model_meta = self.redisai_client.modelget(
+            f"{self.model_name}", meta_only=True
+        )
+        if self.model_meta:
+            print("========== find model! ==============")
+            model_class = None
+            if self.method_type == METHOD_CLASSIFY:
+                model_class = SegmentClassifyModel(
+                    feature_type=self.feature_type, load_model_flag=False
+                )
+            elif self.method_type == METHOD_DETECT:
+                model_class = SeparateDetectModel(load_model_flag=False)
+
+            print("=========== model class ==========", model_class)
+            print("=========== load model : ", self.model_name)
+
+            # pre-processing
+            input_data = model_class.data_pre_processing(audio)
+            # data reshape for classify conv2d
+            if self.method_type == METHOD_CLASSIFY and self.label_cnt < 5:
+                input_data = model_class.input_reshape(input_data)
+            if self.model_name == SERVED_MODEL_DETECT_EGMD_4:
+                input_data = model_class.input_reshape(input_data)
+
+            # make input data to redis ai
+            self.redisai_client.tensorset(f"{self.model_name}:in", input_data)
+
+            # predict
+            self.redisai_client.modelexecute(
+                self.model_name,
+                inputs=[f"{self.model_name}:in"],
+                outputs=[f"{self.model_name}:out"],
             )
-        elif self.method_type == METHOD_DETECT:
-            model_class = SeparateDetectModel(load_model_flag=False)
 
-        print("=========== model class ==========", model_class)
-        print("=========== load model : ", self.model_name)
+            # get result from redis ai
+            predict_result = self.redisai_client.tensorget(f"{self.model_name}:out")
 
-        # pre-processing
-        input_data = model_class.data_pre_processing(audio)
-        # data reshape for classify conv2d
-        if self.method_type == METHOD_CLASSIFY and self.label_cnt < 5:
-            input_data = model_class.input_reshape(input_data)
-        if self.model_name == SERVED_MODEL_DETECT_EGMD_4:
-            input_data = model_class.input_reshape(input_data)
+            # post-processing
+            drum_instrument, onsets_arr = model_class.data_post_processing(
+                predict_result,
+                audio,
+                self.label_cnt,
+            )
 
-        # make input data to redis ai
-        self.redisai_client.tensorset(f"{self.model_name}:in", input_data)
+            # print("drum_instrument", drum_instrument)
+            # print("onests_arr", onsets_arr)
+            return drum_instrument, onsets_arr
 
-        # predict
-        self.redisai_client.modelexecute(
-            self.model_name,
-            inputs=[f"{self.model_name}:in"],
-            outputs=[f"{self.model_name}:out"],
-        )
-
-        # get result from redis ai
-        predict_result = self.redisai_client.tensorget(f"{self.model_name}:out")
-
-        # post-processing
-        drum_instrument, onsets_arr = model_class.data_post_processing(
-            predict_result,
-            audio,
-            self.label_cnt,
-        )
-
-        # print("drum_instrument", drum_instrument)
-        # print("onests_arr", onsets_arr)
-        return drum_instrument, onsets_arr
-
-    # else:
-    #     return False
+        else:
+            raise Exception("Not exists model")

@@ -75,7 +75,7 @@ class SegmentClassifyModel(BaseModel):
         self.n_classes = self.feature_param["n_classes"]
         self.hop_length = self.feature_param["hop_length"]
         if load_model_flag:
-            self.load_model()
+            self.load_model("../models/classify/classify_mel-spectrogram_2024-04-22_04-53-00-[MDB-IDMT-ENST-E_GMD]-[0.8731].h5")
 
     def input_reshape(self, data):
         # sequence data
